@@ -1,13 +1,13 @@
 <?php
 /**
- * 2007-2015 PrestaShop
+ * 2007-2019 PrestaShop SA and Contributors
  *
  * NOTICE OF LICENSE
  *
  * This source file is subject to the Open Software License (OSL 3.0)
  * that is bundled with this package in the file LICENSE.txt.
  * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
+ * https://opensource.org/licenses/OSL-3.0
  * If you did not receive a copy of the license and are unable to
  * obtain it through the world-wide-web, please send an email
  * to license@prestashop.com so we can send you a copy immediately.
@@ -16,11 +16,11 @@
  *
  * Do not edit or add to this file if you wish to upgrade PrestaShop to newer
  * versions in the future. If you wish to customize PrestaShop for your
- * needs please refer to http://www.prestashop.com for more information.
+ * needs please refer to https://www.prestashop.com for more information.
  *
  * @author    PrestaShop SA <contact@prestashop.com>
- * @copyright 2007-2015 PrestaShop SA
- * @license   http://opensource.org/licenses/osl-3.0.php Open Software License (OSL 3.0)
+ * @copyright 2007-2019 PrestaShop SA and Contributors
+ * @license   https://opensource.org/licenses/OSL-3.0 Open Software License (OSL 3.0)
  * International Registered Trademark & Property of PrestaShop SA
  */
 
@@ -81,7 +81,7 @@ function migrate_orders()
     }
     for ($i = 0; $i < $nb_loop; $i++) {
         $order_res = Db::getInstance()->query('SELECT * FROM `'._DB_PREFIX_.'orders` LIMIT '.(int)$start.', '.(int)$step);
-        $start = intval(($i+1) * $step);
+        $start = (int) (($i+1) * $step);
         $cpt = 0;
         $flush_limit = 200;
         while ($order = Db::getInstance()->nextRow($order_res)) {
@@ -99,12 +99,12 @@ function migrate_orders()
                 $products = mo_setProductPrices($order_details, $price_display_method);
                 $tax_rate = 1 + ((float)$products['tax_rate'] / 100);
                 $reduction_amount_tax_incl = (float)$products['reduction_amount'];
-    
+
                 // cart::getTaxesAverageUsed equivalent
                 $sum_total_products += $products['total_price'];
-                
+
                 $sum_tax_amount += $products['total_wt'] - $products['total_price'];
-    
+
                 $order_details['reduction_amount_tax_incl'] = $reduction_amount_tax_incl;
                 $order_details['reduction_amount_tax_excl'] = (float)mo_ps_round($reduction_amount_tax_incl / $tax_rate);
                 $order_details['total_price_tax_incl'] = (float)$products['total_wt'];
@@ -138,19 +138,19 @@ function migrate_orders()
             if (isset($order['carrier_tax_rate'])) {
                 $carrier_tax_rate + ((float)$order['carrier_tax_rate'] / 100);
             }
-    
+
             $total_discount_tax_excl = $order['total_discounts'] / $average_tax_used;
             $order['total_discounts_tax_incl'] = (float)$order['total_discounts'];
             $order['total_discounts_tax_excl'] = (float)$total_discount_tax_excl;
-    
+
             $order['total_shipping_tax_incl'] = (float)$order['total_shipping'];
             $order['total_shipping_tax_excl'] = (float)($order['total_shipping'] / $carrier_tax_rate);
             $shipping_taxes = $order['total_shipping_tax_incl'] - $order['total_shipping_tax_excl'];
-    
+
             $order['total_wrapping_tax_incl'] = (float)$order['total_wrapping'];
             $order['total_wrapping_tax_excl'] = ((float)$order['total_wrapping'] / $wrapping_tax_rate);
             $wrapping_taxes = $order['total_wrapping_tax_incl'] - $order['total_wrapping_tax_excl'];
-    
+
             $product_taxes = $order['total_products_wt'] - $order['total_products'];
             $order['total_paid_tax_incl'] = (float)$order['total_paid'];
             $order['total_paid_tax_excl'] = (float)$order['total_paid'] - $shipping_taxes - $wrapping_taxes - $product_taxes;
@@ -158,12 +158,12 @@ function migrate_orders()
             $order['gift_message'] = Db::getInstance()->escape($order['gift_message']);
             $order['payment'] = Db::getInstance()->escape($order['payment']);
             $order['module'] = Db::getInstance()->escape($order['module']);
-    
+
             $values_order[] = '(\''.implode('\', \'', $order).'\')';
-    
+
             unset($order);
             $cpt++;
-            
+
             // limit to $cpt
             if ($cpt >= $flush_limit) {
                 $cpt = 0;
@@ -243,6 +243,7 @@ function mo_duplicateTables()
 		`'._DB_PREFIX_.'orders_2` LIKE `'._DB_PREFIX_.'orders`');
     $res &= Db::getInstance()->execute('CREATE TABLE
 		`'._DB_PREFIX_.'order_detail_2` LIKE `'._DB_PREFIX_.'order_detail`');
+
     return $res;
 }
 
@@ -254,6 +255,7 @@ function mo_renameTables()
 
     $res &= Db::getInstance()->execute('RENAME TABLE `'._DB_PREFIX_.'orders_2` TO `'._DB_PREFIX_.'orders`');
     $res &= Db::getInstance()->execute('RENAME TABLE `'._DB_PREFIX_.'order_detail_2` TO `'._DB_PREFIX_.'order_detail`');
+
     return $res;
 }
 
@@ -319,7 +321,7 @@ function mo_setProductPrices($row, $tax_calculation_method)
         }
     }
 
-    if (($row['reduction_percent'] or $row['reduction_amount'] or $row['group_reduction']) and $tax_calculation_method == PS_TAX_EXC) {
+    if (($row['reduction_percent'] || $row['reduction_amount'] || $row['group_reduction']) && $tax_calculation_method == PS_TAX_EXC) {
         $row['product_price'] = mo_ps_round($row['product_price']);
     }
 

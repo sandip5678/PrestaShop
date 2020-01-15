@@ -1,45 +1,45 @@
 <?php
-/*
-* 2007-2015 PrestaShop
-*
-* NOTICE OF LICENSE
-*
-* This source file is subject to the Open Software License (OSL 3.0)
-* that is bundled with this package in the file LICENSE.txt.
-* It is also available through the world-wide-web at this URL:
-* http://opensource.org/licenses/osl-3.0.php
-* If you did not receive a copy of the license and are unable to
-* obtain it through the world-wide-web, please send an email
-* to license@prestashop.com so we can send you a copy immediately.
-*
-* DISCLAIMER
-*
-* Do not edit or add to this file if you wish to upgrade PrestaShop to newer
-* versions in the future. If you wish to customize PrestaShop for your
-* needs please refer to http://www.prestashop.com for more information.
-*
-*  @author PrestaShop SA <contact@prestashop.com>
-*  @copyright  2007-2015 PrestaShop SA
-*  @license    http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
-*  International Registered Trademark & Property of PrestaShop SA
-*/
+/**
+ * 2007-2019 PrestaShop SA and Contributors
+ *
+ * NOTICE OF LICENSE
+ *
+ * This source file is subject to the Open Software License (OSL 3.0)
+ * that is bundled with this package in the file LICENSE.txt.
+ * It is also available through the world-wide-web at this URL:
+ * https://opensource.org/licenses/OSL-3.0
+ * If you did not receive a copy of the license and are unable to
+ * obtain it through the world-wide-web, please send an email
+ * to license@prestashop.com so we can send you a copy immediately.
+ *
+ * DISCLAIMER
+ *
+ * Do not edit or add to this file if you wish to upgrade PrestaShop to newer
+ * versions in the future. If you wish to customize PrestaShop for your
+ * needs please refer to https://www.prestashop.com for more information.
+ *
+ * @author    PrestaShop SA <contact@prestashop.com>
+ * @copyright 2007-2019 PrestaShop SA and Contributors
+ * @license   https://opensource.org/licenses/OSL-3.0 Open Software License (OSL 3.0)
+ * International Registered Trademark & Property of PrestaShop SA
+ */
 
 namespace PrestaShop\PrestaShop\Core\Addon;
 
 class AddonListFilter
 {
     /**
-     * @var $type AddonListFilterType Specify the addon type like theme only or module only or all
+     * @var int AddonListFilterType Specify the addon type like theme only or module only or all
      */
     public $type = AddonListFilterType::ALL;
 
     /**
-     * @var $status AddonListFilterStatus Specify if you want enabled only, disabled only or all addons
+     * @var int AddonListFilterStatus Specify if you want enabled only, disabled only or all addons
      */
     public $status = AddonListFilterStatus::ALL;
 
     /**
-     * @var $status AddonListFilterOrigin Specify if you want an addon from a specific source
+     * @var int AddonListFilterOrigin Specify if you want an addon from a specific source
      */
     public $origin = AddonListFilterOrigin::ALL;
 
@@ -49,64 +49,74 @@ class AddonListFilter
     public $exclude = [];
 
     /**
-     * @param AddonListFilterOrigin $origin
+     * @param int $origin
+     *
      * @return \PrestaShop\PrestaShop\Core\Addon\AddonListFilter
      */
     public function addOrigin($origin)
     {
         $this->origin &= $origin;
+
         return $this;
     }
 
     /**
-     * @param AddonListFilterStatus $status
+     * @param int $status
+     *
      * @return \PrestaShop\PrestaShop\Core\Addon\AddonListFilter
      */
     public function addStatus($status)
     {
         $this->status &= $status;
+
         return $this;
     }
 
     /**
-     * @param AddonListFilterType $type
+     * @param int $type
+     *
      * @return \PrestaShop\PrestaShop\Core\Addon\AddonListFilter
      */
     public function addType($type)
     {
         $this->type &= $type;
+
         return $this;
     }
 
     /**
-     * @param AddonListFilterOrigin $origin
+     * @param int $origin
+     *
      * @return bool
      */
     public function hasOrigin($origin)
     {
-        return ($this->origin & $origin);
+        return $this->origin & $origin;
     }
 
     /**
-     * @param AddonListFilterStatus $status
+     * @param int $status
+     *
      * @return bool
      */
     public function hasStatus($status)
     {
-        return ($this->status & $status);
+        return $this->status & $status;
     }
 
     /**
-     * @param AddonListFilterType $type
+     * @param int $type
+     *
      * @return bool
      */
     public function hasType($type)
     {
-        return ($this->type & $type);
+        return $this->type & $type;
     }
 
     /**
-     * @param AddonListFilterOrigin $origin
+     * @param int $origin
+     *
      * @return \PrestaShop\PrestaShop\Core\Addon\AddonListFilter
      */
     public function removeOrigin($origin)
@@ -115,7 +125,8 @@ class AddonListFilter
     }
 
     /**
-     * @param AddonListFilterStatus $status
+     * @param int $status
+     *
      * @return \PrestaShop\PrestaShop\Core\Addon\AddonListFilter
      */
     public function removeStatus($status)
@@ -124,8 +135,8 @@ class AddonListFilter
     }
 
     /**
+     * @param int $type
      *
-     * @param AddonListFilterType $type
      * @return \PrestaShop\PrestaShop\Core\Addon\AddonListFilter
      */
     public function removeType($type)
@@ -134,38 +145,45 @@ class AddonListFilter
     }
 
     /**
-     * @param AddonListFilterOrigin $origin
+     * @param int $origin
+     *
      * @return \PrestaShop\PrestaShop\Core\Addon\AddonListFilter
      */
     public function setOrigin($origin)
     {
         $this->origin = $origin;
+
         return $this;
     }
 
     /**
-     * @param AddonListFilterType $type
+     * @param int $type
+     *
      * @return \PrestaShop\PrestaShop\Core\Addon\AddonListFilter
      */
     public function setType($type)
     {
         $this->type = $type;
+
         return $this;
     }
 
     /**
-     * @param AddonListFilterStatus $status
+     * @param int $status
+     *
      * @return \PrestaShop\PrestaShop\Core\Addon\AddonListFilter
      */
     public function setStatus($status)
     {
         $this->status = $status;
+
         return $this;
     }
 
     public function setExclude(array $exclude)
     {
         $this->exclude = $exclude;
+
         return $this;
     }
 }

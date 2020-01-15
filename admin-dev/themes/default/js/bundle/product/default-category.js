@@ -14,20 +14,27 @@ var defaultCategory = (function() {
        */
       defaultCategoryForm.hide();
     },
+
     /**
      * Check the radio bouton with the selected value
      */
     'check': function(value) {
-      var defaultCategory = defaultCategoryForm.find('input[value="'+value+'"]');
-      if (defaultCategory.is(':checked')) {
-        console.log('already checked');
-        return;
-      }
-      else {
-        var previousDefault = defaultCategoryForm.find('input:checked');
-        previousDefault.attr('checked', false);
-        defaultCategory.attr('checked', 'checked');
-      }
+      defaultCategoryForm.find('input[value="'+value+'"]').prop('checked', true);
+    },
+
+    'isChecked': function(value) {
+      return defaultCategoryForm.find('input[value="'+value+'"]').is(':checked');
+    },
+
+    /**
+     * When the category selected as a default is unselected
+     * The default category MUST be a selected category
+     */
+    'reset': function() {
+      var firstInput = defaultCategoryForm.find('input:first-child');
+      firstInput.prop('checked', true);
+      var categoryId = firstInput.val();
+      productCategoriesTags.checkDefaultCategory(categoryId);
     }
   };
 })();

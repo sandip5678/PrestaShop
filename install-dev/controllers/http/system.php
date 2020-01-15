@@ -1,13 +1,13 @@
 <?php
 /**
- * 2007-2015 PrestaShop
+ * 2007-2019 PrestaShop SA and Contributors
  *
  * NOTICE OF LICENSE
  *
  * This source file is subject to the Open Software License (OSL 3.0)
  * that is bundled with this package in the file LICENSE.txt.
  * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
+ * https://opensource.org/licenses/OSL-3.0
  * If you did not receive a copy of the license and are unable to
  * obtain it through the world-wide-web, please send an email
  * to license@prestashop.com so we can send you a copy immediately.
@@ -16,37 +16,39 @@
  *
  * Do not edit or add to this file if you wish to upgrade PrestaShop to newer
  * versions in the future. If you wish to customize PrestaShop for your
- * needs please refer to http://www.prestashop.com for more information.
+ * needs please refer to https://www.prestashop.com for more information.
  *
  * @author    PrestaShop SA <contact@prestashop.com>
- * @copyright 2007-2015 PrestaShop SA
- * @license   http://opensource.org/licenses/osl-3.0.php Open Software License (OSL 3.0)
+ * @copyright 2007-2019 PrestaShop SA and Contributors
+ * @license   https://opensource.org/licenses/OSL-3.0 Open Software License (OSL 3.0)
  * International Registered Trademark & Property of PrestaShop SA
  */
+
+use PrestaShopBundle\Install\System;
 
 /**
  * Step 2 : check system configuration (permissions on folders, PHP version, etc.)
  */
-class InstallControllerHttpSystem extends InstallControllerHttp
+class InstallControllerHttpSystem extends InstallControllerHttp implements HttpConfigureInterface
 {
     public $tests = array();
 
     /**
-     * @var InstallModelSystem
+     * @var System
      */
     public $model_system;
 
     /**
-     * @see InstallAbstractModel::init()
+     * @see HttpConfigureInterface::init()
      */
     public function init()
     {
-        require_once _PS_INSTALL_MODELS_PATH_.'system.php';
-        $this->model_system = new InstallModelSystem();
+        $this->model_system = new System();
+        $this->model_system->setTranslator($this->translator);
     }
 
     /**
-     * @see InstallAbstractModel::processNextStep()
+     * @see HttpConfigureInterface::processNextStep()
      */
     public function processNextStep()
     {
@@ -55,7 +57,7 @@ class InstallControllerHttpSystem extends InstallControllerHttp
     /**
      * Required tests must be passed to validate this step
      *
-     * @see InstallAbstractModel::validate()
+     * @see HttpConfigureInterface::validate()
      */
     public function validate()
     {
@@ -87,76 +89,81 @@ class InstallControllerHttpSystem extends InstallControllerHttp
         $this->tests_render = array(
             'required' => array(
                 array(
-                    'title' => $this->l('Required PHP parameters'),
+                    'title' => $this->translator->trans('Required PHP parameters', array(), 'Install'),
                     'success' => 1,
                     'checks' => array(
-                        'phpversion' => $this->l('PHP 5.4 or later is not enabled'),
-                        'upload' => $this->l('Cannot upload files'),
-                        'system' => $this->l('Cannot create new files and folders'),
-                        'gd' => $this->l('GD library is not installed'),
-                        'mysql_support' => $this->l('MySQL support is not activated'),
-                        'zip' => $this->l('ZIP extension is not enabled'),
-                    )
+                        'phpversion' => $this->translator->trans('PHP %version% or later is not enabled', array('%version%' => _PS_INSTALL_MINIMUM_PHP_VERSION_), 'Install'),
+                        'upload' => $this->translator->trans('Cannot upload files', array(), 'Install'),
+                        'system' => $this->translator->trans('Cannot create new files and folders', array(), 'Install'),
+                        'curl' => $this->translator->trans('cURL extension is not enabled', array(), 'Install'),
+                        'gd' => $this->translator->trans('GD library is not installed', array(), 'Install'),
+                        'json' => $this->translator->trans('JSON extension is not loaded', array(), 'Install'),
+                        'openssl' => $this->translator->trans('PHP OpenSSL extension is not loaded', array(), 'Install'),
+                        'pdo_mysql' => $this->translator->trans('PDO MySQL extension is not loaded', array(), 'Install'),
+                        'simplexml' => $this->translator->trans('SimpleXML extension is not loaded', array(), 'Install'),
+                        'zip' => $this->translator->trans('ZIP extension is not enabled', array(), 'Install'),
+                        'fileinfo' => $this->translator->trans('Fileinfo extension is not enabled', array(), 'Install'),
+                        'intl' => $this->translator->trans('Intl extension is not loaded', array(), 'Install'),
+                        'memory_limit' => $this->translator->trans('PHP\'s config "memory_limit" must be to a minimum of 256M', array(), 'Install'),
+                    ),
                 ),
                 array(
-                    'title' => $this->l('Required Apache configuration'),
+                    'title' => $this->translator->trans('Required Apache configuration', array(), 'Install'),
                     'success' => 1,
                     'checks' => array(
-                        'apache_mod_rewrite' => $this->l('Enable the Apache mod_rewrite module'),
-                    )
+                        'apache_mod_rewrite' => $this->translator->trans('Enable the Apache mod_rewrite module', array(), 'Install'),
+                    ),
                 ),
                 array(
-                    'title' => $this->l('Files'),
+                    'title' => $this->translator->trans('Files', array(), 'Install'),
                     'success' => 1,
                     'checks' => array(
-                        'files' => $this->l('Not all files were successfully uploaded on your server')
-                    )
+                        'files' => $this->translator->trans('Not all files were successfully uploaded on your server', array(), 'Install'),
+                    ),
                 ),
                 array(
-                    'title' => $this->l('Permissions on files and folders'),
+                    'title' => $this->translator->trans('Permissions on files and folders', array(), 'Install'),
                     'success' => 1,
                     'checks' => array(
-                        'config_dir' => $this->l('Recursive write permissions for %1$s user on %2$s', $user, '~/config/'),
-                        'cache_dir' => $this->l('Recursive write permissions for %1$s user on %2$s', $user, '~/cache/'),
-                        'log_dir' => $this->l('Recursive write permissions for %1$s user on %2$s', $user, '~/log/'),
-                        'img_dir' => $this->l('Recursive write permissions for %1$s user on %2$s', $user, '~/img/'),
-                        'mails_dir' => $this->l('Recursive write permissions for %1$s user on %2$s', $user, '~/mails/'),
-                        'module_dir' => $this->l('Recursive write permissions for %1$s user on %2$s', $user, '~/modules/'),
-                        'theme_lang_dir' => $this->l('Recursive write permissions for %1$s user on %2$s', $user, '~/themes/'._THEME_NAME_.'/lang/'),
-                        'theme_pdf_lang_dir' => $this->l('Recursive write permissions for %1$s user on %2$s', $user, '~/themes/'._THEME_NAME_.'/pdf/lang/'),
-                        'theme_cache_dir' => $this->l('Recursive write permissions for %1$s user on %2$s', $user, '~/themes/'._THEME_NAME_.'/cache/'),
-                        'translations_dir' => $this->l('Recursive write permissions for %1$s user on %2$s', $user, '~/translations/'),
-                        'customizable_products_dir' => $this->l('Recursive write permissions for %1$s user on %2$s', $user, '~/upload/'),
-                        'virtual_products_dir' => $this->l('Recursive write permissions for %1$s user on %2$s', $user, '~/download/'),
-                        'config_sf2_dir' => $this->l('Write permissions for %1$s user on %2$s', $user, '~/app/config/'),
-                    )
+                        'config_dir' => $this->translator->trans('Recursive write permissions for %user% user on %folder%', array('%user%' => $user, '%folder%' => '~/config/'), 'Install'),
+                        'cache_dir' => $this->translator->trans('Recursive write permissions for %user% user on %folder%', array('%user%' => $user, '%folder%' => '~/var/cache/'), 'Install'),
+                        'log_dir' => $this->translator->trans('Recursive write permissions for %user% user on %folder%', array('%user%' => $user, '%folder%' => '~/var/logs/'), 'Install'),
+                        'img_dir' => $this->translator->trans('Recursive write permissions for %user% user on %folder%', array('%user%' => $user, '%folder%' => '~/img/'), 'Install'),
+                        'mails_dir' => $this->translator->trans('Recursive write permissions for %user% user on %folder%', array('%user%' => $user, '%folder%' => '~/mails/'), 'Install'),
+                        'module_dir' => $this->translator->trans('Recursive write permissions for %user% user on %folder%', array('%user%' => $user, '%folder%' => '~/modules/'), 'Install'),
+                        'theme_lang_dir' => $this->translator->trans('Recursive write permissions for %user% user on %folder%', array('%user%' => $user, '%folder%' => '~/themes/'._THEME_NAME_.'/lang/'), 'Install'),
+                        'theme_pdf_lang_dir' => $this->translator->trans('Recursive write permissions for %user% user on %folder%', array('%user%' => $user, '%folder%' => '~/themes/'._THEME_NAME_.'/pdf/lang/'), 'Install'),
+                        'theme_cache_dir' => $this->translator->trans('Recursive write permissions for %user% user on %folder%', array('%user%' => $user, '%folder%' => '~/themes/'._THEME_NAME_.'/cache/'), 'Install'),
+                        'translations_dir' => $this->translator->trans('Recursive write permissions for %user% user on %folder%', array('%user%' => $user, '%folder%' => '~/translations/'), 'Install'),
+                        'customizable_products_dir' => $this->translator->trans('Recursive write permissions for %user% user on %folder%', array('%user%' => $user, '%folder%' => '~/upload/'), 'Install'),
+                        'virtual_products_dir' => $this->translator->trans('Recursive write permissions for %user% user on %folder%', array('%user%' => $user, '%folder%' => '~/download/'), 'Install'),
+                        'config_sf2_dir' => $this->translator->trans('Write permissions for %user% user on %folder%', array('%user%' => $user, '%folder%' => '~/app/config/'), 'Install'),
+                        'translations_sf2' => $this->translator->trans('Write permissions for %user% user on %folder%', array('%user%' => $user, '%folder%' => '~/app/Resources/translations/'), 'Install'),
+                    ),
                 ),
             ),
             'optional' => array(
                 array(
-                    'title' => $this->l('Recommended PHP parameters'),
+                    'title' => $this->translator->trans('Recommended PHP parameters', array(), 'Install'),
                     'success' => $this->tests['optional']['success'],
                     'checks' => array(
-                        'new_phpversion' => sprintf($this->l('You are using PHP %s version. Soon, the latest PHP version supported by PrestaShop will be PHP 5.4. To make sure you’re ready for the future, we recommend you to upgrade to PHP 5.4 now!'), phpversion()),
-                        'fopen' => $this->l('Cannot open external URLs'),
-                        'gz' => $this->l('GZIP compression is not activated'),
-                        'mcrypt' => $this->l('Mcrypt extension is not enabled'),
-                        'mbstring' => $this->l('Mbstring extension is not enabled'),
-                        'dom' => $this->l('Dom extension is not loaded'),
-                        'pdo_mysql' => $this->l('PDO MySQL extension is not loaded')
-                    )
+                        'gz' => $this->translator->trans('GZIP compression is not activated', array(), 'Install'),
+                        'mbstring' => $this->translator->trans('Mbstring extension is not enabled', array(), 'Install'),
+                        'dom' => $this->translator->trans('Dom extension is not loaded', array(), 'Install'),
+                        'fopen' => $this->translator->trans('Cannot open external URLs (requires allow_url_fopen as On)', array(), 'Install'),
+                    ),
                 ),
             ),
         );
 
         //Inject Sf2 errors to test render required
         foreach ($testsRequiredsf2 as $error) {
-            $this->tests_render['required'][2]['checks'][] = $this->l($error->getHelpHtml());
+            $this->tests_render['required'][2]['checks'][] = $this->translator->trans($error->getHelpHtml(), array(), 'Install');
         }
 
         //Inject Sf2 optionnal config to test render optional
         foreach ($testsOptionalsf2 as $error) {
-            $this->tests_render['optional'][0]['checks'][] = $this->l($error->getHelpHtml());
+            $this->tests_render['optional'][0]['checks'][] = $this->translator->trans($error->getHelpHtml(), array(), 'Install');
         }
 
         foreach ($this->tests_render['required'] as &$category) {

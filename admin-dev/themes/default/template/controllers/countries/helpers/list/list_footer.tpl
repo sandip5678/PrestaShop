@@ -1,27 +1,27 @@
-{*
-* 2007-2015 PrestaShop
-*
-* NOTICE OF LICENSE
-*
-* This source file is subject to the Academic Free License (AFL 3.0)
-* that is bundled with this package in the file LICENSE.txt.
-* It is also available through the world-wide-web at this URL:
-* http://opensource.org/licenses/afl-3.0.php
-* If you did not receive a copy of the license and are unable to
-* obtain it through the world-wide-web, please send an email
-* to license@prestashop.com so we can send you a copy immediately.
-*
-* DISCLAIMER
-*
-* Do not edit or add to this file if you wish to upgrade PrestaShop to newer
-* versions in the future. If you wish to customize PrestaShop for your
-* needs please refer to http://www.prestashop.com for more information.
-*
-* @author    PrestaShop SA <contact@prestashop.com>
-* @copyright 2007-2015 PrestaShop SA
-* @license   http://opensource.org/licenses/afl-3.0.php Academic Free License (AFL 3.0)
-* International Registered Trademark & Property of PrestaShop SA
-*}
+{**
+ * 2007-2019 PrestaShop SA and Contributors
+ *
+ * NOTICE OF LICENSE
+ *
+ * This source file is subject to the Open Software License (OSL 3.0)
+ * that is bundled with this package in the file LICENSE.txt.
+ * It is also available through the world-wide-web at this URL:
+ * https://opensource.org/licenses/OSL-3.0
+ * If you did not receive a copy of the license and are unable to
+ * obtain it through the world-wide-web, please send an email
+ * to license@prestashop.com so we can send you a copy immediately.
+ *
+ * DISCLAIMER
+ *
+ * Do not edit or add to this file if you wish to upgrade PrestaShop to newer
+ * versions in the future. If you wish to customize PrestaShop for your
+ * needs please refer to https://www.prestashop.com for more information.
+ *
+ * @author    PrestaShop SA <contact@prestashop.com>
+ * @copyright 2007-2019 PrestaShop SA and Contributors
+ * @license   https://opensource.org/licenses/OSL-3.0 Open Software License (OSL 3.0)
+ * International Registered Trademark & Property of PrestaShop SA
+ *}
 </table>
 </div>
 <div class="row">
@@ -29,17 +29,17 @@
 		{if $bulk_actions && $has_bulk_actions}
 			<div class="btn-group bulk-actions dropup">
 				<button type="button" class="btn btn-default dropdown-toggle" data-toggle="dropdown">
-					{l s='Bulk actions'} <span class="caret"></span>
+					{l s='Bulk actions' d='Admin.Global'} <span class="caret"></span>
 				</button>
 				<ul class="dropdown-menu">
 					<li>
 						<a href="#" onclick="javascript:checkDelBoxes($(this).closest('form').get(0), '{$list_id}Box[]', true);return false;">
-							<i class="icon-check-sign"></i>&nbsp;{l s='Select all'}
+							<i class="icon-check-sign"></i>&nbsp;{l s='Select all' d='Admin.Actions'}
 						</a>
 					</li>
 					<li>
 						<a href="#" onclick="javascript:checkDelBoxes($(this).closest('form').get(0), '{$list_id}Box[]', false);return false;">
-							<i class="icon-check-empty"></i>&nbsp;{l s='Unselect all'}
+							<i class="icon-check-empty"></i>&nbsp;{l s='Unselect all' d='Admin.Actions'}
 						</a>
 					</li>
 					<li class="divider"></li>
@@ -60,7 +60,7 @@
 		<div class="col-lg-6">
 			{* Choose number of results per page *}
 			<div class="pagination">
-				{l s='Display'}
+				{l s='Display' d='Admin.Actions'}
 				<button type="button" class="btn btn-default dropdown-toggle" data-toggle="dropdown">
 					{$selected_pagination}
 					<i class="icon-caret-down"></i>
@@ -72,7 +72,7 @@
 						</li>
 					{/foreach}
 				</ul>
-				/ {$list_total} {l s='result(s)'}
+				/ {$list_total} {l s='result(s)' d='Admin.Global'}
 				<input type="hidden" id="{$list_id}-pagination-items-page" name="{$list_id}_pagination" value="{$selected_pagination|intval}" />
 			</div>
 			<script type="text/javascript">
@@ -138,14 +138,14 @@
 		<div class="col-lg-6">
 			<div class="form-group col-lg-3">
 				<select id="zone_to_affect" name="zone_to_affect" class="form-control">
-					<option value="0">{l s='Zone'}</option>
+					<option value="0">{l s='Zone' d='Admin.Global'}</option>
 					{foreach $zones as $z}
 						<option value="{$z['id_zone']}">{$z['name']}</option>
 					{/foreach}
 				</select>
 			</div>
 			<div class="form-group col-lg-3">
-				<input type="submit" class="btn btn-default pull-right" name="submitBulkAffectZone{$table}" value="{l s='Assign to a new zone'}"  />
+				<input type="submit" class="btn btn-default pull-right" name="submitBulkAffectZone{$table}" value="{l s='Assign to a new zone' d='Admin.International.Feature'}"  />
 			</div>
 		</div>
 	</div>

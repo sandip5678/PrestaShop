@@ -1,30 +1,29 @@
 <?php
 
-/*
-* 2007-2015 PrestaShop
-*
-* NOTICE OF LICENSE
-*
-* This source file is subject to the Open Software License (OSL 3.0)
-* that is bundled with this package in the file LICENSE.txt.
-* It is also available through the world-wide-web at this URL:
-* http://opensource.org/licenses/osl-3.0.php
-* If you did not receive a copy of the license and are unable to
-* obtain it through the world-wide-web, please send an email
-* to license@prestashop.com so we can send you a copy immediately.
-*
-* DISCLAIMER
-*
-* Do not edit or add to this file if you wish to upgrade PrestaShop to newer
-* versions in the future. If you wish to customize PrestaShop for your
-* needs please refer to http://www.prestashop.com for more information.
-*
-*  @author PrestaShop SA <contact@prestashop.com>
-*  @copyright  2007-2015 PrestaShop SA
-*  @license    http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
-*  International Registered Trademark & Property of PrestaShop SA
-*/
-
+/**
+ * 2007-2019 PrestaShop SA and Contributors
+ *
+ * NOTICE OF LICENSE
+ *
+ * This source file is subject to the Open Software License (OSL 3.0)
+ * that is bundled with this package in the file LICENSE.txt.
+ * It is also available through the world-wide-web at this URL:
+ * https://opensource.org/licenses/OSL-3.0
+ * If you did not receive a copy of the license and are unable to
+ * obtain it through the world-wide-web, please send an email
+ * to license@prestashop.com so we can send you a copy immediately.
+ *
+ * DISCLAIMER
+ *
+ * Do not edit or add to this file if you wish to upgrade PrestaShop to newer
+ * versions in the future. If you wish to customize PrestaShop for your
+ * needs please refer to https://www.prestashop.com for more information.
+ *
+ * @author    PrestaShop SA <contact@prestashop.com>
+ * @copyright 2007-2019 PrestaShop SA and Contributors
+ * @license   https://opensource.org/licenses/OSL-3.0 Open Software License (OSL 3.0)
+ * International Registered Trademark & Property of PrestaShop SA
+ */
 use Symfony\Component\Translation\TranslatorInterface;
 
 class CustomerAddressFormatterCore implements FormFormatterInterface
@@ -32,6 +31,7 @@ class CustomerAddressFormatterCore implements FormFormatterInterface
     private $country;
     private $translator;
     private $availableCountries;
+    private $definition;
 
     public function __construct(
         Country $country,
@@ -41,11 +41,13 @@ class CustomerAddressFormatterCore implements FormFormatterInterface
         $this->country = $country;
         $this->translator = $translator;
         $this->availableCountries = $availableCountries;
+        $this->definition = Address::$definition['fields'];
     }
 
     public function setCountry(Country $country)
     {
         $this->country = $country;
+
         return $this;
     }
 
@@ -64,32 +66,44 @@ class CustomerAddressFormatterCore implements FormFormatterInterface
         $required = array_flip(AddressFormat::getFieldsRequired());
 
         $format = [
-            'id_address'  => (new FormField)
+            'id_address' => (new FormField())
                 ->setName('id_address')
                 ->setType('hidden'),
-            'id_customer' => (new FormField)
+            'id_customer' => (new FormField())
                 ->setName('id_customer')
                 ->setType('hidden'),
-            'back' => (new FormField)
+            'back' => (new FormField())
                 ->setName('back')
                 ->setType('hidden'),
-            'token'       => (new FormField)
+            'token' => (new FormField())
                 ->setName('token')
                 ->setType('hidden'),
-            'alias'       => (new FormField)
+            'alias' => (new FormField())
                 ->setName('alias')
                 ->setLabel(
                     $this->getFieldLabel('alias')
-                )
+                ),
         ];
 
         foreach ($fields as $field) {
-            $formField = new FormField;
+            $formField = new FormField();
             $formField->setName($field);
 
             $fieldParts = explode(':', $field, 2);
 
-            if (count($fieldParts) === 2) {
+            if (count($fieldParts) === 1) {
+                if ($field === 'postcode') {
+                    if ($this->country->need_zip_code) {
+                        $formField->setRequired(true);
+                    }
+                } elseif ($field === 'phone') {
+                    $formField->setType('tel');
+                } elseif ($field === 'dni' && null !== $this->country) {
+                    if ($this->country->need_identification_number) {
+                        $formField->setRequired(true);
+                    }
+                }
+            } elseif (count($fieldParts) === 2) {
                 list($entity, $entityField) = $fieldParts;
 
                 // Fields specified using the Entity:field
@@ -98,9 +112,10 @@ class CustomerAddressFormatterCore implements FormFormatterInterface
                 $formField->setType('select');
 
                 // Also, what we really want is the id of the linked entity
-                $formField->setName('id_'.strtolower($entity));
+                $formField->setName('id_' . strtolower($entity));
 
                 if ($entity === 'Country') {
+                    $formField->setType('countrySelect');
                     $formField->setValue($this->country->id);
                     foreach ($this->availableCountries as $country) {
                         $formField->addAvailableValue(
@@ -110,7 +125,7 @@ class CustomerAddressFormatterCore implements FormFormatterInterface
                     }
                 } elseif ($entity === 'State') {
                     if ($this->country->contains_states) {
-                        $states = State::getStatesByIdCountry($this->country->id);
+                        $states = State::getStatesByIdCountry($this->country->id, true);
                         foreach ($states as $state) {
                             $formField->addAvailableValue(
                                 $state['id_state'],
@@ -137,17 +152,47 @@ class CustomerAddressFormatterCore implements FormFormatterInterface
             $format[$formField->getName()] = $formField;
         }
 
-        return $this->addConstraints($format);
+        //To add the extra fields in address form
+        $additionalAddressFormFields = Hook::exec('additionalCustomerAddressFields', ['fields' => &$format], null, true);
+        if (is_array($additionalAddressFormFields)) {
+            foreach ($additionalAddressFormFields as $moduleName => $additionnalFormFields) {
+                if (!is_array($additionnalFormFields)) {
+                    continue;
+                }
+
+                foreach ($additionnalFormFields as $formField) {
+                    $formField->moduleName = $moduleName;
+                    $format[$moduleName . '_' . $formField->getName()] = $formField;
+                }
+            }
+        }
+
+        return $this->addConstraints(
+                $this->addMaxLength(
+                    $format
+                )
+        );
     }
 
     private function addConstraints(array $format)
     {
-        $constraints = Address::$definition['fields'];
-
         foreach ($format as $field) {
-            if (!empty($constraints[$field->getName()]['validate'])) {
+            if (!empty($this->definition[$field->getName()]['validate'])) {
                 $field->addConstraint(
-                    $constraints[$field->getName()]['validate']
+                    $this->definition[$field->getName()]['validate']
+                );
+            }
+        }
+
+        return $format;
+    }
+
+    private function addMaxLength(array $format)
+    {
+        foreach ($format as $field) {
+            if (!empty($this->definition[$field->getName()]['size'])) {
+                $field->setMaxLength(
+                    $this->definition[$field->getName()]['size']
                 );
             }
         }
@@ -163,33 +208,35 @@ class CustomerAddressFormatterCore implements FormFormatterInterface
 
         switch ($field) {
             case 'alias':
-                return $this->translator->trans('Alias', [], 'Address');
+                return $this->translator->trans('Alias', [], 'Shop.Forms.Labels');
             case 'firstname':
-                return $this->translator->trans('First name', [], 'Address');
+                return $this->translator->trans('First name', [], 'Shop.Forms.Labels');
             case 'lastname':
-                return $this->translator->trans('Last name', [], 'Address');
+                return $this->translator->trans('Last name', [], 'Shop.Forms.Labels');
             case 'address1':
-                return $this->translator->trans('Address', [], 'Address');
+                return $this->translator->trans('Address', [], 'Shop.Forms.Labels');
             case 'address2':
-                return $this->translator->trans('Address Complement', [], 'Address');
+                return $this->translator->trans('Address Complement', [], 'Shop.Forms.Labels');
             case 'postcode':
-                return $this->translator->trans('Zip/Postal Code', [], 'Address');
+                return $this->translator->trans('Zip/Postal Code', [], 'Shop.Forms.Labels');
             case 'city':
-                return $this->translator->trans('City', [], 'Address');
+                return $this->translator->trans('City', [], 'Shop.Forms.Labels');
             case 'Country':
-                return $this->translator->trans('Country', [], 'Address');
+                return $this->translator->trans('Country', [], 'Shop.Forms.Labels');
             case 'State':
-                return $this->translator->trans('State', [], 'Address');
+                return $this->translator->trans('State', [], 'Shop.Forms.Labels');
             case 'phone':
-                return $this->translator->trans('Phone', [], 'Address');
+                return $this->translator->trans('Phone', [], 'Shop.Forms.Labels');
             case 'phone_mobile':
-                return $this->translator->trans('Mobile phone', [], 'Address');
+                return $this->translator->trans('Mobile phone', [], 'Shop.Forms.Labels');
             case 'company':
-                return $this->translator->trans('Company', [], 'Address');
+                return $this->translator->trans('Company', [], 'Shop.Forms.Labels');
             case 'vat_number':
-                return $this->translator->trans('VAT number', [], 'Address');
+                return $this->translator->trans('VAT number', [], 'Shop.Forms.Labels');
             case 'dni':
-                return $this->translator->trans('Identification number', [], 'Address');
+                return $this->translator->trans('Identification number', [], 'Shop.Forms.Labels');
+            case 'other':
+                return $this->translator->trans('Other', [], 'Shop.Forms.Labels');
             default:
                 return $field;
         }

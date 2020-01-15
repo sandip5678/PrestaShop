@@ -1,27 +1,27 @@
-{*
-* 2007-2015 PrestaShop
-*
-* NOTICE OF LICENSE
-*
-* This source file is subject to the Academic Free License (AFL 3.0)
-* that is bundled with this package in the file LICENSE.txt.
-* It is also available through the world-wide-web at this URL:
-* http://opensource.org/licenses/afl-3.0.php
-* If you did not receive a copy of the license and are unable to
-* obtain it through the world-wide-web, please send an email
-* to license@prestashop.com so we can send you a copy immediately.
-*
-* DISCLAIMER
-*
-* Do not edit or add to this file if you wish to upgrade PrestaShop to newer
-* versions in the future. If you wish to customize PrestaShop for your
-* needs please refer to http://www.prestashop.com for more information.
-*
-* @author    PrestaShop SA <contact@prestashop.com>
-* @copyright 2007-2015 PrestaShop SA
-* @license   http://opensource.org/licenses/afl-3.0.php Academic Free License (AFL 3.0)
-* International Registered Trademark & Property of PrestaShop SA
-*}
+{**
+ * 2007-2019 PrestaShop SA and Contributors
+ *
+ * NOTICE OF LICENSE
+ *
+ * This source file is subject to the Open Software License (OSL 3.0)
+ * that is bundled with this package in the file LICENSE.txt.
+ * It is also available through the world-wide-web at this URL:
+ * https://opensource.org/licenses/OSL-3.0
+ * If you did not receive a copy of the license and are unable to
+ * obtain it through the world-wide-web, please send an email
+ * to license@prestashop.com so we can send you a copy immediately.
+ *
+ * DISCLAIMER
+ *
+ * Do not edit or add to this file if you wish to upgrade PrestaShop to newer
+ * versions in the future. If you wish to customize PrestaShop for your
+ * needs please refer to https://www.prestashop.com for more information.
+ *
+ * @author    PrestaShop SA <contact@prestashop.com>
+ * @copyright 2007-2019 PrestaShop SA and Contributors
+ * @license   https://opensource.org/licenses/OSL-3.0 Open Software License (OSL 3.0)
+ * International Registered Trademark & Property of PrestaShop SA
+ *}
 {if isset($fields.title)}<h3>{$fields.title}</h3>{/if}
 
 {if isset($tabs) && $tabs|count}
@@ -34,7 +34,7 @@
 {if isset($identifier_bk) && $identifier_bk == $identifier}{capture name='identifier_count'}{counter name='identifier_count'}{/capture}{/if}
 {assign var='identifier_bk' value=$identifier scope='parent'}
 {if isset($table_bk) && $table_bk == $table}{capture name='table_count'}{counter name='table_count'}{/capture}{/if}
-{assign var='table_bk' value=$table scope='parent'}
+{assign var='table_bk' value=$table scope='root'}
 <form id="{if isset($fields.form.form.id_form)}{$fields.form.form.id_form|escape:'html':'UTF-8'}{else}{if $table == null}configuration_form{else}{$table}_form{/if}{if isset($smarty.capture.table_count) && $smarty.capture.table_count}_{$smarty.capture.table_count|intval}{/if}{/if}" class="defaultForm form-horizontal{if isset($name_controller) && $name_controller} {$name_controller}{/if}"{if isset($current) && $current} action="{$current|escape:'html':'UTF-8'}{if isset($token) && $token}&amp;token={$token|escape:'html':'UTF-8'}{/if}"{/if} method="post" enctype="multipart/form-data"{if isset($style)} style="{$style}"{/if} novalidate>
 	{if $form_id}
 		<input type="hidden" name="{$identifier}" id="{$identifier}{if isset($smarty.capture.identifier_count) && $smarty.capture.identifier_count}_{$smarty.capture.identifier_count|intval}{/if}" value="{$form_id}" />
@@ -67,7 +67,7 @@
 					<div class="form-wrapper">
 					{foreach $field as $input}
 						{block name="input_row"}
-						<div class="form-group{if isset($input.form_group_class)} {$input.form_group_class}{/if}{if $input.type == 'hidden'} hide{/if}"{if $input.name == 'id_state'} id="contains_states"{if !$contains_states} style="display:none;"{/if}{/if}{if isset($tabs) && isset($input.tab)} data-tab-id="{$input.tab}"{/if}>
+						<div class="form-group{if isset($input.form_group_class)} {$input.form_group_class}{/if}{if $input.type == 'hidden'} hide{/if}"{if $input.name == 'id_state'} id="contains_states"{if !$contains_states} style="display:none;"{/if}{/if}{if $input.name == 'dni'} id="dni_required"{if !$dni_required} style="display:none;"{/if}{/if}{if isset($tabs) && isset($input.tab)} data-tab-id="{$input.tab}"{/if}>
 						{if $input.type == 'hidden'}
 							<input type="hidden" name="{$input.name}" id="{$input.name}" value="{$fields_value[$input.name]|escape:'html':'UTF-8'}" />
 						{else}
@@ -78,13 +78,13 @@
 										<span class="label-tooltip" data-toggle="tooltip" data-html="true" title="{if is_array($input.hint)}
 													{foreach $input.hint as $hint}
 														{if is_array($hint)}
-															{$hint.text|escape:'quotes'}
+															{$hint.text|escape:'html':'UTF-8'}
 														{else}
-															{$hint|escape:'quotes'}
+															{$hint|escape:'html':'UTF-8'}
 														{/if}
 													{/foreach}
 												{else}
-													{$input.hint|escape:'quotes'}
+													{$input.hint|escape:'html':'UTF-8'}
 												{/if}">
 										{/if}
 										{$input.label}
@@ -289,11 +289,11 @@
 									</script>
 									{/if}
 								{elseif $input.type == 'swap'}
-									<div class="form-group">
+									<div class="form-group swap-container">
 										<div class="col-lg-9">
 											<div class="form-control-static row">
 												<div class="col-xs-6">
-													<select {if isset($input.size)}size="{$input.size|escape:'html':'utf-8'}"{/if}{if isset($input.onchange)} onchange="{$input.onchange|escape:'html':'utf-8'}"{/if} class="{if isset($input.class)}{$input.class|escape:'html':'utf-8'}{/if}" id="availableSwap" name="{$input.name|escape:'html':'utf-8'}_available[]" multiple="multiple">
+													<select {if isset($input.size)}size="{$input.size|escape:'html':'utf-8'}"{/if}{if isset($input.onchange)} onchange="{$input.onchange|escape:'html':'utf-8'}"{/if} class="{if isset($input.class)}{$input.class|escape:'html':'utf-8'}{/if} availableSwap" name="{$input.name|escape:'html':'utf-8'}_available[]" multiple="multiple">
 													{foreach $input.options.query AS $option}
 														{if is_object($option)}
 															{if !in_array($option->$input.options.id, $fields_value[$input.name])}
@@ -308,10 +308,10 @@
 														{/if}
 													{/foreach}
 													</select>
-													<a href="#" id="addSwap" class="btn btn-default btn-block">{l s='Add'} <i class="icon-arrow-right"></i></a>
+													<a href="#" class="btn btn-default btn-block addSwap">{l s='Add' d='Admin.Actions'} <i class="icon-arrow-right"></i></a>
 												</div>
 												<div class="col-xs-6">
-													<select {if isset($input.size)}size="{$input.size|escape:'html':'utf-8'}"{/if}{if isset($input.onchange)} onchange="{$input.onchange|escape:'html':'utf-8'}"{/if} class="{if isset($input.class)}{$input.class|escape:'html':'utf-8'}{/if}" id="selectedSwap" name="{$input.name|escape:'html':'utf-8'}_selected[]" multiple="multiple">
+													<select {if isset($input.size)}size="{$input.size|escape:'html':'utf-8'}"{/if}{if isset($input.onchange)} onchange="{$input.onchange|escape:'html':'utf-8'}"{/if} class="{if isset($input.class)}{$input.class|escape:'html':'utf-8'}{/if} selectedSwap" name="{$input.name|escape:'html':'utf-8'}_selected[]" multiple="multiple">
 													{foreach $input.options.query AS $option}
 														{if is_object($option)}
 															{if in_array($option->$input.options.id, $fields_value[$input.name])}
@@ -326,7 +326,7 @@
 														{/if}
 													{/foreach}
 													</select>
-													<a href="#" id="removeSwap" class="btn btn-default btn-block"><i class="icon-arrow-left"></i> {l s='Remove'}</a>
+													<a href="#" class="btn btn-default btn-block removeSwap"><i class="icon-arrow-left"></i> {l s='Remove'}</a>
 												</div>
 											</div>
 										</div>
@@ -406,7 +406,7 @@
 										<div class="radio {if isset($input.class)}{$input.class}{/if}">
 											{strip}
 											<label>
-											<input type="radio"	name="{$input.name}" id="{$value.id}" value="{$value.value|escape:'html':'UTF-8'}"{if $fields_value[$input.name] == $value.value} checked="checked"{/if}{if isset($input.disabled) && $input.disabled} disabled="disabled"{/if}/>
+											<input type="radio"	name="{$input.name}" id="{$value.id}" value="{$value.value|escape:'html':'UTF-8'}"{if $fields_value[$input.name] == $value.value} checked="checked"{/if}{if (isset($input.disabled) && $input.disabled) or (isset($value.disabled) && $value.disabled)} disabled="disabled"{/if}/>
 												{$value.label}
 											</label>
 											{/strip}
@@ -416,13 +416,13 @@
 								{elseif $input.type == 'switch'}
 									<span class="switch prestashop-switch fixed-width-lg">
 										{foreach $input.values as $value}
-										<input type="radio" name="{$input.name}"{if $value.value == 1} id="{$input.name}_on"{else} id="{$input.name}_off"{/if} value="{$value.value}"{if $fields_value[$input.name] == $value.value} checked="checked"{/if}{if isset($input.disabled) && $input.disabled} disabled="disabled"{/if}/>
+										<input type="radio" name="{$input.name}"{if $value.value == 1} id="{$input.name}_on"{else} id="{$input.name}_off"{/if} value="{$value.value}"{if $fields_value[$input.name] == $value.value} checked="checked"{/if}{if (isset($input.disabled) && $input.disabled) or (isset($value.disabled) && $value.disabled)} disabled="disabled"{/if}/>
 										{strip}
 										<label {if $value.value == 1} for="{$input.name}_on"{else} for="{$input.name}_off"{/if}>
 											{if $value.value == 1}
-												{l s='Yes'}
+												{l s='Yes' d='Admin.Global'}
 											{else}
-												{l s='No'}
+												{l s='No' d='Admin.Global'}
 											{/if}
 										</label>
 										{/strip}
@@ -430,7 +430,6 @@
 										<a class="slide-button btn"></a>
 									</span>
 								{elseif $input.type == 'textarea'}
-									{if isset($input.maxchar) && $input.maxchar}<div class="input-group">{/if}
 									{assign var=use_textarea_autosize value=true}
 									{if isset($input.lang) AND $input.lang}
 										{foreach $languages as $language}
@@ -439,11 +438,15 @@
 												<div class="col-lg-9">
 											{/if}
 													{if isset($input.maxchar) && $input.maxchar}
+													<div class="input-group">
 														<span id="{if isset($input.id)}{$input.id}_{$language.id_lang}{else}{$input.name}_{$language.id_lang}{/if}_counter" class="input-group-addon">
 															<span class="text-count-down">{$input.maxchar|intval}</span>
 														</span>
 													{/if}
 													<textarea{if isset($input.readonly) && $input.readonly} readonly="readonly"{/if} name="{$input.name}_{$language.id_lang}" id="{if isset($input.id)}{$input.id}{else}{$input.name}{/if}_{$language.id_lang}" class="{if isset($input.autoload_rte) && $input.autoload_rte}rte autoload_rte{else}textarea-autosize{/if}{if isset($input.class)} {$input.class}{/if}"{if isset($input.maxlength) && $input.maxlength} maxlength="{$input.maxlength|intval}"{/if}{if isset($input.maxchar) && $input.maxchar} data-maxchar="{$input.maxchar|intval}"{/if}>{$fields_value[$input.name][$language.id_lang]|escape:'html':'UTF-8'}</textarea>
+													{if isset($input.maxchar) && $input.maxchar}
+													</div>
+													{/if}
 											{if $languages|count > 1}
 												</div>
 												<div class="col-lg-2">
@@ -486,7 +489,6 @@
 											</script>
 										{/if}
 									{/if}
-									{if isset($input.maxchar) && $input.maxchar}</div>{/if}
 								{elseif $input.type == 'checkbox'}
 									{if isset($input.expand)}
 										<a class="btn btn-default show_checkbox{if strtolower($input.expand.default) == 'hide'} hidden{/if}" href="#">
@@ -579,7 +581,7 @@
 													<div class="col-lg-12">
 														<button type="button" id="{$input.name}-cancel-btn" class="btn btn-default">
 															<i class="icon-remove"></i>
-															{l s='Cancel'}
+															{l s='Cancel' d='Admin.Actions'}
 														</button>
 													</div>
 												</div>
@@ -848,8 +850,8 @@
 						</button>
 						{/if}
 						{if isset($show_cancel_button) && $show_cancel_button}
-						<a href="{$back_url|escape:'html':'UTF-8'}" class="btn btn-default" onclick="window.history.back();">
-							<i class="process-icon-cancel"></i> {l s='Cancel'}
+						<a class="btn btn-default" {if $table}id="{$table}_form_cancel_btn"{/if} onclick="javascript:window.history.back();">
+							<i class="process-icon-cancel"></i> {l s='Cancel' d='Admin.Actions'}
 						</a>
 						{/if}
 						{if isset($fieldset['form']['reset'])}
@@ -896,6 +898,11 @@
 	});
 </script>
 {/if}
+{if isset($color) && $color}
+<script type="text/javascript">
+	$.fn.mColorPicker.defaults.imageFolder = baseDir + 'img/admin/';
+</script>
+{/if}
 {if $firstCall}
 	<script type="text/javascript">
 		var module_dir = '{$smarty.const._MODULE_DIR_}';
@@ -906,10 +913,10 @@
 		// precedence conflicts with other document.ready() blocks
 		{foreach $languages as $k => $language}
 			languages[{$k}] = {
-				id_lang: {$language.id_lang},
-				iso_code: '{$language.iso_code}',
-				name: '{$language.name}',
-				is_default: '{$language.is_default}'
+				id_lang: {$language.id_lang|escape:'javascript'},
+				iso_code: '{$language.iso_code|escape:'javascript'}',
+				name: '{$language.name|escape:'javascript'}',
+				is_default: '{$language.is_default|escape:'javascript'}'
 			};
 		{/foreach}
 		// we need allowEmployeeFormLang var in ajax request
@@ -941,6 +948,9 @@
 				}
 			{/if}
 
+			dniRequired();
+			$('#id_country').change(dniRequired);
+
 			if ($(".datepicker").length > 0)
 				$(".datepicker").datepicker({
 					prevText: '',
@@ -970,7 +980,8 @@
 			$(".textarea-autosize").autosize();
 			{/if}
 		});
-	state_token = '{getAdminToken tab='AdminStates'}';
+		state_token = '{getAdminToken tab='AdminStates'}';
+		address_token = '{getAdminToken tab='AdminAddresses'}';
 	{block name="script"}{/block}
 	</script>
 {/if}

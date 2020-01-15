@@ -1,95 +1,66 @@
-{*
-* 2007-2015 PrestaShop
-*
-* NOTICE OF LICENSE
-*
-* This source file is subject to the Academic Free License (AFL 3.0)
-* that is bundled with this package in the file LICENSE.txt.
-* It is also available through the world-wide-web at this URL:
-* http://opensource.org/licenses/afl-3.0.php
-* If you did not receive a copy of the license and are unable to
-* obtain it through the world-wide-web, please send an email
-* to license@prestashop.com so we can send you a copy immediately.
-*
-* DISCLAIMER
-*
-* Do not edit or add to this file if you wish to upgrade PrestaShop to newer
-* versions in the future. If you wish to customize PrestaShop for your
-* needs please refer to http://www.prestashop.com for more information.
-*
-* @author    PrestaShop SA <contact@prestashop.com>
-* @copyright 2007-2015 PrestaShop SA
-* @license   http://opensource.org/licenses/afl-3.0.php Academic Free License (AFL 3.0)
-* International Registered Trademark & Property of PrestaShop SA
-*}
-<form id="{$id|escape:'html':'UTF-8'}" class="bo_search_form" method="post" action="{$baseAdminUrl}index.php?controller=AdminSearch&amp;token={getAdminToken tab='AdminSearch'}" role="search">
-	<div class="form-group">
-		<input type="hidden" name="bo_search_type" id="bo_search_type" />
-		<div class="input-group">
-			<div class="input-group-btn">
-				<button type="button" class="btn btn-default dropdown-toggle" data-toggle="dropdown">
-					<i id="search_type_icon" class="icon-search"></i>
-					<i class="icon-caret-down"></i>
-				</button>
-				<ul id="header_search_options" class="dropdown-menu">
-					<li class="search-all search-option active">
-						<a href="#" data-value="0" data-placeholder="{l s='What are you looking for?'}" data-icon="icon-search">
-							<i class="icon-search"></i> {l s='Everywhere'}</a>
-					</li>
-					<li class="divider"></li>
-					<li class="search-book search-option">
-						<a href="#" data-value="1" data-placeholder="{l s='Product name, SKU, reference...'}" data-icon="icon-book">
-							<i class="icon-book"></i> {l s='Catalog'}
-						</a>
-					</li>
-					<li class="search-customers-name search-option">
-						<a href="#" data-value="2" data-placeholder="{l s='Email, name...'}" data-icon="icon-group">
-							<i class="icon-group"></i> {l s='Customers'} {l s='by name'}
-						</a>
-					</li>
-					<li class="search-customers-addresses search-option">
-						<a href="#" data-value="6" data-placeholder="{l s='123.45.67.89'}" data-icon="icon-desktop">
-							<i class="icon-desktop"></i> {l s='Customers'} {l s='by ip address'}</a>
-					</li>
-					<li class="search-orders search-option">
-						<a href="#" data-value="3" data-placeholder="{l s='Order ID'}" data-icon="icon-credit-card">
-							<i class="icon-credit-card"></i> {l s='Orders'}
-						</a>
-					</li>
-					<li class="search-invoices search-option">
-						<a href="#" data-value="4" data-placeholder="{l s='Invoice Number'}" data-icon="icon-book">
-							<i class="icon-book"></i> {l s='Invoices'}
-						</a>
-					</li>
-					<li class="search-carts search-option">
-						<a href="#" data-value="5" data-placeholder="{l s='Cart ID'}" data-icon="icon-shopping-cart">
-							<i class="icon-shopping-cart"></i> {l s='Carts'}
-						</a>
-					</li>
-					<li class="search-modules search-option">
-						<a href="#" data-value="7" data-placeholder="{l s='Module name'}" data-icon="icon-puzzle-piece">
-							<i class="icon-puzzle-piece"></i> {l s='Modules'}
-						</a>
-					</li>
-				</ul>
-			</div>
-			{if isset($show_clear_btn) && $show_clear_btn}
-			<a href="#" class="clear_search hide"><i class="icon-remove"></i></a>
-			{/if}
-			<input id="bo_query" name="bo_query" type="text" class="form-control" value="{$bo_query}" placeholder="{l s='Search'}" />
-<!--  							<span class="input-group-btn">
-				<button type="submit" id="bo_search_submit" class="btn btn-primary">
-					<i class="icon-search"></i>
-				</button>
-			</span> -->
-		</div>
-	</div>
+{**
+ * 2007-2019 PrestaShop SA and Contributors
+ *
+ * NOTICE OF LICENSE
+ *
+ * This source file is subject to the Open Software License (OSL 3.0)
+ * that is bundled with this package in the file LICENSE.txt.
+ * It is also available through the world-wide-web at this URL:
+ * https://opensource.org/licenses/OSL-3.0
+ * If you did not receive a copy of the license and are unable to
+ * obtain it through the world-wide-web, please send an email
+ * to license@prestashop.com so we can send you a copy immediately.
+ *
+ * DISCLAIMER
+ *
+ * Do not edit or add to this file if you wish to upgrade PrestaShop to newer
+ * versions in the future. If you wish to customize PrestaShop for your
+ * needs please refer to https://www.prestashop.com for more information.
+ *
+ * @author    PrestaShop SA <contact@prestashop.com>
+ * @copyright 2007-2019 PrestaShop SA and Contributors
+ * @license   https://opensource.org/licenses/OSL-3.0 Open Software License (OSL 3.0)
+ * International Registered Trademark & Property of PrestaShop SA
+ *}
 
-	<script>
-		{if isset($search_type) && $search_type}
-			$(document).ready(function() {
-				$('.search-option a[data-value='+{$search_type|intval}+']').click();
-			});
-		{/if}
-	</script>
+<form id="header_search"
+      class="bo_search_form dropdown-form js-dropdown-form collapsed"
+      method="post"
+      action="{$baseAdminUrl}index.php?controller=AdminSearch&amp;token={getAdminToken tab='AdminSearch'}"
+      role="search">
+  <input type="hidden" name="bo_search_type" id="bo_search_type" class="js-search-type" />
+  {if isset($show_clear_btn) && $show_clear_btn}
+    <a href="#" class="clear_search hide"><i class="icon-remove"></i></a>
+  {/if}
+  <div class="input-group">
+    <input type="text" class="form-control js-form-search" id="bo_query" name="bo_query" value="{$bo_query}" placeholder="{l s='Search (e.g.: product reference, customer name…)'} d='Admin.Navigation.Header'">
+    <div class="input-group-append">
+      <button type="button" class="btn btn-outline-secondary dropdown-toggle js-dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+        {l s='Everywhere' d='Admin.Navigation.Header'}
+      </button>
+      <div class="dropdown-menu js-items-list">
+        <a class="dropdown-item" data-item="{l s='Everywhere' d='Admin.Navigation.Header'}" href="#" data-value="0" data-placeholder="{l s='What are you looking for?' d='Admin.Navigation.Header'}" data-icon="icon-search"><i class="material-icons">search</i> {l s='Everywhere' d='Admin.Navigation.Header'}</a>
+        <div class="dropdown-divider"></div>
+        <a class="dropdown-item" data-item="{l s='Catalog' d='Admin.Global'}" href="#" data-value="1" data-placeholder="{l s='Product name, reference, etc.' d='Admin.Navigation.Header'}" data-icon="icon-book"><i class="material-icons">store_mall_directory</i> {l s='Catalog' d='Admin.Global'}</a>
+        <a class="dropdown-item" data-item="{l s='Customers' d='Admin.Navigation.Header'} {l s='by name'}" href="#" data-value="2" data-placeholder="{l s='Name' d='Admin.Navigation.Header'}" data-icon="icon-group"><i class="material-icons">group</i> {l s='Customers' d='Admin.Navigation.Header'} {l s='by name' d='Admin.Navigation.Header'}</a>
+        <a class="dropdown-item" data-item="{l s='Customers' d='Admin.Navigation.Header'} {l s='by ip address'}" href="#" data-value="6" data-placeholder="{l s='123.45.67.89' d='Admin.Navigation.Header'}" data-icon="icon-desktop"><i class="material-icons">desktop_mac</i> {l s='Customers' d='Admin.Navigation.Header'} {l s='by IP address' d='Admin.Navigation.Header'}</a>
+        <a class="dropdown-item" data-item="{l s='Orders' d='Admin.Global'}" href="#" data-value="3" data-placeholder="{l s='Order ID' d='Admin.Navigation.Header'}" data-icon="icon-credit-card"><i class="material-icons">shopping_basket</i> {l s='Orders' d='Admin.Global'}</a>
+        <a class="dropdown-item" data-item="{l s='Invoices' d='Admin.Global'}" href="#" data-value="4" data-placeholder="{l s='Invoice number' d='Admin.Navigation.Header'}" data-icon="icon-book"><i class="material-icons">book</i> {l s='Invoices' d='Admin.Global'}</a>
+        <a class="dropdown-item" data-item="{l s='Carts' d='Admin.Global'}" href="#" data-value="5" data-placeholder="{l s='Cart ID' d='Admin.Navigation.Header'}" data-icon="icon-shopping-cart"><i class="material-icons">shopping_cart</i> {l s='Carts' d='Admin.Global'}</a>
+        <a class="dropdown-item" data-item="{l s='Modules' d='Admin.Global'}" href="#" data-value="7" data-placeholder="{l s='Module name' d='Admin.Navigation.Header'}" data-icon="icon-puzzle-piece"><i class="material-icons">extension</i> {l s='Modules' d='Admin.Global'}</a>
+      </div>
+      <button class="btn btn-primary" type="submit"><span class="d-none">{l s='SEARCH' d='Admin.Navigation.Header'}</span><i class="material-icons">search</i></button>
+    </div>
+  </div>
 </form>
+
+<script type="text/javascript">
+ $(document).ready(function(){
+  {if isset($search_type) && $search_type}
+    $('.search-option a[data-value='+{$search_type|intval}+']').click();
+  {/if}
+  $('#bo_query').one('click', function() {
+    $(this).closest('form').removeClass('collapsed');
+  });
+});
+</script>

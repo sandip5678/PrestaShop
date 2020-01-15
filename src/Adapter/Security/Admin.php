@@ -1,13 +1,13 @@
 <?php
 /**
- * 2007-2015 PrestaShop
+ * 2007-2019 PrestaShop SA and Contributors
  *
  * NOTICE OF LICENSE
  *
  * This source file is subject to the Open Software License (OSL 3.0)
  * that is bundled with this package in the file LICENSE.txt.
  * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
+ * https://opensource.org/licenses/OSL-3.0
  * If you did not receive a copy of the license and are unable to
  * obtain it through the world-wide-web, please send an email
  * to license@prestashop.com so we can send you a copy immediately.
@@ -16,48 +16,60 @@
  *
  * Do not edit or add to this file if you wish to upgrade PrestaShop to newer
  * versions in the future. If you wish to customize PrestaShop for your
- * needs please refer to http://www.prestashop.com for more information.
+ * needs please refer to https://www.prestashop.com for more information.
  *
  * @author    PrestaShop SA <contact@prestashop.com>
- * @copyright 2007-2015 PrestaShop SA
- * @license   http://opensource.org/licenses/osl-3.0.php Open Software License (OSL 3.0)
+ * @copyright 2007-2019 PrestaShop SA and Contributors
+ * @license   https://opensource.org/licenses/OSL-3.0 Open Software License (OSL 3.0)
  * International Registered Trademark & Property of PrestaShop SA
  */
 
 namespace PrestaShop\PrestaShop\Adapter\Security;
 
-use Symfony\Component\HttpKernel\Event\GetResponseEvent;
-use Symfony\Component\HttpFoundation\Request;
 use PrestaShop\PrestaShop\Adapter\LegacyContext;
-use Symfony\Component\Security\Core\Authentication\Token\UsernamePasswordToken;
+use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpKernel\Event\GetResponseEvent;
+use Symfony\Component\HttpKernel\HttpKernelInterface;
 use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorage;
-use PrestaShopBundle\Security\Admin\Employee;
+use Symfony\Component\Security\Core\Authentication\Token\UsernamePasswordToken;
+use Symfony\Component\Security\Core\User\UserProviderInterface;
 
 /**
- * Admin Middleware security
+ * Admin Middleware security.
  */
 class Admin
 {
+    /**
+     * @var LegacyContext
+     */
     private $context;
+
+    /**
+     * @var \Context
+     */
     private $legacyContext;
+
+    /**
+     * @var TokenStorage
+     */
     private $securityTokenStorage;
 
     /**
-     * Constructor.
-     *
-     * @param LegacyContext $context
-     * @param TokenStorage $securityTokenStorage
+     * @var UserProviderInterface
      */
-    public function __construct(LegacyContext $context, TokenStorage $securityTokenStorage)
+    private $userProvider;
+
+    public function __construct(LegacyContext $context, TokenStorage $securityTokenStorage, UserProviderInterface $userProvider)
     {
         $this->context = $context;
         $this->legacyContext = $context->getContext();
         $this->securityTokenStorage = $securityTokenStorage;
+        $this->userProvider = $userProvider;
     }
 
     /**
      * Check if employee is logged in
-     * If not loggedin in, redirect to admin home page
+     * If not logged in, redirect to admin home page.
      *
      * @param GetResponseEvent $event
      *
@@ -67,10 +79,17 @@ class Admin
     {
         //if employee loggdin in legacy context, authenticate him into sf2 security context
         if (isset($this->legacyContext->employee) && $this->legacyContext->employee->isLoggedBack()) {
-            $employee = new Employee($this->legacyContext->employee);
-            $token = new UsernamePasswordToken($employee, null, 'admin', ['ROLE_ADMIN']);
+            $user = $this->userProvider->loadUserByUsername($this->legacyContext->employee->email);
+            $token = new UsernamePasswordToken($user, null, 'admin', $user->getRoles());
             $this->securityTokenStorage->setToken($token);
 
+            return true;
+        }
+
+        // in case of exception handler sub request, avoid infinite redirection
+        if ($event->getRequestType() === HttpKernelInterface::SUB_REQUEST
+            && $event->getRequest()->attributes->has('exception')
+        ) {
             return true;
         }
 
@@ -80,12 +99,12 @@ class Admin
         //if http request - add 403 error
         $request = Request::createFromGlobals();
         if ($request->isXmlHttpRequest()) {
-            header("HTTP/1.1 403 Forbidden");
+            header('HTTP/1.1 403 Forbidden');
             exit();
         }
 
         //redirect to admin home page
-        header("Location: ".$this->context->getAdminLink('', false));
+        header('Location: ' . $this->context->getAdminLink('', false));
         exit();
     }
 }

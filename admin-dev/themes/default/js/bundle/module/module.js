@@ -1,1152 +1,943 @@
-$(document).ready(function () {
-    var controller = new AdminModuleController();
-    controller.init();
+$(document).ready(function() {
+  var controller = new AdminModuleController();
+  controller.init();
 });
 
 /**
  * Module Admin Page Controller.
  * @constructor
  */
-var AdminModuleController = function () {
+var AdminModuleController = function() {
 
-    /* Global configuration */
-    this.keywordsSplitCharacter = ' ';
-    this.currentDisplay = '';
-    this.isCategoryGridDisplayed = false;
-    this.currentTagsList = [];
-    this.currentRefCategory = null;
-    this.currentRefStatus = null;
-    this.currentSorting = null;
-    this.tagSearchBlock = null;
-    this.areAllModuleDisplayed = true;
-    this.baseAddonsUrl = 'https://addons.prestashop.com/';
-    this.pstaggerInput = null;
-    this.lastBulkAction = null;
-    this.isUploadStarted = false;
+  this.currentDisplay = '';
+  this.isCategoryGridDisplayed = false;
+  this.currentTagsList = [];
+  this.currentRefCategory = null;
+  this.currentRefStatus = null;
+  this.currentSorting = null;
+  this.baseAddonsUrl = 'https://addons.prestashop.com/';
+  this.pstaggerInput = null;
+  this.lastBulkAction = null;
+  this.isUploadStarted = false;
 
-    /* Selectors into vars to make it easier to change them while keeping same code logic */
-    this.searchBarSelector = '#module-search-bar';
-    this.sortDisplaySelector = '.module-sort-switch';
-    this.moduleListSelector = '.modules-list';
-    this.moduleGridSelector = '.modules-grid';
-    this.moduleSortListSelector = '#module-sort-list';
-    this.moduleSortGridSelector = '#module-sort-grid';
-    this.moduleItemListSelector = '.module-item-list';
-    this.moduleItemGridSelector = '.module-item-grid';
-    this.categorySelectorLabelSelector = '.module-category-selector-label';
-    this.categorySelector = '.module-category-selector';
-    this.categoryItemSelector = '.module-category-menu';
-    this.totalResultSelector = '.module-search-result-wording';
-    this.addonsSearchSelector = '.module-addons-search';
-    this.addonsSearchLinkSelector = '.module-addons-search-link';
-    this.addonsLoginButtonSelector = '#addons_login_btn';
-    this.categoryResetBtnSelector = '.module-category-reset';
-    this.moduleInstallBtnSelector = 'input.module-install-btn';
-    this.moduleInstallLoaderSelector = '.module-install-loader';
-    this.moduleSortingDropdownSelector = '.module-sorting-author select';
-    this.categoryGridSelector = '#modules-categories-grid';
-    this.categoryGridItemSelector = '.module-category-item';
-    this.addonItemGridSelector = '.module-addons-item-grid';
-    this.addonItemListSelector = '.module-addons-item-list';
-    this.bulkActionDropDownSelector = '.module-bulk-actions select';
-    this.checkedBulkActionListSelector = '.module-checkbox-bulk-list:checked';
-    this.checkedBulkActionGridSelector = '.module-checkbox-bulk-grid:checked';
-    this.bulkActionCheckboxGridSelector = '.module-checkbox-bulk-grid';
-    this.bulkActionCheckboxListSelector = '.module-checkbox-bulk-list';
-    this.bulkActionCheckboxSelector = '#module-modal-bulk-checkbox';
-    this.selectAllBulkActionSelector = '.module-checkbox-bulk-select-all';
-    this.bulkConfirmModalSelector = '#module-modal-bulk-confirm';
-    this.bulkConfirmModalActionNameSelector = '#module-modal-bulk-confirm-action-name';
-    this.bulkConfirmModalListSelector = '#module-modal-bulk-confirm-list';
-    this.bulkConfirmModalAckBtnSelector = '#module-modal-confirm-bulk-ack';
-    this.placeholderGlobalSelector = '.module-placeholders-wrapper';
-    this.placeholderFailureGlobalSelector = '.module-placeholders-failure';
-    this.placeholderFailureMsgSelector = '.module-placeholders-failure-msg';
-    this.placeholderFailureRetryBtnSelector = '#module-placeholders-failure-retry';
-    /* Module's statuses selectors */
-    this.statusSelectorLabelSelector = '.module-status-selector-label';
-    this.statusSelector = '.module-status-selector';
-    this.statusItemSelector = '.module-status-menu';
-    this.statusResetBtnSelector = '.module-status-reset';
+  /**
+   * Loaded modules list.
+   * Containing the card and list display.
+   * @type {Array}
+   */
+  this.modulesList = [];
+  this.addonsCardGrid = null;
+  this.addonsCardList = null;
 
-    /* Selectors for Module Import and Addons connect */
-    this.dropModuleBtnSelector = '#page-header-desc-configuration-add_module';
-    this.addonsConnectModalBtnSelector = '#page-header-desc-configuration-addons_connect';
-    this.dropZoneModalSelector = '#module-modal-import';
-    this.dropZoneImportZoneSelector = '#importDropzone';
-    this.addonsConnectModalSelector = '#module-modal-addons-connect';
-    this.addonsConnectForm = '#addons-connect-form';
-    this.moduleImportModalCloseBtn = '#module-modal-import-closing-cross';
-    this.moduleImportStartSelector = '.module-import-start';
-    this.moduleImportProcessingSelector = '.module-import-processing';
-    this.moduleImportSuccessSelector = '.module-import-success';
-    this.moduleImportSuccessConfigureBtnSelector = '.module-import-success-configure';
-    this.moduleImportFailureSelector = '.module-import-failure';
-    this.moduleImportFailureRetrySelector = '.module-import-failure-retry';
-    this.moduleImportFailureDetailsBtnSelector = '.module-import-failure-details-action';
-    this.moduleImportSelectFileManualSelector = '.module-import-start-select-manual';
-    this.moduleImportFailureMsgDetailsSelector = '.module-import-failure-details';
+  // Selectors into vars to make it easier to change them while keeping same code logic
+  this.moduleItemGridSelector = '.module-item-grid';
+  this.moduleItemListSelector = '.module-item-list';
+  this.categorySelectorLabelSelector = '.module-category-selector-label';
+  this.categorySelector = '.module-category-selector';
+  this.categoryItemSelector = '.module-category-menu';
+  this.addonsLoginButtonSelector = '#addons_login_btn';
+  this.categoryResetBtnSelector = '.module-category-reset';
+  this.moduleInstallBtnSelector = 'input.module-install-btn';
+  this.moduleSortingDropdownSelector = '.module-sorting-author select';
+  this.categoryGridSelector = '#modules-categories-grid';
+  this.categoryGridItemSelector = '.module-category-item';
+  this.addonItemGridSelector = '.module-addons-item-grid';
+  this.addonItemListSelector = '.module-addons-item-list';
 
+  // Upgrade All selectors
+  this.upgradeAllSource = '.module_action_menu_upgrade_all';
+  this.upgradeAllTargets = '#modules-list-container-update .module_action_menu_upgrade:visible';
 
-    /**
-     * Initialize all listners and bind everything
-     * @method init
-     * @memberof AdminModule
-     */
-    this.init = function () {
-        this.initBOEventRegistering();
-        this.loadVariables();
-        this.initSortingDisplaySwitch();
-        this.initSortingDropdown();
-        this.initSearchBlock();
-        this.initCategorySelect();
-        this.initCategoriesGrid();
-        this.initActionButtons();
-        this.initAddonsSearch();
-        this.initAddonsConnect();
-        this.initAddModuleAction();
-        this.initDropzone();
-        this.initPageChangeProtection();
-        this.initBulkActions();
-        this.initPlaceholderMechanism();
-        this.initFilterStatusDropdown();
-    };
+  // Bulk action selectors
+  this.bulkActionDropDownSelector = '.module-bulk-actions select';
+  this.checkedBulkActionListSelector = '.module-checkbox-bulk-list input:checked';
+  this.checkedBulkActionGridSelector = '.module-checkbox-bulk-grid input:checked';
+  this.bulkActionCheckboxGridSelector = '.module-checkbox-bulk-grid';
+  this.bulkActionCheckboxListSelector = '.module-checkbox-bulk-list';
+  this.bulkActionCheckboxSelector = '#module-modal-bulk-checkbox';
+  this.bulkConfirmModalSelector = '#module-modal-bulk-confirm';
+  this.bulkConfirmModalActionNameSelector = '#module-modal-bulk-confirm-action-name';
+  this.bulkConfirmModalListSelector = '#module-modal-bulk-confirm-list';
+  this.bulkConfirmModalAckBtnSelector = '#module-modal-confirm-bulk-ack';
 
-    this.initFilterStatusDropdown = function() {
-        var _this = this;
+  // Placeholders
+  this.placeholderGlobalSelector = '.module-placeholders-wrapper';
+  this.placeholderFailureGlobalSelector = '.module-placeholders-failure';
+  this.placeholderFailureMsgSelector = '.module-placeholders-failure-msg';
+  this.placeholderFailureRetryBtnSelector = '#module-placeholders-failure-retry';
 
-        $('body').on('click', this.statusItemSelector, function () {
-            // Get data from li DOM input
-            _this.currentRefStatus = $(this).attr('data-status-ref');
-            var statusSelectedDisplayName = $(this).find('a:first').text();
-            // Change dropdown label to set it to the current status' displayname
-            $(_this.statusSelectorLabelSelector).text(statusSelectedDisplayName);
-            $(_this.statusResetBtnSelector).show();
-            // Do Search on categoryRef
-            _this.doSearch();
+  // Module's statuses selectors
+  this.statusSelectorLabelSelector = '.module-status-selector-label';
+  this.statusItemSelector = '.module-status-menu';
+  this.statusResetBtnSelector = '.module-status-reset';
+
+  // Selectors for Module Import and Addons connect
+  this.addonsConnectModalBtnSelector = '#page-header-desc-configuration-addons_connect';
+  this.addonsLogoutModalBtnSelector = '#page-header-desc-configuration-addons_logout';
+  this.addonsImportModalBtnSelector = '#page-header-desc-configuration-add_module';
+  this.dropZoneModalSelector = '#module-modal-import';
+  this.dropZoneModalFooterSelector = '#module-modal-import .modal-footer';
+  this.dropZoneImportZoneSelector = '#importDropzone';
+  this.addonsConnectModalSelector = '#module-modal-addons-connect';
+  this.addonsLogoutModalSelector = '#module-modal-addons-logout';
+  this.addonsConnectForm = '#addons-connect-form';
+  this.moduleImportModalCloseBtn = '#module-modal-import-closing-cross';
+  this.moduleImportStartSelector = '.module-import-start';
+  this.moduleImportProcessingSelector = '.module-import-processing';
+  this.moduleImportSuccessSelector = '.module-import-success';
+  this.moduleImportSuccessConfigureBtnSelector = '.module-import-success-configure';
+  this.moduleImportFailureSelector = '.module-import-failure';
+  this.moduleImportFailureRetrySelector = '.module-import-failure-retry';
+  this.moduleImportFailureDetailsBtnSelector = '.module-import-failure-details-action';
+  this.moduleImportSelectFileManualSelector = '.module-import-start-select-manual';
+  this.moduleImportFailureMsgDetailsSelector = '.module-import-failure-details';
+  this.moduleImportConfirmSelector = '.module-import-confirm';
+
+  /**
+   * Initialize all listners and bind everything
+   * @method init
+   * @memberof AdminModule
+   */
+  this.init = function () {
+    this.initBOEventRegistering();
+    this.loadVariables();
+    this.initSortingDisplaySwitch();
+    this.initSortingDropdown();
+    this.initSearchBlock();
+    this.initCategorySelect();
+    this.initCategoriesGrid();
+    this.initActionButtons();
+    this.initAddonsSearch();
+    this.initAddonsConnect();
+    this.initAddModuleAction();
+    this.initDropzone();
+    this.initPageChangeProtection();
+    this.initBulkActions();
+    this.initPlaceholderMechanism();
+    this.initFilterStatusDropdown();
+    this.fetchModulesList();
+    this.getNotificationsCount();
+  };
+
+  this.initFilterStatusDropdown = function() {
+    var self = this;
+    var body = $('body');
+    body.on('click', this.statusItemSelector, function () {
+      // Get data from li DOM input
+      self.currentRefStatus = parseInt($(this).attr('data-status-ref'));
+      var statusSelectedDisplayName = $(this).find('a:first').text();
+      // Change dropdown label to set it to the current status' displayname
+      $(self.statusSelectorLabelSelector).text(statusSelectedDisplayName);
+      $(self.statusResetBtnSelector).show();
+      // Do Search on categoryRef
+      self.updateModuleVisibility();
+    });
+
+    body.on('click', this.statusResetBtnSelector, function () {
+      var text = $(this).find('a').text();
+      $(self.statusSelectorLabelSelector).text(text);
+      $(this).hide();
+      self.currentRefStatus = null;
+      self.updateModuleVisibility();
+    });
+  };
+
+  this.initBOEventRegistering = function() {
+    BOEvent.on('Module Disabled', this.onModuleDisabled, this);
+    BOEvent.on('Module Uninstalled', this.updateTotalResults, this);
+  };
+
+  this.onModuleDisabled = function() {
+    var moduleItemSelector = this.getModuleItemSelector();
+    var self = this;
+
+    $('.modules-list').each(function() {
+      var totalForCurrentSelector = $(this).find(moduleItemSelector+':visible').length;
+      self.updateTotalResults(totalForCurrentSelector, $(this));
+    });
+
+  };
+
+  this.initPlaceholderMechanism = function() {
+    var self = this;
+
+    if ($(this.placeholderGlobalSelector).length) {
+      this.ajaxLoadPage();
+    }
+
+    // Retry loading mechanism
+    $('body').on('click', this.placeholderFailureRetryBtnSelector, function() {
+      $(self.placeholderFailureGlobalSelector).fadeOut();
+      $(self.placeholderGlobalSelector).fadeIn();
+      self.ajaxLoadPage();
+    });
+  };
+
+  this.ajaxLoadPage = function() {
+    var self = this;
+
+    $.ajax({
+      method: 'GET',
+      url: moduleURLs.catalogRefresh
+    }).done(function (response) {
+      if (response.status === true) {
+        if (typeof response.domElements === 'undefined') response.domElements = null;
+        if (typeof response.msg === 'undefined') response.msg = null;
+
+        var stylesheet = document.styleSheets[0];
+        var stylesheetRule = '{display: none}';
+        var moduleGlobalSelector = '.modules-list';
+        var moduleSortingSelector = '.module-sorting-menu';
+        var requiredSelectorCombination = moduleGlobalSelector + ', ' + moduleSortingSelector;
+
+        if (stylesheet.insertRule) {
+          stylesheet.insertRule(
+            requiredSelectorCombination +
+            stylesheetRule, stylesheet.cssRules.length
+          );
+        } else if (stylesheet.addRule) {
+          stylesheet.addRule(
+            requiredSelectorCombination,
+            stylesheetRule,
+            -1
+          );
+        }
+
+        $(self.placeholderGlobalSelector).fadeOut(800, function() {
+          $.each(response.domElements, function(index, element){
+            $(element.selector).append(element.content);
+          });
+          $(moduleGlobalSelector).fadeIn(800).css('display','flex');
+          $(moduleSortingSelector).fadeIn(800);
+          $('[data-toggle="popover"]').popover();
+          self.initCurrentDisplay();
+          self.fetchModulesList();
         });
 
-        $('body').on('click', this.statusResetBtnSelector, function () {
-            var text = $(this).find('a > span').text();
-            $(_this.statusSelectorLabelSelector).text(text);
-            $(this).hide();
-            _this.currentRefStatus = null;
-            _this.doSearch();
+      } else {
+        $(self.placeholderGlobalSelector).fadeOut(800, function() {
+          $(self.placeholderFailureMsgSelector).text(response.msg);
+          $(self.placeholderFailureGlobalSelector).fadeIn(800);
         });
-    };
+      }
+    }).fail(function(response) {
+      $(self.placeholderGlobalSelector).fadeOut(800, function() {
+        $(self.placeholderFailureMsgSelector).text(response.statusText);
+        $(self.placeholderFailureGlobalSelector).fadeIn(800);
+      });
+    });
+  };
 
-    this.isModuleItemCategoryCompliant = function(moduleItem) {
-        var dataCategories = moduleItem.attr('data-categories').toLowerCase();
+  this.fetchModulesList = function() {
+    var self = this;
+    self.modulesList = [];
+    $(".modules-list").each(function() {
+      var container = $(this);
+      container.find(".module-item").each(function() {
+        var $this = $(this);
+        self.modulesList.push({
+          domObject: $this,
+          id: $this.attr('data-id'),
+          name: $this.attr('data-name').toLowerCase(),
+          scoring: parseFloat($this.attr('data-scoring')),
+          logo: $this.attr('data-logo'),
+          author: $this.attr('data-author').toLowerCase(),
+          version: $this.attr('data-version'),
+          description: $this.attr('data-description').toLowerCase(),
+          techName: $this.attr('data-tech-name').toLowerCase(),
+          childCategories: $this.attr('data-child-categories'),
+          categories: $this.attr('data-categories').toLowerCase(),
+          type: $this.attr('data-type'),
+          price: parseFloat($this.attr('data-price')),
+          active: parseInt($this.attr('data-active')),
+          access: $this.attr('data-last-access'),
+          display: $this.hasClass('module-item-list') ? 'list' : 'grid',
+          container: container
+        });
+        $this.remove();
+      });
+    });
+    self.addonsCardGrid = $(this.addonItemGridSelector);
+    self.addonsCardList = $(this.addonItemListSelector);
+    this.updateModuleVisibility();
+    $('body').trigger('moduleCatalogLoaded');
+  };
 
-        if (dataCategories === this.currentRefCategory.toLowerCase()) {
-            return true;
-        } else {
-            return false;
+  this.updateModuleVisibility = function() {
+    var self = this;
+
+    if (self.currentSorting) {
+      // Modules sorting
+      var order = 'asc';
+      var key = self.currentSorting;
+      if (key.split('-').length > 1) {
+        key = key.split('-')[0];
+      }
+      if (self.currentSorting.indexOf('-desc') != -1) {
+        order = 'desc';
+      }
+
+      function currentCompare(a, b) {
+        if (a[key] < b[key]) return -1;
+        if (a[key] > b[key]) return 1;
+        return 0;
+      }
+
+      self.modulesList.sort(currentCompare);
+      if (order == 'desc') {
+        self.modulesList.reverse();
+      }
+    }
+
+    $('.modules-list').html('');
+
+    // Modules visibility management
+    for (var i = 0; i < this.modulesList.length; i++) {
+      var currentModule = this.modulesList[i];
+      if (currentModule.display == this.currentDisplay) {
+        var isVisible = true;
+        if (this.currentRefCategory !== null) {
+          isVisible &= currentModule.categories === this.currentRefCategory;
         }
-    };
-
-    this.isModuleItemStatusCompliant = function(moduleItem) {
-        var dataStatus = parseInt(moduleItem.attr('data-active'));
-
-        if (dataStatus === parseInt(this.currentRefStatus)) {
-            return true;
-        } else {
-            return false;
+        if (self.currentRefStatus !== null) {
+          isVisible &= currentModule.active === this.currentRefStatus;
         }
-    };
-
-    this.isModuleItemTagsCompliant = function(moduleItem) {
-        var dataName = moduleItem.attr('data-name').toLowerCase();
-        var dataTechName = moduleItem.attr('data-tech-name').toLowerCase();
-        var dataDescription = moduleItem.attr('data-description').toLowerCase();
-        var dataAuthor = moduleItem.attr('data-author').toLowerCase();
-        var hasMatched = false;
-        var matchedTagsCount = 0;
-
-        $.each(this.currentTagsList, function (index, value) {
-            // If match any on these attrbute  its a match
+        if (self.currentTagsList.length) {
+          var tagExists = false;
+          $.each(self.currentTagsList, function(index, value) {
             value = value.toLowerCase();
-            if (dataName.indexOf(value) != -1 || dataDescription.indexOf(value) != -1 ||
-                    dataAuthor.indexOf(value) != -1 || dataTechName.indexOf(value) != -1) {
-                matchedTagsCount += 1;
-            }
-        });
-
-        if (matchedTagsCount > 0) {
-            return true;
+            tagExists |= (
+              currentModule.name.indexOf(value) != -1
+              || currentModule.description.indexOf(value) != -1
+              || currentModule.author.indexOf(value) != -1
+              || currentModule.techName.indexOf(value) != -1
+            );
+          });
+          isVisible &= tagExists;
+        }
+        if (isVisible) {
+          currentModule.container.append(currentModule.domObject);
+        }
+      }
+    }
+    if (this.currentTagsList.length) {
+        if ('grid' === this.currentDisplay) {
+            $(".modules-list").append(this.addonsCardGrid);
         } else {
-            return false;
+            $(".modules-list").append(this.addonsCardList);
         }
-    };
+    }
 
-    this.doSearch = function() {
-        // Pick the right selector to process search
-        var moduleItemSelector = this.getModuleItemSelector();
-        var moduleGlobalSelector = this.getModuleGlobalSelector();
-        var _this = this;
+    this.updateTotalResults();
+  };
 
-        $(moduleGlobalSelector).each(function (index, value) {
-            var _that = _this;
-            var totalFoundModules = 0;
-            var totalAvailableModules = $(this).find(moduleItemSelector).length;
-            // Go through each module items to check if its contains filters tags keywords...
-            $(this).find(moduleItemSelector).each(function (index, value) {
+  this.initPageChangeProtection = function() {
+    var self = this;
 
-                var isModuleToBeFound = true;
+    $(window).on('beforeunload', function() {
+      if (self.isUploadStarted === true) {
+        return "It seems some critical operation are running, are you sure you want to change page ? It might cause some unexepcted behaviors.";
+      }
+    });
+  };
 
-                if (_that.currentRefCategory !== null) {
-                    isModuleToBeFound &= _that.isModuleItemCategoryCompliant($(this));
-                }
+  this.initBulkActions = function() {
+    var self = this;
+    var body = $('body');
 
-                if (_that.currentRefStatus !== null) {
-                    isModuleToBeFound &= _that.isModuleItemStatusCompliant($(this));
-                }
+    body.on('change', this.bulkActionDropDownSelector, function() {
+      if (0 === $(self.getBulkCheckboxesCheckedSelector()).length) {
+          $.growl.warning({message: translate_javascripts['Bulk Action - One module minimum']});
+          return;
+      }
+      self.lastBulkAction = $(this).find(':checked').attr('value');
+      var modulesListString = self.buildBulkActionModuleList();
+      var actionString = $(this).find(':checked').text().toLowerCase();
+      $(self.bulkConfirmModalListSelector).html(modulesListString);
+      $(self.bulkConfirmModalActionNameSelector).text(actionString);
 
-                if (_that.currentTagsList.length) {
-                    isModuleToBeFound &= _that.isModuleItemTagsCompliant($(this));
-                }
+      if (self.lastBulkAction !== 'bulk-uninstall') {
+        $(self.bulkActionCheckboxSelector).hide();
+      }
+      $(self.bulkConfirmModalSelector).modal('show');
+    });
 
-                if (isModuleToBeFound) {
-                    // If moduleItem is compliant with all filters, display it
-                    $(this).show();
-                    totalFoundModules += 1;
-                } else {
-                    $(this).hide();
-                }
-            });
-            // Todo redo current sorting if necessary
-            if (_this.currentSorting !== null) {
-                _this.doDropdownSort(_this.currentSorting);
-            }
-
-            if(totalFoundModules != $(this).find(moduleItemSelector).length) {
-                this.areAllModuleDisplayed = false;
-            }
-
-            _this.updateTotalResults(totalFoundModules, $(this));
-        });
-    };
-
-    this.doDropdownSort = function(typeSort) {
-        var availableSorts = [
-                                'sort-by-price-asc',
-                                'sort-by-price-desc',
-                                'sort-by-name',
-                                'sort-by-scoring'
-                            ];
-
-        if ($.inArray(typeSort, availableSorts) === -1) {
-            console.error('typeSort "' + typeSort + '" is not a valid sort option');
-            return false;
-        }
-
-        var dataAttr = null;
-        var sortOrder = 'asc';
-        var sortKind = 'alpha';
-        var _this = this;
-        var moduleGlobalSelector = this.getModuleGlobalSelector();
-        var moduleItemSelector = this.getModuleItemSelector();
-        var addonsItemSelector = this.getAddonItemSelector();
-        var addonItemHtmlBackup = null;
-
-        if ($(addonsItemSelector).length) {
-            addonItemHtmlBackup = $(addonsItemSelector).get(0).outerHTML;
-        }
-
-        switch (typeSort) {
-            case availableSorts[0]:
-                dataAttr = ['data-price', 'data-tech-name'];
-                sortKind = 'num';
-                break;
-            case availableSorts[1]:
-                dataAttr = ['data-price', 'data-tech-name'];
-                sortOrder = 'desc';
-                sortKind = 'num';
-                break;
-            case availableSorts[2]:
-                dataAttr = ['data-name', 'data-tech-name'];
-                break;
-            case availableSorts[3]:
-                dataAttr = ['data-scoring', 'data-tech-name'];
-                sortOrder = 'desc';
-                sortKind = 'num';
-                break;
-        }
-
-        $(moduleGlobalSelector).each(function(index, value) {
-
-            var arrayToSort = {};
-            var keysToSort = [];
-
-            $(this).find(moduleItemSelector).each(function(index, value) {
-                var selectorObject = $(this);
-                var uniqueID = '';
-                $.each(dataAttr, function (index, value) {
-                    if (uniqueID !== '') {
-                        uniqueID += ' #'; // Explode separator
-                    }
-                    uniqueID += selectorObject.attr(value);
-                });
-                arrayToSort[uniqueID] = $(this);
-                keysToSort.push(uniqueID);
-            });
-
-            var keysArrayLength = keysToSort.length;
-
-            if (sortKind == 'alpha') {
-                keysToSort.sort();
-            } else {
-                keysToSort.sort(function(elem1, elem2) {
-                    var elem1Formatted = parseFloat(elem1.substring(0, elem1.indexOf('#')));
-                    var elem2Formatted = parseFloat(elem2.substring(0, elem2.indexOf('#')));
-                    if (sortOrder == 'asc') {
-                        return elem1Formatted - elem2Formatted;
-                    } else {
-                        return elem2Formatted - elem1Formatted;
-                    }
-                });
-            }
-
-            var currentSelector = $(this);
-            var _arrayToSort = arrayToSort;
-            var _currentSelector = currentSelector;
-
-            currentSelector.empty();
-            currentSelector.append('<div class="row">');
-
-            $.each(keysToSort, function(index, value){
-                _currentSelector.find('.row').first().append(_arrayToSort[value].get(0).outerHTML);
-                delete _arrayToSort[value];
-            });
-
-            currentSelector.find('.row').first().append(addonItemHtmlBackup);
-            // Take care of Addons Search Card
-            if ($(moduleItemSelector + ':visible').length != $(moduleItemSelector).length && addonItemHtmlBackup !== null) {
-                $(addonsItemSelector).css('display', 'table');
-            }
-
-            currentSelector.append('</div>');
-        });
-    };
-
-    this.updateTagList = function(tagList) {
-        this.currentTagsList = tagList;
-        /* When this happen we need to update the interface accordingly */
-        this.doSearch();
-    };
-
-    this.resetSearch = function () {
-        // Pick the right selector to process search
-        var moduleItemSelector = this.getModuleItemSelector();
-        var moduleGlobalSelector = this.getModuleGlobalSelector();
-        var _this = this;
-
-        // Reset currentTagsList
-        this.currentTagsList = [];
-        _this.doSearch();
-
-        // Avoid trying to redisplay everything if it's already fully displayed
-        if (this.areAllModuleDisplayed === false) {
-
-            $(moduleGlobalSelector).each(function (index, value) {
-                var totalModules = 0;
-                var _that = _this;
-                $(this).find(moduleItemSelector).each(function (index, value) {
-                    if (_that.currentRefCategory !== null) {
-                        var isFromFilterCategory = ($(this).attr('data-categories') == _that.currentRefCategory);
-                        if (isFromFilterCategory === true) {
-                            totalModules += 1;
-                        }
-                        if ($(this).is(':hidden') && isFromFilterCategory === true) {
-                            $(this).show();
-                        }
-                    } else {
-                        totalModules += 1;
-                        if ($(this).is(':hidden')) {
-                            $(this).show();
-                        }
-                    }
-                });
-
-                // Dont forget this vital var once this done
-                _this.areAllModuleDisplayed = true;
-                _this.updateTotalResults(totalModules, $(this));
-            });
-        }
-    };
-
-    this.initBOEventRegistering = function() {
-        BOEvent.on('Module Disabled', this.onModuleDisabled, this);
-    };
-
-    this.onModuleDisabled = function(event) {
-        var globalModuleSelector = this.getModuleGlobalSelector();
-        var moduleItemSelector = this.getModuleItemSelector();
-        var _this = this;
-
-        $(globalModuleSelector).each(function(index, value){
-            var totalForCurrentSelector = $(this).find(moduleItemSelector+':visible').length;
-            _this.updateTotalResults(totalForCurrentSelector, $(this));
-        });
-
-    };
-
-    this.initPlaceholderMechanism = function() {
-        var _this = this;
-
-        if ($(this.placeholderGlobalSelector).length) {
-            this.ajaxLoadPage();
-        }
-
-        // Retry loading mechanism
-        $('body').on('click', this.placeholderFailureRetryBtnSelector, function(event){
-            $(_this.placeholderFailureGlobalSelector).fadeOut();
-            $(_this.placeholderGlobalSelector).fadeIn();
-            _this.ajaxLoadPage();
-        });
-    };
-
-    this.ajaxLoadPage = function() {
-        var urlToCall = baseAdminDir + 'module/catalog/refresh';
-        var _this = this;
-
-        $.ajax({
-            method: 'GET',
-            url: urlToCall,
-        }).done(function (response) {
-            var _that = _this;
-
-            if (response.status === true) {
-                var stylesheet = document.styleSheets[0];
-                var stylesheetRule = '{display: none}';
-                var moduleGlobalSelector = _this.getModuleGlobalSelector();
-                var requiredSelectorCombination = moduleGlobalSelector + ', .module-sorting-menu ';
-
-                if (stylesheet.insertRule) {
-                    stylesheet.insertRule(
-                        requiredSelectorCombination +
-                        stylesheetRule, stylesheet.cssRules.length
-                    );
-                } else if (stylesheet.addRule) {
-                    stylesheet.addRule(
-                        requiredSelectorCombination,
-                        stylesheetRule,
-                        -1
-                    );
-                }
-
-                $(_this.placeholderGlobalSelector).fadeOut(800, function(){
-                    $.each(response.domElements, function(index, element){
-                        $(element.selector).append(element.content);
-                    });
-                    $(requiredSelectorCombination).fadeIn(800);
-                    $('[data-toggle="popover"]').popover();
-                });
-            } else {
-                $(_this.placeholderGlobalSelector).fadeOut(800, function(){
-                    $(_that.placeholderFailureMsgSelector).text(response.msg);
-                    $(_that.placeholderFailureGlobalSelector).fadeIn(800);
-                });
-            }
-        }).fail(function (response){
-            var _that = _this;
-
-            $(_this.placeholderGlobalSelector).fadeOut(800, function(){
-                $(_that.placeholderFailureMsgSelector).text(response.statusText);
-                $(_that.placeholderFailureGlobalSelector).fadeIn(800);
-            });
-        });
-    };
-
-    this.initPageChangeProtection = function() {
-        var _this = this;
-
-        $(window).on('beforeunload', function(event){
-            if (_this.isUploadStarted === true) {
-                return "It seems some critical operation are running, are you sure you want to change page ? It might cause some unexepcted behaviors.";
-            }
-        });
-    };
-
-    this.initBulkActions = function() {
-        var _this = this;
-
-        $('body').on('change', this.bulkActionDropDownSelector, function(){
-          _this.lastBulkAction = $(this).find(':checked').attr('value');
-          var modulesListString = _this.buildBulkActionModuleList();
-          var actionString = $(this).find(':checked').text().toLowerCase();
-          $(_this.bulkConfirmModalListSelector).html(modulesListString);
-          $(_this.bulkConfirmModalActionNameSelector).text(actionString);
-
-          if (_this.lastBulkAction !== 'bulk-uninstall') {
-            $(_this.bulkActionCheckboxSelector).hide();
-          }
-          $(_this.bulkConfirmModalSelector).modal('show');
-        });
-
-        $('body').on('change', this.selectAllBulkActionSelector, function(){
-          _this.changeBulkCheckboxesState($(this).is(':checked'));
-        });
-
-        $('body').on('click', this.bulkConfirmModalAckBtnSelector, function(event) {
-          event.preventDefault();
-          event.stopPropagation();
-          $(_this.bulkConfirmModalSelector).modal('hide');
-          _this.doBulkAction(_this.lastBulkAction);
-        });
-    };
+    body.on('click', this.bulkConfirmModalAckBtnSelector, function(event) {
+      event.preventDefault();
+      event.stopPropagation();
+      $(self.bulkConfirmModalSelector).modal('hide');
+      self.doBulkAction(self.lastBulkAction);
+    });
+  };
 
   this.buildBulkActionModuleList = function() {
-      var checkBoxesSelector = this.getBulkCheckboxesSelector();
-      var moduleItemSelector = this.getModuleItemSelector();
-      var alreadyDoneFlag = 0;
-      var htmlGenerated = '';
+    var checkBoxesSelector = this.getBulkCheckboxesCheckedSelector();
+    var moduleItemSelector = this.getModuleItemSelector();
+    var alreadyDoneFlag = 0;
+    var htmlGenerated = '';
 
-      $(checkBoxesSelector + ':checked').each(function(){
-          if (alreadyDoneFlag != 10) {
-              var currentElement = $(this).parents(moduleItemSelector);
-              htmlGenerated += '- ' + currentElement.attr('data-name') + '<br/>';
-              alreadyDoneFlag += 1;
-          } else {
-              // Break each
-              htmlGenerated += '- ...';
-              return false;
-          }
-      });
+    $(checkBoxesSelector).each(function() {
+      if (alreadyDoneFlag != 10) {
+        var currentElement = $(this).parents(moduleItemSelector);
+        htmlGenerated += '- ' + currentElement.attr('data-name') + '<br/>';
+        alreadyDoneFlag += 1;
+      } else {
+        // Break each
+        htmlGenerated += '- ...';
+        return false;
+      }
+    });
 
-      return htmlGenerated;
+    return htmlGenerated;
   };
 
-    this.changeBulkCheckboxesState = function (hasToCheck) {
-        var checkBoxesSelector = this.getBulkCheckboxesSelector();
+  this.initAddonsConnect = function () {
+    var self = this;
 
-        $(checkBoxesSelector).each(function () {
-            $(this).prop('checked', hasToCheck);
-        });
-    };
+    // Make addons connect modal ready to be clicked
+    if ($(this.addonsConnectModalBtnSelector).attr('href') == '#') {
+      $(this.addonsConnectModalBtnSelector).attr('data-toggle', 'modal');
+      $(this.addonsConnectModalBtnSelector).attr('data-target', this.addonsConnectModalSelector);
+    }
+    if ($(this.addonsLogoutModalBtnSelector).attr('href') == '#') {
+      $(this.addonsLogoutModalBtnSelector).attr('data-toggle', 'modal');
+      $(this.addonsLogoutModalBtnSelector).attr('data-target', this.addonsLogoutModalSelector);
+    }
+    $('body').on('submit', this.addonsConnectForm, function (event) {
+      event.preventDefault();
+      event.stopPropagation();
 
-    this.initAddonsConnect = function () {
-        var _this = this;
-
-        // Make addons connect modal ready to be clicked
-        if ($(this.addonsConnectModalBtnSelector).attr('href') == '#') {
-            $(this.addonsConnectModalBtnSelector).attr('data-toggle', 'modal');
-            $(this.addonsConnectModalBtnSelector).attr('data-target', this.addonsConnectModalSelector);
+      $.ajax({
+        method: 'POST',
+        url: $(this).attr('action'),
+        dataType: 'json',
+        data: $(this).serialize(),
+        beforeSend: function() {
+          $(self.addonsLoginButtonSelector).show();
+          $("button.btn[type='submit']", self.addonsConnectForm).hide();
         }
+      }).done(function (response) {
+        var responseCode = response.success;
+        var responseMsg = response.message;
 
-        $('body').on('submit', this.addonsConnectForm, function (event) {
-            event.preventDefault();
-            event.stopPropagation();
+        if (responseCode === 1) {
+          location.reload();
+        } else {
+          $.growl.error({message: responseMsg});
+          $(self.addonsLoginButtonSelector).hide();
+          $("button.btn[type='submit']", self.addonsConnectForm).fadeIn();
+        }
+      });
+    });
+  };
 
-            var _that = _this;
-
-            $.ajax({
-                method: 'POST',
-                url: $(this).attr('action'),
-                dataType: 'json',
-                data: $(this).serialize(),
-                beforeSend: function() {
-                    $(_that.addonsLoginButtonSelector).show();
-                    $("button.btn[type='submit']", _that.addonsConnectForm).hide();
-                }
-            }).done(function (response) {
-                var responseCode = response.success;
-                var responseMsg = response.message;
-
-                if (responseCode === 1) {
-                    location.reload();
-                } else {
-                    $.growl.error({message: responseMsg});
-                    $(_that.addonsLoginButtonSelector).hide();
-                    $("button.btn[type='submit']", _that.addonsConnectForm).fadeIn();
-                }
-            });
-        });
-    };
-
-    this.initAddModuleAction = function () {
-        $(this.dropModuleBtnSelector).attr('data-toggle', 'modal');
-        $(this.dropModuleBtnSelector).attr('data-target', this.dropZoneModalSelector);
-    };
+  this.initAddModuleAction = function () {
+    var addModuleButton = $(this.addonsImportModalBtnSelector);
+    addModuleButton.attr('data-toggle', 'modal');
+    addModuleButton.attr('data-target', this.dropZoneModalSelector);
+  };
 
   this.initDropzone = function () {
-      var _this = this;
-
-      // Reset modal when click on Retry in case of failure
-      $('body').on('click', this.moduleImportFailureRetrySelector, function(event){
-          var _that = _this;
-           $(_this.moduleImportSuccessSelector + ', ' + _this.moduleImportFailureSelector + ', ' + _this.moduleImportProcessingSelector).fadeOut(function(){
-               var _these = _that;
-               // Added timeout for a better render of animation and avoid to have displayed at the same time
-               setTimeout(function() {
-                   $(_these.moduleImportStartSelector).fadeIn(function(event){
-                       $(_these.moduleImportFailureMsgDetailsSelector).hide();
-                       $(_these.moduleImportSuccessConfigureBtnSelector).hide();
-                       $('.dropzone').removeAttr('style');
-                   });
-               }, 550);
-           });
+    var self = this;
+    var body = $('body');
+    var dropzone = $('.dropzone');
+    
+    // Reset modal when click on Retry in case of failure
+    body.on('click', this.moduleImportFailureRetrySelector, function() {
+      $(self.moduleImportSuccessSelector + ', ' + self.moduleImportFailureSelector + ', ' + self.moduleImportProcessingSelector).fadeOut(function() {
+        // Added timeout for a better render of animation and avoid to have displayed at the same time
+        setTimeout(function() {
+          $(self.moduleImportStartSelector).fadeIn(function() {
+            $(self.moduleImportFailureMsgDetailsSelector).hide();
+            $(self.moduleImportSuccessConfigureBtnSelector).hide();
+            dropzone.removeAttr('style');
+          });
+        }, 550);
       });
+    });
 
-      // Reinit modal on exit, but check if not already processing something
-      $('body').on('hidden.bs.modal', this.dropZoneModalSelector, function (event) {
-          $(_this.moduleImportSuccessSelector + ', ' + _this.moduleImportFailureSelector).hide();
-          $(_this.moduleImportStartSelector).show();
-          $('.dropzone').removeAttr('style');
-          $(_this.moduleImportFailureMsgDetailsSelector).hide();
-          $(_this.moduleImportSuccessConfigureBtnSelector).hide();
-      });
+    // Reinit modal on exit, but check if not already processing something
+    body.on('hidden.bs.modal', this.dropZoneModalSelector, function () {
+      $(self.moduleImportSuccessSelector + ', ' + self.moduleImportFailureSelector).hide();
+      $(self.moduleImportStartSelector).show();
+      dropzone.removeAttr('style');
+      $(self.moduleImportFailureMsgDetailsSelector).hide();
+      $(self.moduleImportSuccessConfigureBtnSelector).hide();
+      $(self.dropZoneModalFooterSelector).html('');
+      $(self.moduleImportConfirmSelector).hide();
+    });
 
-      // Change the way Dropzone.js lib handle file input trigger
-      $('body').on('click', '.dropzone:not(' + this.moduleImportSelectFileManualSelector + ', ' + this.moduleImportSuccessConfigureBtnSelector + ')', function(event, manual_select){
-          // if click comes from .module-import-start-select-manual, stop everything
-          if (typeof manual_select == "undefined") {
-              event.stopPropagation();
-              event.preventDefault();
-          }
-      });
-
-      $('body').on('click', this.moduleImportSelectFileManualSelector, function(event){
+    // Change the way Dropzone.js lib handle file input trigger
+    body.on(
+      'click', '.dropzone:not('+this.moduleImportSelectFileManualSelector+', '+this.moduleImportSuccessConfigureBtnSelector+')',
+      function(event, manual_select) {
+        // if click comes from .module-import-start-select-manual, stop everything
+        if (typeof manual_select == "undefined") {
           event.stopPropagation();
           event.preventDefault();
-          // Trigger click on hidden file input, and pass extra data to .dropzone click handler fro it to notice it comes from here
-          $('.dz-hidden-input').trigger('click', ["manual_select"]);
-      });
+        }
+      }
+    );
 
-      // Handle modal closure
-      $('body').on('click', this.moduleImportModalCloseBtn, function(event) {
-          if (_this.isUploadStarted === true) {
-              //@TODO: Display tooltip saying you can't escape at this stage
-              return;
-          } else {
-              $(_this.dropZoneModalSelector).modal('hide');
-          }
-      });
+    body.on('click', this.moduleImportSelectFileManualSelector, function(event) {
+      event.stopPropagation();
+      event.preventDefault();
+      // Trigger click on hidden file input, and pass extra data to .dropzone click handler fro it to notice it comes from here
+      $('.dz-hidden-input').trigger('click', ["manual_select"]);
+    });
 
-      // Fix issue on click configure button
-      $('body').on('click', this.moduleImportSuccessConfigureBtnSelector, function(event) {
-          event.stopPropagation();
-          event.preventDefault();
-          window.location = $(this).attr('href');
-          return;
-      });
+    // Handle modal closure
+    body.on('click', this.moduleImportModalCloseBtn, function() {
+      if (self.isUploadStarted === true) {
+        // TODO: Display tooltip saying you can't escape at this stage
+      } else {
+        $(self.dropZoneModalSelector).modal('hide');
+      }
+    });
 
-      // Open failure message details box
-      $('body').on('click', this.moduleImportFailureDetailsBtnSelector, function(event){
-          $(_this.moduleImportFailureMsgDetailsSelector).slideDown();
-      });
+    // Fix issue on click configure button
+    body.on('click', this.moduleImportSuccessConfigureBtnSelector, function(event) {
+      event.stopPropagation();
+      event.preventDefault();
+      window.location = $(this).attr('href');
+    });
 
-      // @see: dropzone.js
-      Dropzone.options.importDropzone = {
-          url: 'import',
-          acceptedFiles: '.zip, .tar',
-           // The name that will be used to transfer the file
-          paramName: 'file_uploaded',
-          maxFilesize: 50, // can't be greater than 50Mb because it's an addons limitation
-          uploadMultiple: false,
-          addRemoveLinks: true,
-          dictDefaultMessage: '',
-          hiddenInputContainer: _this.dropZoneImportZoneSelector,
-          /* addedfile(file) */
-          addedfile: function() {
-              // State that we start module upload
-              _this.isUploadStarted = true;
-              var _that = _this;
-             $(_this.moduleImportStartSelector).fadeOut(function(){
-                 $('.dropzone').css('border', 'none');
-                 $(_that.moduleImportProcessingSelector).fadeIn();
-             });
-          },
-          /* processing(file, response) */
-          processing: function () {
-              // Leave it empty ATM since we don't require anything while processing upload
-          },
-          /* error(file, errorMessage) */
-          error: function (file, message) {
-            $(_this.moduleImportProcessingSelector).fadeOut(function() {
-              $(_this.moduleImportFailureMsgDetailsSelector).html(message);
-              $(_this.moduleImportFailureSelector).fadeIn();
-            });
-          },
-          /* complete(file, response) */
-          complete: function (file, response) {
-              if (file.status !== 'error') {
-                  var responseObject = jQuery.parseJSON(file.xhr.response);
+    // Open failure message details box
+    body.on('click', this.moduleImportFailureDetailsBtnSelector, function() {
+      $(self.moduleImportFailureMsgDetailsSelector).slideDown();
+    });
 
-                 $(_this.moduleImportProcessingSelector).fadeOut(function() {
-                      if (responseObject.status === true) {
-                          if (responseObject.is_configurable === true) {
-                              var configureLink = baseAdminDir + 'module/manage/action/configure/' + responseObject.module_name;
-                              $(_this.moduleImportSuccessConfigureBtnSelector).attr('href', configureLink);
-                              $(_this.moduleImportSuccessConfigureBtnSelector).show();
-                          }
-                          $(_this.moduleImportSuccessSelector).fadeIn();
-                      } else {
-                          $(_this.moduleImportFailureMsgDetailsSelector).html(responseObject.msg);
-                          $(_this.moduleImportFailureSelector).fadeIn();
-                      }
-                  });
+    // @see: dropzone.js
+    var dropzoneOptions = {
+      url: moduleURLs.moduleImport,
+      acceptedFiles: '.zip, .tar',
+      // The name that will be used to transfer the file
+      paramName: 'file_uploaded',
+      maxFilesize: 50, // can't be greater than 50Mb because it's an addons limitation
+      uploadMultiple: false,
+      addRemoveLinks: true,
+      dictDefaultMessage: '',
+      hiddenInputContainer: self.dropZoneImportZoneSelector,
+      timeout:0, // add unlimited timeout. Otherwise dropzone timeout is 30 seconds and if a module is long to install, it is not possible to install the module.
+      addedfile: function() {
+        self.animateStartUpload();
+      },
+      processing: function () {
+        // Leave it empty since we don't require anything while processing upload
+      },
+      error: function (file, message) {
+        self.displayOnUploadError(message);
+      },
+      complete: function (file) {
+        if (file.status !== 'error') {
+          var responseObject = jQuery.parseJSON(file.xhr.response);
+          if (typeof responseObject.is_configurable === 'undefined') responseObject.is_configurable = null;
+          if (typeof responseObject.module_name === 'undefined') responseObject.module_name = null;
+
+          self.displayOnUploadDone(responseObject);
+        }
+        // State that we have finish the process to unlock some actions
+        self.isUploadStarted = false;
+      }
+    };
+    dropzone.dropzone($.extend(dropzoneOptions));
+    
+    this.animateStartUpload = function() {
+        // State that we start module upload
+        self.isUploadStarted = true;
+        $(self.moduleImportStartSelector).hide(0);
+        dropzone.css('border', 'none');
+        $(self.moduleImportProcessingSelector).fadeIn();
+    };
+    
+    this.animateEndUpload = function(callback) {
+        $(self.moduleImportProcessingSelector).finish().fadeOut(callback);
+    };
+    
+    /**
+     * Method to call for upload modal, when the ajax call went well.
+     * 
+     * @param object result containing the server response
+     */
+    this.displayOnUploadDone = function(result) {
+        var self = this;
+        self.animateEndUpload(function() {
+            if (result.status === true) {
+              if (result.is_configurable === true) {
+                var configureLink = moduleURLs.configurationPage.replace('1', result.module_name);
+                $(self.moduleImportSuccessConfigureBtnSelector).attr('href', configureLink);
+                $(self.moduleImportSuccessConfigureBtnSelector).show();
               }
-              // State that we have finish the process to unlock some actions
-              _this.isUploadStarted = false;
-          }
-      };
+              $(self.moduleImportSuccessSelector).fadeIn();
+            } else if (typeof result.confirmation_subject !== 'undefined') {
+                self.displayPrestaTrustStep(result);
+            } else {
+              $(self.moduleImportFailureMsgDetailsSelector).html(result.msg);
+              $(self.moduleImportFailureSelector).fadeIn();
+            }
+          });
+    };
+
+    /**
+     * Method to call for upload modal, when the ajax call went wrong or when the action requested could not
+     * succeed for some reason.
+     * 
+     * @param string message explaining the error.
+     */
+    this.displayOnUploadError = function(message) {
+        self.animateEndUpload(function() {
+            $(self.moduleImportFailureMsgDetailsSelector).html(message);
+            $(self.moduleImportFailureSelector).fadeIn();
+        });
+    };
+
+    /**
+     * If PrestaTrust needs to be confirmed, we ask for the confirmation modal content and we display it in the
+     * currently displayed one. We also generate the ajax call to trigger once we confirm we want to install
+     * the module.
+     * 
+     * @param Previous server response result
+     */
+    this.displayPrestaTrustStep = function (result) {
+          var self = this;
+          var modal = module_card_controller.replacePrestaTrustPlaceholders(result);
+          var moduleName = result.module.attributes.name;
+          $(this.moduleImportConfirmSelector).html(modal.find('.modal-body').html()).fadeIn();
+          $(this.dropZoneModalFooterSelector).html(modal.find('.modal-footer').html()).fadeIn();
+          $(this.dropZoneModalFooterSelector).find(".pstrust-install").off('click').on('click', function() {
+            
+            $(self.moduleImportConfirmSelector).hide();
+            $(self.dropZoneModalFooterSelector).html('');
+            self.animateStartUpload();
+            
+            // Install ajax call
+            $.post(result.module.attributes.urls.install, { 'actionParams[confirmPrestaTrust]': "1"})
+              .done(function(data) {
+                self.displayOnUploadDone(data[moduleName]);
+              })
+              .fail(function(data) {
+                self.displayOnUploadError(data[moduleName]);
+              })
+              .always(function() {
+                  self.isUploadStarted = false;
+              });
+          });
+    };
   };
 
-    this.getBulkCheckboxesSelector = function () {
-        return (
-                this.currentDisplay == 'grid' ?
-                this.bulkActionCheckboxGridSelector :
-                this.bulkActionCheckboxListSelector
-                );
-    };
+  this.getBulkCheckboxesSelector = function () {
+    return this.currentDisplay == 'grid'
+      ? this.bulkActionCheckboxGridSelector
+      : this.bulkActionCheckboxListSelector;
+  };
 
-    this.loadVariables = function () {
-        if ($(this.moduleListSelector).length) {
-            this.currentDisplay = 'list';
-        } else {
-            this.currentDisplay = 'grid';
+
+  this.getBulkCheckboxesCheckedSelector = function () {
+    return this.currentDisplay == 'grid'
+      ? this.checkedBulkActionGridSelector
+      : this.checkedBulkActionListSelector;
+  };
+
+  this.loadVariables = function () {
+    this.initCurrentDisplay();
+  };
+
+  this.getModuleItemSelector = function () {
+    return this.currentDisplay == 'grid'
+      ? this.moduleItemGridSelector
+      : this.moduleItemListSelector;
+  };
+  
+  /**
+   * Get the module notifications count and displays it as a badge on the notification tab
+   * @return void
+   */
+  this.getNotificationsCount = function () {
+    var urlToCall = moduleURLs.notificationsCount;
+
+    $.getJSON(
+        urlToCall,
+        this.updateNotificationsCount
+    ).fail(function() {
+        console.error('Could not retrieve module notifications count.');
+    });
+  };
+  
+  this.updateNotificationsCount = function(badge) {
+    var destinationTabs = {
+        'to_configure': $("#subtab-AdminModulesNotifications"),
+        'to_update': $("#subtab-AdminModulesUpdates"),
+    };
+    
+    for (var key in destinationTabs) {
+        if (destinationTabs[key].length === 0) {
+            continue;
         }
+        destinationTabs[key].find('.notification-counter').text(badge[key]);
+    };
+  };
+
+  this.initAddonsSearch = function () {
+    var self = this;
+    $('body').on('click', this.addonItemGridSelector+', '+this.addonItemListSelector, function () {
+      var searchQuery = '';
+      if (self.currentTagsList.length) {
+        searchQuery = encodeURIComponent(self.currentTagsList.join(' '));
+      }
+      var hrefUrl = self.baseAddonsUrl+'search.php?search_query='+searchQuery;
+      window.open(hrefUrl, '_blank');
+    });
+  };
+
+  this.initCategoriesGrid = function () {
+    if (typeof refMenu === 'undefined') var refMenu = null;
+    var self = this;
+
+    $('body').on('click', this.categoryGridItemSelector, function (event) {
+      event.stopPropagation();
+      event.preventDefault();
+      var refCategory = $(this).attr('data-category-ref');
+
+      // In case we have some tags we need to reset it !
+      if (self.currentTagsList.length) {
+        self.pstaggerInput.resetTags(false);
+        self.currentTagsList = [];
+      }
+      var menuCategoryToTrigger = $(self.categoryItemSelector+'[data-category-ref="' + refCategory + '"]');
+
+      if (!menuCategoryToTrigger.length) {
+        console.warn('No category with ref ('+refMenu+') seems to exist!');
+        return false;
+      }
+
+      // Hide current category grid
+      if (self.isCategoryGridDisplayed === true) {
+        $(self.categoryGridSelector).fadeOut();
+        self.isCategoryGridDisplayed = false;
+      }
+
+      // Trigger click on right category
+      $(self.categoryItemSelector+'[data-category-ref="'+refCategory+'"]').click();
+    });
+  };
+
+  this.initCurrentDisplay = function() {
+    if (this.currentDisplay === '') {
+      this.currentDisplay = 'list';
+    } else {
+      this.currentDisplay = 'grid';
+    }
+  }
+
+  this.initSortingDropdown = function () {
+    var self = this;
+
+    self.currentSorting = $(this.moduleSortingDropdownSelector).find(':checked').attr('value');
+
+    $('body').on('change', this.moduleSortingDropdownSelector, function() {
+      self.currentSorting = $(this).find(':checked').attr('value');
+      self.updateModuleVisibility();
+    });
+  };
+
+  this.doBulkAction = function(requestedBulkAction) {
+    // This object is used to check if requested bulkAction is available and give proper
+    // url segment to be called for it
+    var forceDeletion = $('#force_bulk_deletion').prop('checked');
+
+    var bulkActionToUrl = {
+      'bulk-uninstall': 'uninstall',
+      'bulk-disable': 'disable',
+      'bulk-enable': 'enable',
+      'bulk-disable-mobile': 'disable_mobile',
+      'bulk-enable-mobile': 'enable_mobile',
+      'bulk-reset': 'reset'
     };
 
-    this.getModuleItemSelector = function () {
-        return (
-                this.currentDisplay == 'grid' ?
-                this.moduleItemGridSelector :
-                this.moduleItemListSelector
-                );
-    };
+    // Note no grid selector used yet since we do not needed it at dev time
+    // Maybe useful to implement this kind of things later if intended to
+    // use this functionality elsewhere but "manage my module" section
+    if (typeof bulkActionToUrl[requestedBulkAction] === "undefined") {
+      $.growl.error({message: translate_javascripts['Bulk Action - Request not found'].replace('[1]', requestedBulkAction)});
+      return false;
+    }
 
-    this.getModuleGlobalSelector = function () {
-        return (
-                this.currentDisplay == 'grid' ?
-                this.moduleGridSelector :
-                this.moduleListSelector
-                );
-    };
+    // Loop over all checked bulk checkboxes
+    var bulkActionSelectedSelector = this.getBulkCheckboxesCheckedSelector();
 
-    this.getAddonItemSelector = function () {
-        return (
-                this.currentDisplay == 'grid' ?
-                this.addonItemGridSelector :
-                this.addonItemListSelector
-                );
-    };
-
-    this.getBulkActionSelectedSelector = function () {
-        return (
-                this.currentDisplay == 'grid' ?
-                this.checkedBulkActionGridSelector :
-                this.checkedBulkActionListSelector
-                );
-    };
-
-    this.initAddonsSearch = function () {
-        var _this = this;
-        $('body').on('click', this.addonItemGridSelector + ', ' + this.addonItemListSelector, function (event) {
-            var searchQuery = '';
-            if (_this.currentTagsList.length) {
-                searchQuery = encodeURIComponent(_this.currentTagsList.join(' '));
-            }
-            var hrefUrl = _this.baseAddonsUrl + 'search.php?search_query=' + searchQuery;
-            window.open(hrefUrl, '_blank');
+    if ($(bulkActionSelectedSelector).length > 0) {
+      var bulkModulesTechNames = [];
+      $(bulkActionSelectedSelector).each(function () {
+        var moduleTechName = $(this).attr('data-tech-name');
+        bulkModulesTechNames.push({
+          techName: moduleTechName,
+          actionMenuObj: $(this).parent().next()
         });
-    };
+      });
 
-    this.initCategoriesGrid = function () {
-        var _this = this;
+      $.each(bulkModulesTechNames, function (index, data) {
+        var actionMenuObj = data.actionMenuObj;
+        var moduleTechName = data.techName;
 
-        $('body').on('click', this.categoryGridItemSelector, function (event) {
-            event.stopPropagation();
-            event.preventDefault();
-            var refCategory = $(this).attr('data-category-ref');
+        var urlActionSegment = bulkActionToUrl[requestedBulkAction];
 
-            // In case we have some tags we need to reset it !
-            if (_this.currentTagsList.length) {
-                _this.pstaggerInput.resetTags(false);
-                _this.currentTagsList = [];
-            }
-            var menuCategoryToTrigger = $(_this.categoryItemSelector + '[data-category-ref="' + refCategory + '"]');
+        if (typeof module_card_controller !== 'undefined') {
+          // We use jQuery to get the specific link for this action. If found, we send it.
+          var urlElement = $(module_card_controller.moduleActionMenuLinkSelector + urlActionSegment, actionMenuObj);
 
-            if (!menuCategoryToTrigger.length) {
-                alert('No category with ref (' + refMenu + ') seems to exists!');
-                return false;
-            }
-
-            // Hide current category grid
-            if (_this.isCategoryGridDisplayed === true) {
-                $(_this.categoryGridSelector).fadeOut();
-                _this.isCategoryGridDisplayed = false;
-            }
-            // Trigger click on right category
-            $(_this.categoryItemSelector + '[data-category-ref="' + refCategory + '"]').click();
-
-        });
-    };
-
-    this.initSortingDropdown = function () {
-        var _this = this;
-
-        $('body').on('change', this.moduleSortingDropdownSelector, function(event){
-            var selectedSorting = $(this).find(':checked').attr('value');
-            _this.currentSorting = selectedSorting;
-            _this.doDropdownSort(selectedSorting);
-        });
-    };
-
-    this.doBulkAction = function (requestedBulkAction) {
-        // @NOTE:
-        // This object is used to check if requested bulkAction is available and give proper
-        // url segment to be called for it
-        var forceDeletion = $('#force_bulk_deletion').prop('checked');
-
-        var bulkActionToUrl = {
-            'bulk-uninstall': 'uninstall',
-            'bulk-disable': 'disable',
-            'bulk-enable': 'enable',
-            'bulk-disable-mobile': 'disable-mobile',
-            'bulk-enable-mobile': 'enable-mobile',
-            'bulk-reset': 'reset'
-        };
-
-        //@NOTE:
-        // "@" char is used only to be easy to replace by the end of this function
-        var baseActionUrl = baseAdminDir + 'module/manage/action/@/';
-
-        //@NOTE:
-        // Note no grid selector used yet since we do not needed it at dev time
-        // Maybe useful to implement this kind of things later if intended to
-        // use this functionality elsewhere but "manage my module" section
-
-        if (typeof bulkActionToUrl[requestedBulkAction] == "undefined") {
-            console.error('Request bulk action "' + requestedBulkAction + '" does not exist');
-            return false;
+          if (urlElement.length > 0) {
+            module_card_controller.requestToController(urlActionSegment, urlElement, forceDeletion);
+          } else {
+            $.growl.error({message: translate_javascripts["Bulk Action - Request not available for module"]
+                        .replace('[1]', urlActionSegment)
+                        .replace('[2]', moduleTechName)});
+          }
         }
+      });
 
-        // Loop over all checked bulk checkboxes
-        var bulkActionSelectedSelector = this.getBulkActionSelectedSelector();
+    } else {
+      console.warn(translate_javascripts['Bulk Action - One module minimum']);
+      return false;
+    }
+  };
 
-        if ($(bulkActionSelectedSelector).length > 0) {
-            var bulkModulesTechNames = [];
-            $(bulkActionSelectedSelector).each(function () {
-                var moduleTechName = $(this).attr('data-tech-name');
-                bulkModulesTechNames.push({
-                    techName: moduleTechName,
-                    actionMenuObj: $(this).parent().next()
-                });
-            });
+  this.initActionButtons = function () {
+    $('body').on('click', this.moduleInstallBtnSelector, function(event) {
+      var $this = $(this);
+      var $next = $($this.next());
+      event.preventDefault();
+      $this.hide();
+      $next.show();
+      $.ajax({
+        url: $this.attr('data-url'),
+        dataType: 'json'
+      }).done(function () {
+        $next.fadeOut();
+      });
+    });
 
-            $.each(bulkModulesTechNames, function (index, data) {
-                var actionMenuObj = data.actionMenuObj;
-                var moduleTechName = data.techName;
+    // "Upgrade All" button handler
+    var that = this;
+    $('body').on('click', this.upgradeAllSource, function(event) {
+        event.preventDefault();
+        $(that.upgradeAllTargets).click();
+    });
+  };
 
-                var urlActionSegment = bulkActionToUrl[requestedBulkAction];
-                baseActionUrl.replace('@', urlActionSegment);
+  this.initCategorySelect = function () {
+    var self = this;
+    var body = $('body');
+    body.on('click', this.categoryItemSelector, function () {
+      // Get data from li DOM input
+      self.currentRefCategory = $(this).attr('data-category-ref').toLowerCase();
+      var categorySelectedDisplayName = $(this).attr('data-category-display-name');
+      // Change dropdown label to set it to the current category's displayname
+      $(self.categorySelectorLabelSelector).text(categorySelectedDisplayName);
+      $(self.categoryResetBtnSelector).show();
+      // Do Search on categoryRef
+      self.updateModuleVisibility();
+    });
 
-                if (typeof module_card_controller !== undefined) {
-                    // We use jQuery to get the specific link for this action. If found, we send it.
-                    var urlElement = $(module_card_controller.moduleActionMenuLinkSelector + urlActionSegment, actionMenuObj);
+    body.on('click', this.categoryResetBtnSelector, function () {
+      var rawText = $(self.categorySelector).attr('aria-labelledby');
+      var upperFirstLetter = rawText.charAt(0).toUpperCase();
+      var removedFirstLetter = rawText.slice(1);
+      var originalText = upperFirstLetter + removedFirstLetter;
+      $(self.categorySelectorLabelSelector).text(originalText);
+      $(this).hide();
+      self.currentRefCategory = null;
+      self.updateModuleVisibility();
+    });
+  };
 
-                    if (urlElement.length > 0) {
-                        module_card_controller.requestToController(urlActionSegment, urlElement, forceDeletion);
-                    } else {
-                        $.growl.error({message: "Action " + urlActionSegment + " not available for module " + moduleTechName + ". Skipped."});
-                    }
-                }
-            });
+  this.updateTotalResults = function() {
 
-        } else {
-            console.warning('Request bulk action "' + requestedBulkAction + '" can\'t be performed if you don\'t select at least 1 module');
-            return false;
-        }
-    };
+    // If there are some shortlist: each shortlist count the modules on the next container.
+    var $shortLists = $('.module-short-list');
+    if ($shortLists.length > 0) {
+      $shortLists.each(function() {
+        var $this = $(this);
+        updateText(
+          $this.find('.module-search-result-wording'),
+          $this.next('.modules-list').find('.module-item').length
+        );
+      });
 
-    this.doDropdownSort = function(typeSort) {
-        var availableSorts = [
-                                'sort-by-price-asc',
-                                'sort-by-price-desc',
-                                'sort-by-name',
-                                'sort-by-scoring'
-                            ];
+      // If there is no shortlist: the wording directly update from the only module container.
+    } else {
+      var modulesCount = $('.modules-list').find('.module-item').length;
+      updateText(
+        $('.module-search-result-wording'),
+        modulesCount
+      );
 
-        if ($.inArray(typeSort, availableSorts) === -1) {
-            console.error('typeSort "' + typeSort + '" is not a valid sort option');
-            return false;
-        }
+      $(this.addonItemGridSelector).toggle(modulesCount !== (this.modulesList.length/2));
+      $(this.addonItemListSelector).toggle(modulesCount !== (this.modulesList.length/2));
+      if (modulesCount === 0) {
+        $('.module-addons-search-link').attr(
+          'href',
+          this.baseAddonsUrl
+          + 'search.php?search_query='
+          + encodeURIComponent(this.currentTagsList.join(' '))
+        );
+      }
+    }
 
-        var dataAttr = null;
-        var sortOrder = 'asc';
-        var sortKind = 'alpha';
-        var _this = this;
-        var moduleGlobalSelector = this.getModuleGlobalSelector();
-        var moduleItemSelector = this.getModuleItemSelector();
-        var addonsItemSelector = this.getAddonItemSelector();
-        var addonItemHtmlBackup = null;
+    function updateText(element, value) {
+      var explodedText = element.text().split(' ');
+      explodedText[0] = value;
+      element.text(explodedText.join(' '));
+    }
+  };
 
-        if ($(addonsItemSelector).length) {
-            addonItemHtmlBackup = $(addonsItemSelector).get(0).outerHTML;
-        }
+  this.initSearchBlock = function() {
+    var self = this;
+    this.pstaggerInput = $('#module-search-bar').pstagger({
+      onTagsChanged: function(tagList) {
+        self.currentTagsList = tagList;
+        self.updateModuleVisibility();
+      },
+      onResetTags: function() {
+        self.currentTagsList = [];
+        self.updateModuleVisibility();
+      },
+      inputPlaceholder: translate_javascripts['Search - placeholder'],
+      closingCross: true,
+      context: self,
+    });
 
-        switch (typeSort) {
-            case availableSorts[0]:
-                dataAttr = ['data-price', 'data-tech-name'];
-                sortKind = 'num';
-                break;
-            case availableSorts[1]:
-                dataAttr = ['data-price', 'data-tech-name'];
-                sortOrder = 'desc';
-                sortKind = 'num';
-                break;
-            case availableSorts[2]:
-                dataAttr = ['data-name', 'data-tech-name'];
-                break;
-            case availableSorts[3]:
-                dataAttr = ['data-scoring', 'data-tech-name'];
-                sortKind = 'num';
-                break;
-        }
+    $('body').on('click', '.module-addons-search-link', function(event) {
+      event.preventDefault();
+      event.stopPropagation();
+      var href = $(this).attr('href');
+      window.open(href, '_blank');
+    });
+  };
 
-        $(moduleGlobalSelector).each(function(index, value) {
+  /**
+   * Initialize display switching between List or Grid
+   */
+  this.initSortingDisplaySwitch = function() {
+    var self = this;
 
-            var arrayToSort = {};
-            var keysToSort = [];
+    $('body').on('click', '.module-sort-switch', function() {
+      var switchTo = $(this).attr('data-switch');
+      var isAlreadyDisplayed = $(this).hasClass('active-display');
+      if (typeof switchTo !== 'undefined' && isAlreadyDisplayed === false) {
+        self.switchSortingDisplayTo(switchTo);
+        self.currentDisplay = switchTo;
+      }
+    });
+  };
 
-            $(this).find(moduleItemSelector).each(function(index, value) {
-                var selectorObject = $(this);
-                var uniqueID = '';
-                $.each(dataAttr, function (index, value) {
-                    if (uniqueID !== '') {
-                        uniqueID += ' #'; // Explode separator
-                    }
-                    uniqueID += selectorObject.attr(value);
-                });
-                arrayToSort[uniqueID] = $(this);
-                keysToSort.push(uniqueID);
-            });
-
-            var keysArrayLength = keysToSort.length;
-
-            if (sortKind == 'alpha') {
-                keysToSort.sort();
-            } else {
-                keysToSort.sort(function(elem1, elem2) {
-                    var elem1Formatted = parseFloat(elem1.substring(0, elem1.indexOf('#')));
-                    var elem2Formatted = parseFloat(elem2.substring(0, elem2.indexOf('#')));
-                    if (sortOrder == 'asc') {
-                        return elem1Formatted - elem2Formatted;
-                    } else {
-                        return elem2Formatted - elem1Formatted;
-                    }
-                });
-            }
-
-            var currentSelector = $(this);
-            var _arrayToSort = arrayToSort;
-            var _currentSelector = currentSelector;
-
-            currentSelector.empty();
-            currentSelector.append('<div class="row">');
-
-            $.each(keysToSort, function(index, value){
-                _currentSelector.find('.row').first().append(_arrayToSort[value].get(0).outerHTML);
-                delete _arrayToSort[value];
-            });
-
-            currentSelector.find('.row').first().append(addonItemHtmlBackup);
-            // Take care of Addons Search Card
-            if ($(moduleItemSelector + ':visible').length != $(moduleItemSelector).length && addonItemHtmlBackup !== null) {
-                $(addonsItemSelector).css('display', 'table');
-            }
-
-            currentSelector.append('</div>');
-        });
-    };
-
-    this.initActionButtons = function () {
-        var _this = this;
-
-        $('body').on('click', this.moduleInstallBtnSelector, function (event) {
-            event.preventDefault();
-            var _that = _this;
-            var next = $(this).next();
-            $(this).hide();
-            $(next).show();
-            $.ajax({
-                url: $(this).attr("data-url"),
-                dataType: 'json',
-            }).done(function () {
-                $(next).fadeOut();
-            });
-        });
-    };
-
-    this.initCategorySelect = function () {
-        var _this = this;
-        $('body').on('click', this.categoryItemSelector, function () {
-            // Get data from li DOM input
-            _this.currentRefCategory = $(this).attr('data-category-ref');
-            var categorySelectedDisplayName = $(this).attr('data-category-display-name');
-            // Change dropdown label to set it to the current category's displayname
-            $(_this.categorySelectorLabelSelector).text(categorySelectedDisplayName);
-            $(_this.categoryResetBtnSelector).show();
-            // Do Search on categoryRef
-            _this.doSearch();
-        });
-
-        $('body').on('click', this.categoryResetBtnSelector, function () {
-            var rawText = $(_this.categorySelector).attr('aria-labelledby');
-            var upperFirstLetter = rawText.charAt(0).toUpperCase();
-            var removedFirstLetter = rawText.slice(1);
-            var originalText = upperFirstLetter + removedFirstLetter;
-            $(_this.categorySelectorLabelSelector).text(originalText);
-            $(this).hide();
-            _this.currentRefCategory = null;
-            _this.doSearch();
-        });
-    };
-
-
-    this.updateTotalResults = function (totalResultFound, domObject) {
-        // Pick the right selector to process search
-        var addonsItemSelector = this.getAddonItemSelector();
-        var resultWordingObject = domObject.prev().find(this.totalResultSelector);
-
-        $(addonsItemSelector).hide();
-        var str = resultWordingObject.text();
-        var explodedStr = str.split(' ');
-        explodedStr[0] = totalResultFound;
-        var gluedStr = explodedStr.join(' ');
-        resultWordingObject.text(gluedStr);
-
-        if (totalResultFound === 0) {
-            // Construct search query
-            var searchQuery = encodeURIComponent(this.currentTagsList.join(' '));
-            var hrefUrl = this.baseAddonsUrl + 'search.php?search_query=' + searchQuery;
-            $(this.addonsSearchLinkSelector).attr('href', hrefUrl);
-            $(this.addonsSearchSelector).show();
-            // Display category grid
-            if (this.isCategoryGridDisplayed === false) {
-                $(this.categoryGridSelector).fadeIn();
-                this.isCategoryGridDisplayed = true;
-            }
-            $(addonsItemSelector).hide();
-
-        } else {
-            if (this.isCategoryGridDisplayed === true) {
-                $(this.categoryGridSelector).fadeOut();
-                this.isCategoryGridDisplayed = false;
-            }
-            var moduleItemSelector = this.getModuleItemSelector();
-
-            if (totalResultFound != $(moduleItemSelector).length) {
-                $(addonsItemSelector).css('display', 'table');
-            } else {
-                $(addonsItemSelector).hide();
-            }
-        }
-    };
-
-    this.initSearchBlock = function() {
-        var _this = this;
-        this.pstaggerInput = $(this.searchBarSelector).pstagger({
-            onTagsChanged: _this.updateTagList,
-            onResetTags: _this.resetSearch,
-            inputPlaceholder: 'Search modules: keyword, name, author...',
-            closingCross: true,
-            context: _this,
-            clearAllBtn: true,
-            clearAllIconClassAdditional: 'material-icons',
-            clearAllSpanClassAdditional: 'module-tags-clear-btn ',
-            tagInputClassAdditional: 'module-tags-input',
-            tagClassAdditional: 'module-tag ',
-            tagsWrapperClassAdditional: 'module-tags-labels',
-        });
-
-        $('body').on('click', this.addonsSearchLinkSelector, function(event){
-            event.preventDefault();
-            event.stopPropagation();
-            var href = $(this).attr('href');
-            window.open(href, '_blank');
-        });
-    };
-
-    /**
-     * Initialize display switching between List or Grid
-     * @method initSortingDisplaySwitch
-     * @memberof AdminModule
-     */
-     this.initSortingDisplaySwitch = function() {
-       var _this = this;
-
-       $('body').on('click', this.sortDisplaySelector, function() {
-         var switchTo = $(this).attr('data-switch');
-         var isAlreadyDisplayed = $(this).hasClass('active-display');
-         if (typeof switchTo != 'undefined' && isAlreadyDisplayed === false) {
-           _this.switchSortingDisplayTo(switchTo);
-           _this.currentDisplay = switchTo;
-         }
-       });
-     };
-
-    /**
-     * Initialize display switching between List or Grid
-     * @method switchSortingDisplayTo
-     * @memberof AdminModule
-     * @param {string} switchTo name of the display to switch to
-     * @return {boolean}
-     */
-    this.switchSortingDisplayTo = function (switchTo) {
-        var _this = this;
-        var addonsItemSelector = this.getAddonItemSelector();
-        var gridListSelector = this.getModuleGlobalSelector();
-        var addonItem = $(addonsItemSelector);
-
-        if (switchTo == 'grid') {
-            // Change main wrapper class to grid
-            $(gridListSelector).addClass('modules-grid').removeClass('modules-list');
-            $(this.moduleItemListSelector).each(function () {
-                $(_this.moduleSortListSelector).removeClass('module-sort-active');
-                $(_this.moduleSortGridSelector).addClass('module-sort-active');
-                $(this).removeClass().addClass('module-item-grid col-12 col-xl-4 col-lg-6 col-md-12 col-sm-12');
-                _this.setNewDisplay($(this), '-list', '-grid');
-            });
-            // Change module addons item
-            addonItem.removeClass().addClass('module-addons-item-grid col-12 col-xl-4 col-lg-6 col-md-12 col-sm-12');
-            this.setNewDisplay(addonItem, '-list', '-grid');
-
-        } else if (switchTo == 'list') {
-            // Change main wrapper class to list
-            $(gridListSelector).addClass('modules-list').removeClass('modules-grid');
-            $(this.moduleItemGridSelector).each(function (index) {
-                $(_this.moduleSortGridSelector).removeClass('module-sort-active');
-                $(_this.moduleSortListSelector).addClass('module-sort-active');
-                $(this).removeClass().addClass('module-item-list col-lg-12');
-                _this.setNewDisplay($(this), '-grid', '-list');
-            });
-            // Change module addons item
-            addonItem.removeClass().addClass('module-addons-item-list col-lg-12');
-            this.setNewDisplay(addonItem, '-grid', '-list');
-        } else {
-            console.error('Can\'t switch to undefined display property "' + switchTo + '"');
-            return false;
-        }
-
-        return true;
-    };
-
-    /**
-     * Initialize display switching between List or Grid
-     * @method switchSortingDisplayTo
-     * @memberof AdminModule
-     * @param {string} domObj jQuery Dom Element
-     * @param {string} toBeReplaced the string that has to be replaced
-     * @param {string} replaceWith the string to replace toBeReplaced with
-     */
-    this.setNewDisplay = function (domObj, toBeReplaced, replaceWith) {
-        var replaceRegex = new RegExp(toBeReplaced, 'g');
-        var originalHTML = domObj.html();
-        var alteredHTML = originalHTML.replace(replaceRegex, replaceWith);
-        domObj.empty().html(alteredHTML);
-    };
-
+  this.switchSortingDisplayTo = function (switchTo) {
+    if (switchTo == 'grid' || switchTo == 'list') {
+      $('.module-sort-switch').removeClass('module-sort-active');
+      $('#module-sort-'+switchTo).addClass('module-sort-active');
+      this.currentDisplay = switchTo;
+      this.updateModuleVisibility();
+    } else {
+      console.error('Can\'t switch to undefined display property "' + switchTo + '"');
+    }
+  };
 };

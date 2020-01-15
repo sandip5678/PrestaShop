@@ -241,7 +241,7 @@ company
 vat_number
 address1
 address2
-postcode city
+city State:iso_code postcode
 Country:name
 phone</format>
     </address_format>
@@ -1102,7 +1102,9 @@ company
 vat_number
 address1
 address2
-postcode city
+city
+postcode
+State:name
 Country:name
 phone</format>
     </address_format>

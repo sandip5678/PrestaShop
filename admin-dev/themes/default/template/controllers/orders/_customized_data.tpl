@@ -1,27 +1,28 @@
-{*
-* 2007-2015 PrestaShop
-*
-* NOTICE OF LICENSE
-*
-* This source file is subject to the Academic Free License (AFL 3.0)
-* that is bundled with this package in the file LICENSE.txt.
-* It is also available through the world-wide-web at this URL:
-* http://opensource.org/licenses/afl-3.0.php
-* If you did not receive a copy of the license and are unable to
-* obtain it through the world-wide-web, please send an email
-* to license@prestashop.com so we can send you a copy immediately.
-*
-* DISCLAIMER
-*
-* Do not edit or add to this file if you wish to upgrade PrestaShop to newer
-* versions in the future. If you wish to customize PrestaShop for your
-* needs please refer to http://www.prestashop.com for more information.
-*
-* @author    PrestaShop SA <contact@prestashop.com>
-* @copyright 2007-2015 PrestaShop SA
-* @license   http://opensource.org/licenses/afl-3.0.php Academic Free License (AFL 3.0)
-* International Registered Trademark & Property of PrestaShop SA
-*}
+{**
+ * 2007-2019 PrestaShop SA and Contributors
+ *
+ * NOTICE OF LICENSE
+ *
+ * This source file is subject to the Open Software License (OSL 3.0)
+ * that is bundled with this package in the file LICENSE.txt.
+ * It is also available through the world-wide-web at this URL:
+ * https://opensource.org/licenses/OSL-3.0
+ * If you did not receive a copy of the license and are unable to
+ * obtain it through the world-wide-web, please send an email
+ * to license@prestashop.com so we can send you a copy immediately.
+ *
+ * DISCLAIMER
+ *
+ * Do not edit or add to this file if you wish to upgrade PrestaShop to newer
+ * versions in the future. If you wish to customize PrestaShop for your
+ * needs please refer to https://www.prestashop.com for more information.
+ *
+ * @author    PrestaShop SA <contact@prestashop.com>
+ * @copyright 2007-2019 PrestaShop SA and Contributors
+ * @license   https://opensource.org/licenses/OSL-3.0 Open Software License (OSL 3.0)
+ * International Registered Trademark & Property of PrestaShop SA
+ *}
+{assign var="currencySymbolBeforeAmount" value=$currency->format[0] === '¤'}
 {if $product['customizedDatas']}
 {* Assign product price *}
 {if ($order->getTaxCalculationMethod() == $smarty.const.PS_TAX_EXC)}
@@ -35,10 +36,10 @@
 			{if isset($product['image']) && $product['image']->id|intval}{$product['image_tag']}{else}--{/if}
 		</td>
 		<td>
-			<a href="{$link->getAdminLink('AdminProducts')|escape:'html':'UTF-8'}&amp;id_product={$product['product_id']|intval}&amp;updateproduct&amp;token={getAdminToken tab='AdminProducts'}">
-			<span class="productName">{$product['product_name']} - {l s='Customized'}</span><br />
-			{if ($product['product_reference'])}{l s='Reference number:'} {$product['product_reference']}<br />{/if}
-			{if ($product['product_supplier_reference'])}{l s='Supplier reference:'} {$product['product_supplier_reference']}{/if}
+			<a href="{$link->getAdminLink('AdminProducts', true, ['id_product' => $product['product_id']|intval, 'updateproduct' => '1'])|escape:'html':'UTF-8'}">
+			<span class="productName">{$product['product_name']} - {l s='Customized' d='Admin.Orderscustomers.Feature'}</span><br />
+			{if ($product['product_reference'])}{l s='Reference number:' d='Admin.Orderscustomers.Feature'} {$product['product_reference']}<br />{/if}
+			{if ($product['product_supplier_reference'])}{l s='Supplier reference:' d='Admin.Orderscustomers.Feature'} {$product['product_supplier_reference']}{/if}
 			</a>
 		</td>
 		<td>
@@ -49,17 +50,17 @@
 				<div class="form-group">
 					<div class="fixed-width-xl">
 						<div class="input-group">
-							{if $currency->format % 2}<div class="input-group-addon">{$currency->sign} {l s='tax excl.'}</div>{/if}
+							{if $currencySymbolBeforeAmount}<div class="input-group-addon">{$currency->sign} {l s='tax excl.' d='Admin.Global'}</div>{/if}
 							<input type="text" name="product_price_tax_excl" class="edit_product_price_tax_excl edit_product_price" value="{Tools::ps_round($product['unit_price_tax_excl'], 2)}" size="5" />
-							{if !($currency->format % 2)}<div class="input-group-addon">{$currency->sign} {l s='tax excl.'}</div>{/if}
+							{if !$currencySymbolBeforeAmount}<div class="input-group-addon">{$currency->sign} {l s='tax excl.' d='Admin.Global'}</div>{/if}
 						</div>
 					</div>
 					<br/>
 					<div class="fixed-width-xl">
 						<div class="input-group">
-							{if $currency->format % 2}<div class="input-group-addon">{$currency->sign} {l s='tax incl.'}</div>{/if}
+							{if $currencySymbolBeforeAmount}<div class="input-group-addon">{$currency->sign} {l s='tax incl.' d='Admin.Global'}</div>{/if}
 							<input type="text" name="product_price_tax_incl" class="edit_product_price_tax_incl edit_product_price" value="{Tools::ps_round($product['unit_price_tax_incl'], 2)}" size="5" />
-							{if !($currency->format % 2)}<div class="input-group-addon">{$currency->sign} {l s='tax incl.'}</div>{/if}
+							{if $currencySymbolBeforeAmount}<div class="input-group-addon">{$currency->sign} {l s='tax incl.' d='Admin.Global'}</div>{/if}
 						</div>
 					</div>
 				</div>
@@ -70,6 +71,7 @@
 		{if $display_warehouse}<td>&nbsp;</td>{/if}
 		{if ($order->hasBeenPaid())}<td class="productQuantity text-center">{$product['customizationQuantityRefunded']}</td>{/if}
 		{if ($order->hasBeenDelivered() || $order->hasProductReturned())}<td class="productQuantity text-center">{$product['customizationQuantityReturned']}</td>{/if}
+		{if $stock_location_is_available}<td class="productQuantity location text-center">{$product['location']}</td>{/if}
 		{if $stock_management}<td class="text-center">{$product['current_stock']}</td>{/if}
 		<td class="total_product">
 		{if ($order->getTaxCalculationMethod() == $smarty.const.PS_TAX_EXC)}
@@ -89,7 +91,7 @@
 				<div class="btn-group">
 					<button type="button" class="btn btn-default edit_product_change_link">
 						<i class="icon-pencil"></i>
-						{l s='Edit'}
+						{l s='Edit' d='Admin.Actions'}
 					</button>
 					<button type="button" class="btn btn-default dropdown-toggle" data-toggle="dropdown">
 						<span class="caret"></span>
@@ -98,7 +100,7 @@
 						<li>
 							<a href="#" class="delete_product_line">
 								<i class="icon-trash"></i>
-								{l s='Delete'}
+								{l s='Delete' d='Admin.Actions'}
 							</a>
 						</li>
 					</ul>
@@ -106,11 +108,11 @@
 				{* Update controls *}
 				<button type="button" class="btn btn-default submitProductChange" style="display: none;">
 					<i class="icon-ok"></i>
-					{l s='Update'}
+					{l s='Update' d='Admin.Actions'}
 				</button>
 				<button type="button" class="btn btn-default cancel_product_change_link" style="display: none;">
 					<i class="icon-remove"></i>
-					{l s='Cancel'}
+					{l s='Cancel' d='Admin.Actions'}
 				</button>
 			</td>
 		{/if}
@@ -125,9 +127,9 @@
 							{if ($type == Product::CUSTOMIZE_FILE)}
 								{foreach from=$datas item=data}
 									<div class="form-group">
-										<span class="col-lg-4 control-label"><strong>{if $data['name']}{$data['name']}{else}{l s='Picture #'}{$data@iteration}{/if}</strong></span>
+										<span class="col-lg-4 control-label"><strong>{if $data['name']}{$data['name']}{else}{l s='Picture #' d='Admin.Orderscustomers.Feature'}{$data@iteration}{/if}</strong></span>
 										<div class="col-lg-8">
-											<a href="displayImage.php?img={$data['value']}&amp;name={$order->id|intval}-file{$data@iteration}" class="_blank">
+											<a href="{$link->getAdminLink('AdminCarts', true, [], ['ajax' => 1, 'action' => 'customizationImage', 'img' => $data['value'], 'name' => $order->id|intval|cat:'-file'|cat:$data@iteration])}" class="_blank">
 												<img class="img-thumbnail" src="{$smarty.const._THEME_PROD_PIC_DIR_}{$data['value']}_small" alt=""/>
 											</a>
 										</div>
@@ -136,7 +138,7 @@
 							{elseif ($type == Product::CUSTOMIZE_TEXTFIELD)}
 								{foreach from=$datas item=data}
 									<div class="form-group">
-										<span class="col-lg-4 control-label"><strong>{if $data['name']}{l s='%s' sprintf=$data['name']}{else}{l s='Text #%s' sprintf=$data@iteration}{/if}</strong></span>
+										<span class="col-lg-4 control-label"><strong>{if $data['name']}{$data['name']}{else}{l s='Text #%s' sprintf=[$data@iteration] d='Admin.Orderscustomers.Feature'}{/if}</strong></span>
 										<div class="col-lg-8">
 											<p class="form-control-static">{$data['value']}</p>
 										</div>
@@ -159,7 +161,7 @@
 				{if ($order->hasBeenPaid())}
 				<td class="text-center">
 					{if !empty($product['amount_refund'])}
-					{l s='%s (%s refund)' sprintf=[$customization['quantity_refunded'], $product['amount_refund']]}
+					{l s='%quantity_refunded% (%amount_refunded% refund)' sprintf=['%quantity_refunded%' => $customization['quantity_refunded'], '%amount_refunded%' => $product['amount_refund']] d='Admin.Orderscustomers.Feature'}
 					{/if}
 					<input type="hidden" value="{$product['quantity_refundable']}" class="partialRefundProductQuantity" />
 					<input type="hidden" value="{(Tools::ps_round($product_price, 2) * ($product['product_quantity'] - $product['customizationQuantityTotal']))}" class="partialRefundProductAmount" />
@@ -167,6 +169,7 @@
 				{/if}
 				{if ($order->hasBeenDelivered())}<td class="text-center">{$customization['quantity_returned']}</td>{/if}
 				<td class="text-center">-</td>
+				{if $stock_location_is_available}<td class="text-center">-</td>{$product['location']}</td>{/if}
 				<td class="total_product">
 					{if ($order->getTaxCalculationMethod() == $smarty.const.PS_TAX_EXC)}
 						{displayPrice price=Tools::ps_round($product['product_price'] * $customization['quantity'], 2) currency=$currency->id|intval}
@@ -201,7 +204,7 @@
 					<div class="form-group">
 						<div class="{if $product['amount_refundable'] > 0}col-lg-4{else}col-lg-12{/if}">
 							<label class="control-label">
-								{l s='Quantity:'}
+								{l s='Quantity:' d='Admin.Orderscustomers.Feature'}
 							</label>
 							<div class="input-group">
 								<input onchange="checkPartialRefundProductQuantity(this)" type="text" name="partialRefundProductQuantity[{$product['id_order_detail']|intval}]" value="{if ($customization['quantity']-$customization['quantity_refunded']) >0}1{else}0{/if}" />
@@ -210,15 +213,15 @@
 						</div>
 						<div class="{if $product['quantity_refundable'] > 0}col-lg-8{else}col-lg-12{/if}">
 							<label class="control-label">
-								<span class="title_box ">{l s='Amount:'}</span>
+								<span class="title_box ">{l s='Amount:' d='Admin.Orderscustomers.Feature'}</span>
 								<small class="text-muted">({$smarty.capture.TaxMethod})</small>
 							</label>
 							<div class="input-group">
-								{if $currency->format % 2}<div class="input-group-addon">{$currency->sign}</div>{/if}
+								{if $currencySymbolBeforeAmount}<div class="input-group-addon">{$currency->sign}</div>{/if}
 								<input onchange="checkPartialRefundProductAmount(this)" type="text" name="partialRefundProduct[{$product['id_order_detail']|intval}]" />
-								{if !($currency->format % 2)}<div class="input-group-addon">{$currency->sign}</div>{/if}
+								{if !$currencySymbolBeforeAmount}<div class="input-group-addon">{$currency->sign}</div>{/if}
 							</div>
-							<p class="help-block"><i class="icon-warning-sign"></i> {l s='(Max %s %s)' sprintf=[Tools::displayPrice(Tools::ps_round($amount_refundable, 2), $currency->id), $smarty.capture.TaxMethod]}</p>
+							<p class="help-block"><i class="icon-warning-sign"></i> {l s='(Max %amount_refundable% %tax_method%)' sprintf=[ '%amount_refundable%' => Context::getContext()->getCurrentLocale()->formatPrice($amount_refundable, Currency::getIsoCodeById((int)$currency->id)), '%tax_method%' => $smarty.capture.TaxMethod] d='Admin.Orderscustomers.Help'}</p>
 						</div>
 					</div>
 					{/if}

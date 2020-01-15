@@ -1,13 +1,13 @@
 <?php
 /**
- * 2007-2015 PrestaShop
+ * 2007-2019 PrestaShop SA and Contributors
  *
  * NOTICE OF LICENSE
  *
  * This source file is subject to the Open Software License (OSL 3.0)
  * that is bundled with this package in the file LICENSE.txt.
  * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
+ * https://opensource.org/licenses/OSL-3.0
  * If you did not receive a copy of the license and are unable to
  * obtain it through the world-wide-web, please send an email
  * to license@prestashop.com so we can send you a copy immediately.
@@ -16,16 +16,20 @@
  *
  * Do not edit or add to this file if you wish to upgrade PrestaShop to newer
  * versions in the future. If you wish to customize PrestaShop for your
- * needs please refer to http://www.prestashop.com for more information.
+ * needs please refer to https://www.prestashop.com for more information.
  *
- *  @author 	PrestaShop SA <contact@prestashop.com>
- *  @copyright  2007-2015 PrestaShop SA
- *  @license    http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
- *  International Registered Trademark & Property of PrestaShop SA
+ * @author    PrestaShop SA <contact@prestashop.com>
+ * @copyright 2007-2019 PrestaShop SA and Contributors
+ * @license   https://opensource.org/licenses/OSL-3.0 Open Software License (OSL 3.0)
+ * International Registered Trademark & Property of PrestaShop SA
  */
+
 namespace PrestaShop\PrestaShop\Adapter\Product;
 
-use Symfony\Component\Process\Exception\LogicException;
+use Context;
+use Image;
+use Product;
+use StockAvailable;
 
 /**
  * This class will provide data from DB / ORM about Product, for both Front and Admin interfaces.
@@ -33,17 +37,23 @@ use Symfony\Component\Process\Exception\LogicException;
 class ProductDataProvider
 {
     /**
-     * Get a new ProductCore instance
+     * Get a new ProductCore instance.
      *
-     * @return object product
+     * @param null $idProduct
+     *
+     * @return Product
      */
-    public function getProductInstance()
+    public function getProductInstance($idProduct = null)
     {
-        return new \ProductCore();
+        if ($idProduct) {
+            return new Product($idProduct);
+        }
+
+        return new Product();
     }
 
     /**
-     * Get a product
+     * Get a product.
      *
      * @param int $id_product
      * @param bool $full
@@ -51,17 +61,17 @@ class ProductDataProvider
      * @param int|null $id_shop
      * @param object|null $context
      *
-     * @throws LogicException If the product id is not set
+     * @throws \LogicException If the product id is not set
      *
-     * @return object product
+     * @return Product $product
      */
     public function getProduct($id_product, $full = false, $id_lang = null, $id_shop = null, $context = null)
     {
         if (!$id_product) {
-            throw new LogicException('You need to provide a product id', null, 5002);
+            throw new \LogicException('You need to provide a product id', 5002);
         }
 
-        $product = new \ProductCore($id_product, $full, $id_lang, $id_shop, $context);
+        $product = new Product($id_product, $full, $id_lang, $id_shop, $context);
         if ($product) {
             if (!is_array($product->link_rewrite)) {
                 $linkRewrite = $product->link_rewrite;
@@ -69,26 +79,27 @@ class ProductDataProvider
                 $linkRewrite = $product->link_rewrite[$id_lang ? $id_lang : key($product->link_rewrite)];
             }
 
-            $cover = \ProductCore::getCover($product->id);
-            $product->image = \Context::getContext()->link->getImageLink($linkRewrite, $cover ? $cover['id_image'] : '', 'home_default');
+            $cover = Product::getCover($product->id);
+            $product->image = Context::getContext()->link->getImageLink($linkRewrite, $cover ? $cover['id_image'] : '', 'home_default');
         }
 
         return $product;
     }
 
     /**
-     * Get default taxe rate product
+     * Get default taxe rate product.
      *
      * @return int id tax rule group
      */
     public function getIdTaxRulesGroup()
     {
-        $product = new \ProductCore();
+        $product = new Product();
+
         return $product->getIdTaxRulesGroup();
     }
 
     /**
-     * Get product quantity
+     * Get product quantity.
      *
      * @param int $id_product
      * @param int|null $id_product_attribute
@@ -98,11 +109,22 @@ class ProductDataProvider
      */
     public function getQuantity($id_product, $id_product_attribute = null, $cache_is_pack = null)
     {
-        return \ProductCore::getQuantity($id_product, $id_product_attribute, $cache_is_pack);
+        return Product::getQuantity($id_product, $id_product_attribute, $cache_is_pack);
     }
 
     /**
-     * Get associated images to product
+     * @param int $id_product
+     * @param int $id_product_attribute Optional
+     *
+     * @return string
+     */
+    public function getLocation($id_product, $id_product_attribute = 0)
+    {
+        return StockAvailable::getLocation($id_product, $id_product_attribute);
+    }
+
+    /**
+     * Get associated images to product.
      *
      * @param int $id_product
      * @param int $id_lang
@@ -111,8 +133,9 @@ class ProductDataProvider
      */
     public function getImages($id_product, $id_lang)
     {
+        $id_shop = (int) Context::getContext()->shop->id;
         $data = [];
-        foreach (\ImageCore::getImages($id_lang, $id_product) as $image) {
+        foreach (Image::getImages($id_lang, $id_product, null, $id_shop) as $image) {
             $data[] = $this->getImage($image['id_image']);
         }
 
@@ -120,15 +143,15 @@ class ProductDataProvider
     }
 
     /**
-     * Get an image
+     * Get an image.
      *
      * @param int $id_image
      *
-     * @return object
+     * @return array()
      */
     public function getImage($id_image)
     {
-        $imageData = new \ImageCore((int)$id_image);
+        $imageData = new Image((int) $id_image);
 
         return [
             'id' => $imageData->id,
@@ -137,7 +160,7 @@ class ProductDataProvider
             'cover' => $imageData->cover ? true : false,
             'legend' => $imageData->legend,
             'format' => $imageData->image_format,
-            'base_image_url' => _THEME_PROD_DIR_.$imageData->getImgPath(),
+            'base_image_url' => _THEME_PROD_DIR_ . $imageData->getImgPath(),
         ];
     }
 }

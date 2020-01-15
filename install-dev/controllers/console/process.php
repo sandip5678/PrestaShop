@@ -1,13 +1,13 @@
 <?php
 /**
- * 2007-2015 PrestaShop
+ * 2007-2019 PrestaShop SA and Contributors
  *
  * NOTICE OF LICENSE
  *
  * This source file is subject to the Open Software License (OSL 3.0)
  * that is bundled with this package in the file LICENSE.txt.
  * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
+ * https://opensource.org/licenses/OSL-3.0
  * If you did not receive a copy of the license and are unable to
  * obtain it through the world-wide-web, please send an email
  * to license@prestashop.com so we can send you a copy immediately.
@@ -16,39 +16,44 @@
  *
  * Do not edit or add to this file if you wish to upgrade PrestaShop to newer
  * versions in the future. If you wish to customize PrestaShop for your
- * needs please refer to http://www.prestashop.com for more information.
+ * needs please refer to https://www.prestashop.com for more information.
  *
  * @author    PrestaShop SA <contact@prestashop.com>
- * @copyright 2007-2015 PrestaShop SA
- * @license   http://opensource.org/licenses/osl-3.0.php Open Software License (OSL 3.0)
+ * @copyright 2007-2019 PrestaShop SA and Contributors
+ * @license   https://opensource.org/licenses/OSL-3.0 Open Software License (OSL 3.0)
  * International Registered Trademark & Property of PrestaShop SA
  */
+use PrestaShopBundle\Install\Database;
+use PrestaShopBundle\Install\Install;
 
-class InstallControllerConsoleProcess extends InstallControllerConsole
+class InstallControllerConsoleProcess extends InstallControllerConsole implements HttpConfigureInterface
 {
-    const SETTINGS_FILE = 'config/settings.inc.php';
-
-    protected $model_install;
     public $process_steps = array();
     public $previous_button = false;
 
     public function init()
     {
-        require_once _PS_INSTALL_MODELS_PATH_.'install.php';
-        require_once _PS_INSTALL_MODELS_PATH_.'database.php';
-        $this->model_install = new InstallModelInstall();
-        $this->model_database = new InstallModelDatabase();
+        $this->model_install = new Install();
+        $this->model_install->setTranslator($this->translator);
+
+        $this->model_database = new Database();
+        $this->model_database->setTranslator($this->translator);
     }
 
     /**
-     * @see InstallAbstractModel::processNextStep()
+     * @see HttpConfigureInterface::processNextStep()
      */
     public function processNextStep()
     {
     }
 
+    public function display()
+    {
+
+    }
+
     /**
-     * @see InstallAbstractModel::validate()
+     * @see HttpConfigureInterface::validate()
      */
     public function validate()
     {
@@ -115,19 +120,18 @@ class InstallControllerConsoleProcess extends InstallControllerConsole
             if (!$this->processInstallDatabase()) {
                 $this->printErrors();
             }
+
+            // Deferred Kernel Init
+            $this->initKernel();
+
             if (!$this->processInstallDefaultData()) {
                 $this->printErrors();
             }
             if (!$this->processPopulateDatabase()) {
                 $this->printErrors();
             }
-            if (!$this->processConfigureShop()) {
-                $this->printErrors();
-            }
-        }
 
-        if (in_array('fixtures', $steps)) {
-            if (!$this->processInstallFixtures()) {
+            if (!$this->processConfigureShop()) {
                 $this->printErrors();
             }
         }
@@ -150,14 +154,25 @@ class InstallControllerConsoleProcess extends InstallControllerConsole
             }
         }
 
+        if (in_array('fixtures', $steps)) {
+            if (!$this->processInstallFixtures()) {
+                $this->printErrors();
+            }
+        }
+
+        // Update fixtures lang
+        foreach (Language::getLanguages() as $lang) {
+            Language::updateMultilangTable($lang['iso_code']);
+        }
+
         if ($this->datas->newsletter) {
             $params = http_build_query(array(
-                    'email' => $this->datas->admin_email,
-                    'method' => 'addMemberToNewsletter',
-                    'language' => $this->datas->lang,
-                    'visitorType' => 1,
-                    'source' => 'installer'
-                ));
+                'email' => $this->datas->admin_email,
+                'method' => 'addMemberToNewsletter',
+                'language' => $this->datas->lang,
+                'visitorType' => 1,
+                'source' => 'installer',
+            ));
             Tools::file_get_contents('http://www.prestashop.com/ajax/controller.php?'.$params);
         }
     }
@@ -242,6 +257,7 @@ class InstallControllerConsoleProcess extends InstallControllerConsole
             'admin_email' =>            $this->datas->admin_email,
             'configuration_agrement' =>    true,
             'send_informations' => true,
+            'enable_ssl' => $this->datas->enable_ssl,
         ));
     }
 
@@ -271,6 +287,7 @@ class InstallControllerConsoleProcess extends InstallControllerConsole
         $this->model_install->xml_loader_ids = $this->datas->xml_loader_ids;
         $result = $this->model_install->installFixtures(null, array('shop_activity' => $this->datas->shop_activity, 'shop_country' => $this->datas->shop_country));
         $this->datas->xml_loader_ids = $this->model_install->xml_loader_ids;
+
         return $result;
     }
 
@@ -290,13 +307,14 @@ class InstallControllerConsoleProcess extends InstallControllerConsole
     public function processInstallTheme()
     {
         $this->initializeContext();
-        return $this->model_install->installTheme();
+
+        return $this->model_install->installTheme($this->datas->theme);
     }
 
     private function clearConfigXML()
     {
         $configXMLPath = _PS_ROOT_DIR_.'/config/xml/';
-        $cacheFiles = scandir($configXMLPath);
+        $cacheFiles = scandir($configXMLPath, SCANDIR_SORT_NONE);
         $excludes = ['.htaccess', 'index.php'];
 
         foreach($cacheFiles as $file) {
@@ -310,12 +328,25 @@ class InstallControllerConsoleProcess extends InstallControllerConsole
     private function clearConfigThemes()
     {
         $themesPath = _PS_ROOT_DIR_.'/config/themes/';
-        $cacheFiles = scandir($themesPath);
+        $cacheFiles = scandir($themesPath, SCANDIR_SORT_NONE);
         foreach($cacheFiles as $file) {
             $file = $themesPath.$file;
             if (is_file($file)) {
                 unlink($file);
             }
         }
+    }
+
+    /**
+     * Deferred initialization of Symfony Kernel
+     */
+    private function initKernel()
+    {
+        require_once _PS_CORE_DIR_.'/config/bootstrap.php';
+
+        global $kernel;
+        $kernel = new AppKernel(_PS_ENV_, _PS_MODE_DEV_);
+        $kernel->loadClassCache();
+        $kernel->boot();
     }
 }

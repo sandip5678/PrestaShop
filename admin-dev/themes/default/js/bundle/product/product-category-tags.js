@@ -2,6 +2,10 @@
  * Product categories Tags management
  */
 var productCategoriesTags = (function () {
+  var defaultCategoryForm = $('#form_step1_id_category_default');
+  var categoriesForm = $('#form_step1_categories');
+  var tagsContainer = $('#ps_categoryTags');
+
   return {
     'init': function () {
       selectedCategories = this.getTags();
@@ -48,7 +52,7 @@ var productCategoriesTags = (function () {
     'manageTagsOnInput': function () {
       var categoriesForm = $('#form_step1_categories');
       var that = this;
-      categoriesForm.on('click', 'input[type=checkbox]', function (event) {
+      categoriesForm.on('change', 'input[type=checkbox]', function (event) {
         var input = $(this);
         if (input.prop('checked') === false) {
           that.removeTag($(this).val());
@@ -66,15 +70,13 @@ var productCategoriesTags = (function () {
       return true;
     },
     'manageTagsOnTags': function () {
-      var categoriesForm = $('#form_step1_categories');
-      var tagsContainer = $('#ps_categoryTags');
       var that = this;
 
       tagsContainer.on('click', 'a.pstaggerClosingCross', function (event) {
         event.preventDefault();
         var id = $(this).data('id');
         that.removeTag(id);
-        categoriesForm.find('input[value="' + id + '"].category').attr('checked', false);
+        categoriesForm.find('input[value="' + id + '"].category').prop('checked', false);
         tagsContainer.focus();
       });
 
@@ -83,7 +85,7 @@ var productCategoriesTags = (function () {
     'checkDefaultCategory': function (categoryId) {
       var categoriesForm = $('#form_step1_categories');
       var selector = 'input[value="'+categoryId+'"].default-category';
-      categoriesForm.find(selector).attr('checked', 'checked');
+      categoriesForm.find(selector).prop('checked', true);
     },
     'getTree': function () {
       var tree = JSON.parse($('#ps_categoryTree').html());
@@ -100,10 +102,25 @@ var productCategoriesTags = (function () {
         });
       }
 
-      $('#ps_categoryTags').append('<span class="pstaggerTag">' +
-        '<span data-id="' + category.id + '" title="' + category.breadcrumb + '">' + category.name + '</span>' +
-        '<a class="pstaggerClosingCross" href="#" data-id="' + category.id + '">x</a>' +
-        '</span>');
+      var isTagExist = tagsContainer.find('span[data-id='+ category.id +']');
+
+      if(0 == isTagExist.length) {
+        tagsContainer.append('<span class="pstaggerTag">' +
+          '<span data-id="' + category.id + '" title="' + category.breadcrumb + '">' + category.name + '</span>' +
+          '<a class="pstaggerClosingCross" href="#" data-id="' + category.id + '">x</a>' +
+          '</span>')
+        ;
+
+        var optionId = '#form_step1_id_category_default_' + category.id;
+        if (0 == $(optionId).length) {
+          defaultCategoryForm.append('<div class="radio">' +
+            '<label class="required">' +
+            '<input type="radio"' + 'id="form_step1_id_category_default_' + category.id + '" name="form[step1][id_category_default]" required="required" value="' + category.id + '">' +
+            category.name +'</label>' +
+            '</div>');
+        }
+      }
+
 
       return true;
     },
@@ -116,10 +133,12 @@ var productCategoriesTags = (function () {
       return name;
     },
     'initSearchBox': function () {
-      var searchBox = $('#ps-select-product-category');
+      var searchCategorySelector = '#ps-select-product-category';
+      var searchBox = $(searchCategorySelector);
       var tree = this.getTree();
       var tags = [];
       var that = this;
+      let searchResultMsg = '';
       tree.forEach(function buildTags(tagObject){
         tags.push({
           label: tagObject.breadcrumb,
@@ -135,18 +154,25 @@ var productCategoriesTags = (function () {
         matchContains: true,
         mustMatch:false,
         scroll:false,
+        focus: function(event, ui) {
+          event.preventDefault();
+          let $this = $(this);
+          $this.val(that.getNameFromBreadcrumb(ui.item.label));
+          searchResultMsg = $this.parent().find('[role=status]').text();
+        },
         select: function(event, ui) {
           event.preventDefault();
           var label = ui.item.label;
           var categoryName = that.getNameFromBreadcrumb(label);
           var categoryId = ui.item.value;
+
           that.createTag({
             'name': categoryName,
             'id': categoryId,
             'breadcrumb': label
           });
           var categoriesForm = $('#form_step1_categories');
-          categoriesForm.find('input[value="' + categoryId + '"].category').attr('checked', 'checked');
+          categoriesForm.find('input[value="' + categoryId + '"].category').prop('checked', true);
           $(this).val('');
         }
       }).data('ui-autocomplete')._renderItem = function(ul, item) {
@@ -155,6 +181,21 @@ var productCategoriesTags = (function () {
           .append('<a>'+item.label+'</a>')
           .appendTo(ul);
       };
+
+      searchBox.parent().find('[role=status]').on('DOMSubtreeModified', function () {
+        let $this = $(this);
+        if ($.isNumeric($this.text()) && searchResultMsg !== '' && searchBox.val() !== '') {
+          $this.text(searchResultMsg);
+        }
+      });
+
+      $('body').on('focusout', searchCategorySelector, function (event) {
+        var $searchInput = $(event.currentTarget);
+        if (0 === $searchInput.val().length ) {
+          $searchInput.parent().find('[role=status]').text('');
+          searchResultMsg = '';
+        }
+      });
     }
   };
 })();

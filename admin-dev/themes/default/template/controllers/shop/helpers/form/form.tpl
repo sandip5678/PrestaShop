@@ -1,27 +1,27 @@
-{*
-* 2007-2015 PrestaShop
-*
-* NOTICE OF LICENSE
-*
-* This source file is subject to the Academic Free License (AFL 3.0)
-* that is bundled with this package in the file LICENSE.txt.
-* It is also available through the world-wide-web at this URL:
-* http://opensource.org/licenses/afl-3.0.php
-* If you did not receive a copy of the license and are unable to
-* obtain it through the world-wide-web, please send an email
-* to license@prestashop.com so we can send you a copy immediately.
-*
-* DISCLAIMER
-*
-* Do not edit or add to this file if you wish to upgrade PrestaShop to newer
-* versions in the future. If you wish to customize PrestaShop for your
-* needs please refer to http://www.prestashop.com for more information.
-*
-* @author    PrestaShop SA <contact@prestashop.com>
-* @copyright 2007-2015 PrestaShop SA
-* @license   http://opensource.org/licenses/afl-3.0.php Academic Free License (AFL 3.0)
-* International Registered Trademark & Property of PrestaShop SA
-*}
+{**
+ * 2007-2019 PrestaShop SA and Contributors
+ *
+ * NOTICE OF LICENSE
+ *
+ * This source file is subject to the Open Software License (OSL 3.0)
+ * that is bundled with this package in the file LICENSE.txt.
+ * It is also available through the world-wide-web at this URL:
+ * https://opensource.org/licenses/OSL-3.0
+ * If you did not receive a copy of the license and are unable to
+ * obtain it through the world-wide-web, please send an email
+ * to license@prestashop.com so we can send you a copy immediately.
+ *
+ * DISCLAIMER
+ *
+ * Do not edit or add to this file if you wish to upgrade PrestaShop to newer
+ * versions in the future. If you wish to customize PrestaShop for your
+ * needs please refer to https://www.prestashop.com for more information.
+ *
+ * @author    PrestaShop SA <contact@prestashop.com>
+ * @copyright 2007-2019 PrestaShop SA and Contributors
+ * @license   https://opensource.org/licenses/OSL-3.0 Open Software License (OSL 3.0)
+ * International Registered Trademark & Property of PrestaShop SA
+ *}
 {extends file="helpers/form/form.tpl"}
 
 {block name="input"}
@@ -34,7 +34,7 @@
 					</label>
 				</div>
 				<div class="theme-container">
-					<img class="thumbnail" src="{$theme->get('preview')|escape:'html':'UTF-8'}" />
+					<img class="thumbnail" src="../{$theme->get('preview')|escape:'html':'UTF-8'}" />
 				</div>
 			</div>
 		{/foreach}
@@ -72,7 +72,7 @@
 {block name="other_fieldsets"}
 	{if isset($form_import)}
 	<div class="panel">
-		<h3><i class="icon-cloud-download"></i> {l s='Import data from another shop'}</h3>
+		<h3><i class="icon-cloud-download"></i> {l s='Import data from another shop' d='Admin.Advparameters.Feature'}</h3>
 		{foreach $form_import as $key => $field}
 		<div class="form-group">
 		{if $key == 'radio'}
@@ -81,11 +81,11 @@
 				<span class="switch prestashop-switch">
 					<input type="radio" name="{$field.name}" id="{$field.name}_on" value="1" {if $field.value } checked="checked" {/if} />
 					<label for="{$field.name}_on">
-						{l s='Yes'}
+						{l s='Yes' d='Admin.Global'}
 					</label>
 					<input type="radio" name="{$field.name}" id="{$field.name}_off" value="0"  {if !$field.value } checked="checked" {/if} />
 					<label for="{$field.name}_off">
-						{l s='No'}
+						{l s='No' d='Admin.Global'}
 					</label>
 					<a class="slide-button btn"></a>
 				</span>
@@ -121,10 +121,10 @@
 		{/foreach}
 		<div class="panel-footer">
 			<button type="submit" value="1" id="shop_form_submit_btn" name="submitAddshop" class="btn btn-default pull-right">
-				<i class="process-icon-save"></i> {l s='Save'}
+				<i class="process-icon-save"></i> {l s='Save' d='Admin.Actions'}
 			</button>
 			<a href="{$currentIndex|escape:'html':'UTF-8'}&amp;id_shop_group=0&amp;token={$token|escape:'html':'UTF-8'}" class="btn btn-default" onclick="window.history.back();">
-				<i class="process-icon-cancel"></i> {l s='Cancel'}
+				<i class="process-icon-cancel"></i> {l s='Cancel' d='Admin.Actions'}
 			</a>
 		</div>
 	</div>

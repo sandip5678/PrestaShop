@@ -1,27 +1,27 @@
-{*
-* 2007-2015 PrestaShop
-*
-* NOTICE OF LICENSE
-*
-* This source file is subject to the Academic Free License (AFL 3.0)
-* that is bundled with this package in the file LICENSE.txt.
-* It is also available through the world-wide-web at this URL:
-* http://opensource.org/licenses/afl-3.0.php
-* If you did not receive a copy of the license and are unable to
-* obtain it through the world-wide-web, please send an email
-* to license@prestashop.com so we can send you a copy immediately.
-*
-* DISCLAIMER
-*
-* Do not edit or add to this file if you wish to upgrade PrestaShop to newer
-* versions in the future. If you wish to customize PrestaShop for your
-* needs please refer to http://www.prestashop.com for more information.
-*
-* @author    PrestaShop SA <contact@prestashop.com>
-* @copyright 2007-2015 PrestaShop SA
-* @license   http://opensource.org/licenses/afl-3.0.php Academic Free License (AFL 3.0)
-* International Registered Trademark & Property of PrestaShop SA
-*}
+{**
+ * 2007-2019 PrestaShop SA and Contributors
+ *
+ * NOTICE OF LICENSE
+ *
+ * This source file is subject to the Open Software License (OSL 3.0)
+ * that is bundled with this package in the file LICENSE.txt.
+ * It is also available through the world-wide-web at this URL:
+ * https://opensource.org/licenses/OSL-3.0
+ * If you did not receive a copy of the license and are unable to
+ * obtain it through the world-wide-web, please send an email
+ * to license@prestashop.com so we can send you a copy immediately.
+ *
+ * DISCLAIMER
+ *
+ * Do not edit or add to this file if you wish to upgrade PrestaShop to newer
+ * versions in the future. If you wish to customize PrestaShop for your
+ * needs please refer to https://www.prestashop.com for more information.
+ *
+ * @author    PrestaShop SA <contact@prestashop.com>
+ * @copyright 2007-2019 PrestaShop SA and Contributors
+ * @license   https://opensource.org/licenses/OSL-3.0 Open Software License (OSL 3.0)
+ * International Registered Trademark & Property of PrestaShop SA
+ *}
 {if isset($files) && $files|count > 0}
 	{assign var='show_thumbnail' value=false}
 	{foreach $files as $file}
@@ -40,7 +40,7 @@
 			{if isset($file.delete_url)}
 			<p>
 				<a class="btn btn-default" href="{$file.delete_url}">
-					<i class="icon-trash"></i> {l s='Delete'}
+					<i class="icon-trash"></i> {l s='Delete' d='Admin.Actions'}
 				</a>
 			</p>
 			{/if}
@@ -53,7 +53,7 @@
 {/if}
 {if isset($max_files) && $files|count >= $max_files}
 <div class="row">
-	<div class="alert alert-warning">{l s='You have reached the limit (%s) of files to upload, please remove files to continue uploading' sprintf=$max_files}</div>
+	<div class="alert alert-warning">{l s='You have reached the limit (%s) of files to upload, please remove files to continue uploading' sprintf=[$max_files]}</div>
 </div>
 {else}
 <div class="form-group">
@@ -69,7 +69,7 @@
 				{if (!isset($multiple) || !$multiple) && isset($files) && $files|count == 1 && isset($files[0].download_url)}
 					<a href="{$files[0].download_url|escape:'html':'UTF-8'}" class="btn btn-default">
 						<i class="icon-cloud-download"></i>
-						{if isset($size)}{l s='Download current file (%skb)' sprintf=$size}{else}{l s='Download current file'}{/if}
+						{if isset($size)}{l s='Download current file (%skb)' sprintf=[$size]}{else}{l s='Download current file'}{/if}
 					</a>
 				{/if}
 			</span>
@@ -78,7 +78,7 @@
 </div>
 <script type="text/javascript">
 {if isset($multiple) && isset($max_files)}
-	var {$id|escape:'html':'UTF-8'}_max_files = {$max_files - $files|count};
+	var {$id|escape:'html':'UTF-8'}_max_files = {$max_files - ($files|count)};
 {/if}
 
 	$(document).ready(function(){
@@ -131,7 +131,7 @@
 			$('#{$id|escape:'html':'UTF-8'}').closest('form').on('submit', function(e) {
 				if ($('#{$id|escape:'html':'UTF-8'}')[0].files.length > {$id|escape:'html':'UTF-8'}_max_files) {
 					e.preventDefault();
-					alert('{l s='You can upload a maximum of %s files'|sprintf:$max_files}');
+					alert('{l s='You can upload a maximum of %s files' sprintf=[$max_files]}');
 				}
 			});
 		}

@@ -1,79 +1,57 @@
-<?xml version='1.0'?>
+<?xml version="1.0"?>
 <entity_category>
-  <category id='Women' id_shop='1'>
+  <category id="Clothes" id_shop="1">
+    <name>V&#xEA;tements</name>
+    <description>&lt;p&gt;&lt;span style="font-family:Arial, sans-serif, sans;font-size:13px;font-style:normal;font-weight:400;letter-spacing:normal;text-align:left;text-indent:0px;text-transform:none;white-space:normal;word-spacing:0px;background-color:#ffffff;float:none;"&gt;&lt;span style="font-size:10pt;font-weight:normal;font-style:normal;"&gt;Retrouvez nos coups de &lt;span style="font-family:Arial, sans-serif, sans;font-size:13px;font-style:normal;font-weight:400;letter-spacing:normal;text-align:left;text-indent:0px;text-transform:none;white-space:normal;word-spacing:0px;background-color:#ffffff;float:none;"&gt;c&#x153;ur&lt;/span&gt; mode, une s&#xE9;lection de pi&#xE8;ces tendances &#xE0; int&#xE9;grer &#xE0; votre garde-robe. Composez un style unique qui vous ressemble.&lt;/span&gt;&lt;/span&gt;&lt;/p&gt;</description>
+    <link_rewrite>vetements</link_rewrite>
+    <meta_title/>
+    <meta_keywords/>
+    <meta_description/>
+  </category>
+  <category id="Men" id_shop="1">
+    <name>Hommes</name>
+    <description>&lt;p&gt;&lt;span style="font-size:10pt;font-style:normal;"&gt;T-shirts, pulls, sweats &#xE0; capuche et accessoires pour hommes. Des basiques et des cr&#xE9;ations originales pour tous les styles. &lt;/span&gt;&lt;/p&gt;</description>
+    <link_rewrite>hommes</link_rewrite>
+    <meta_title/>
+    <meta_keywords/>
+    <meta_description/>
+  </category>
+  <category id="Women" id_shop="1">
     <name>Femmes</name>
-    <description>&lt;p&gt;&lt;strong&gt;Vous trouverez ici toutes les collections mode pour femmes.&lt;/strong&gt;&lt;/p&gt;
-&lt;p&gt;Cette catégorie regroupe tous les basiques de votre garde-robe et bien plus encore :&lt;/p&gt;
-&lt;p&gt;chaussures, accessoires, T-shirts imprimés, robes élégantes et jeans pour femmes !&lt;/p&gt;</description>
+    <description>&lt;p&gt;&lt;span style="font-size:10pt;font-style:normal;"&gt;T-shirts, pulls, sweats &#xE0; capuche et accessoires pour femmes. Des basiques et des cr&#xE9;ations originales pour tous les styles. &lt;/span&gt;&lt;/p&gt;</description>
     <link_rewrite>femmes</link_rewrite>
     <meta_title/>
     <meta_keywords/>
     <meta_description/>
   </category>
-  <category id='Tops' id_shop='1'>
-    <name>Tops</name>
-    <description>&lt;p&gt;Choisissez parmi une large sélection de T-shirts à manches courtes, longues ou 3/4, de tops, de débardeurs, de chemisiers et bien plus encore.&lt;/p&gt;
-&lt;p&gt;Trouvez la coupe qui vous va le mieux !&lt;/p&gt;</description>
-    <link_rewrite>tops</link_rewrite>
+  <category id="Accessories" id_shop="1">
+    <name>Accessoires</name>
+    <description>&lt;p&gt;&lt;span style="font-size:10pt;font-style:normal;"&gt;Des objets et accessoires pour le bureau, la cuisine ou le salon. Faites de votre int&#xE9;rieur un espace qui vous ressemble.&lt;/span&gt;&lt;/p&gt;</description>
+    <link_rewrite>accessoires</link_rewrite>
     <meta_title/>
     <meta_keywords/>
     <meta_description/>
   </category>
-  <category id='T-shirts' id_shop='1'>
-    <name>T-shirts</name>
-    <description>&lt;p&gt;Les must have de votre garde-robe : découvrez les divers modèles ainsi que les différentes&lt;/p&gt;
-&lt;p&gt;coupes et couleurs de notre collection !&lt;/p&gt;</description>
-    <link_rewrite>t-shirts</link_rewrite>
+  <category id="Stationery" id_shop="1">
+    <name>Papeterie</name>
+    <description>&lt;p&gt;&lt;span style="font-size:10pt;font-style:normal;"&gt;Carnets, agendas, accessoires de bureau et plus encore. Tout ce dont vous avez besoin pour joindre l'utile &#xE0; l'agr&#xE9;able, au travail ou &#xE0; la maison.&lt;/span&gt;&lt;/p&gt;</description>
+    <link_rewrite>papeterie</link_rewrite>
     <meta_title/>
     <meta_keywords/>
     <meta_description/>
   </category>
-  <category id='Tops_1' id_shop='1'>
-    <name>Tops</name>
-    <description>Choisissez le top qui vous va le mieux, parmi une large sélection.</description>
-    <link_rewrite>top</link_rewrite>
+  <category id="Home_Accessories" id_shop="1">
+    <name>Accessoires de maison</name>
+    <description>&lt;p&gt;&lt;span style="font-size:10pt;font-style:normal;"&gt;Vous avez le sens du d&#xE9;tail ? Agr&#xE9;mentez votre int&#xE9;rieur avec notre s&#xE9;lection d'accessoires de maison.&lt;/span&gt;&lt;/p&gt;</description>
+    <link_rewrite>accessoires-de-maison</link_rewrite>
     <meta_title/>
     <meta_keywords/>
     <meta_description/>
   </category>
-  <category id='Blouses' id_shop='1'>
-    <name>Chemisiers</name>
-    <description>Coordonnez vos accessoires à vos chemisiers préférés, pour un look parfait.</description>
-    <link_rewrite>chemisiers</link_rewrite>
-    <meta_title/>
-    <meta_keywords/>
-    <meta_description/>
-  </category>
-  <category id='Dresses' id_shop='1'>
-    <name>Robes</name>
-    <description>&lt;p&gt;Trouvez votre nouvelle pièce préférée parmi une large sélection de robes décontractées, d&apos;été et de soirée !&lt;/p&gt;
-&lt;p&gt;Nous avons des robes pour tous les styles et toutes les occasions.&lt;/p&gt;</description>
-    <link_rewrite>robes</link_rewrite>
-    <meta_title/>
-    <meta_keywords/>
-    <meta_description/>
-  </category>
-  <category id='Casual_Dresses' id_shop='1'>
-    <name>Robes décontractées</name>
-    <description>&lt;p&gt;Vous cherchez une robe pour la vie de tous les jours ? Découvrez&lt;/p&gt;
-&lt;p&gt;notre sélection de robes et trouvez celle qui vous convient.&lt;/p&gt;</description>
-    <link_rewrite>robes-decontractees</link_rewrite>
-    <meta_title/>
-    <meta_keywords/>
-    <meta_description/>
-  </category>
-  <category id='Evening_Dresses' id_shop='1'>
-    <name>Robes de soirée</name>
-    <description>Trouvez la robe parfaite pour une soirée inoubliable !</description>
-    <link_rewrite>robes-soiree</link_rewrite>
-    <meta_title/>
-    <meta_keywords/>
-    <meta_description/>
-  </category>
-  <category id='Summer_Dresses' id_shop='1'>
-    <name>Robes d&apos;été</name>
-    <description>Courte, longue, en soie ou imprimée, trouvez votre robe d&apos;été idéale !</description>
-    <link_rewrite>robes-ete</link_rewrite>
+  <category id="Art" id_shop="1">
+    <name>Art</name>
+    <description>&lt;p&gt;&lt;span style="font-size:10pt;font-style:normal;"&gt;Affiches encadr&#xE9;es et images vectorielles, tout ce dont vous avez besoin pour donner de la personnalit&#xE9; &#xE0; vos murs ou donner vie &#xE0; vos projets cr&#xE9;atifs.&lt;/span&gt;&lt;/p&gt;</description>
+    <link_rewrite>art</link_rewrite>
     <meta_title/>
     <meta_keywords/>
     <meta_description/>

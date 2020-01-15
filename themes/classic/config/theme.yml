@@ -25,6 +25,28 @@ meta:
       name: Two Columns, small right column
       description: Two columns with a small right column
 
+assets:
+  # If you're using this theme as child and you want to load
+  # the parent theme assets, uncomment this line.
+#  use_parent_assets: true
+
+  # The following lines are showing how to load assets in your page
+  # Uncomment and change value to start loading css or js files
+#  css:
+#    all:
+#      - id: custom-lib-style
+#        path: assets/css/custom-lib.css
+#    product:
+#      - id: product-style
+#        path: assets/css/product.css
+#        media: all
+#        priority: 200
+#  js:
+#    cart:
+#      - id: cat-extra-lib
+#        path: assets/js/cart-lib.js
+
+
 global_settings:
   configuration:
     PS_IMAGE_QUALITY: png
@@ -36,13 +58,13 @@ global_settings:
       displayNav1:
         - ps_contactinfo
       displayNav2:
-        - blocklanguages
-        - blockcurrencies
+        - ps_languageselector
+        - ps_currencyselector
         - ps_customersignin
-        - blockcart
+        - ps_shoppingcart
       displayTop:
         - ps_mainmenu
-        - blocksearch
+        - ps_searchbar
       displayHome:
         - ps_imageslider
         - ps_featuredproducts
@@ -53,14 +75,14 @@ global_settings:
         - ps_socialfollow
       displayFooter:
         - ps_linklist
-        - blockmyaccount
+        - ps_customeraccountlinks
         - ps_contactinfo
       displayLeftColumn:
         - ps_categorytree
-        - blocklayered
+        - ps_facetedsearch
       displaySearch:
-        - blocksearch
-      displayProductButtons:
+        - ps_searchbar
+      displayProductAdditionalInfo:
         - ps_sharebuttons
       displayReassurance:
         - blockreassurance
@@ -77,7 +99,7 @@ global_settings:
     small_default:
       width: 98
       height: 98
-      scope: [products, manufacturers, suppliers]
+      scope: [products, categories, manufacturers, suppliers]
     medium_default:
       width: 452
       height: 452

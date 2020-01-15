@@ -1,42 +1,42 @@
-{*
-* 2007-2015 PrestaShop
-*
-* NOTICE OF LICENSE
-*
-* This source file is subject to the Academic Free License (AFL 3.0)
-* that is bundled with this package in the file LICENSE.txt.
-* It is also available through the world-wide-web at this URL:
-* http://opensource.org/licenses/afl-3.0.php
-* If you did not receive a copy of the license and are unable to
-* obtain it through the world-wide-web, please send an email
-* to license@prestashop.com so we can send you a copy immediately.
-*
-* DISCLAIMER
-*
-* Do not edit or add to this file if you wish to upgrade PrestaShop to newer
-* versions in the future. If you wish to customize PrestaShop for your
-* needs please refer to http://www.prestashop.com for more information.
-*
-* @author    PrestaShop SA <contact@prestashop.com>
-* @copyright 2007-2015 PrestaShop SA
-* @license   http://opensource.org/licenses/afl-3.0.php Academic Free License (AFL 3.0)
-* International Registered Trademark & Property of PrestaShop SA
-*}
+{**
+ * 2007-2019 PrestaShop SA and Contributors
+ *
+ * NOTICE OF LICENSE
+ *
+ * This source file is subject to the Open Software License (OSL 3.0)
+ * that is bundled with this package in the file LICENSE.txt.
+ * It is also available through the world-wide-web at this URL:
+ * https://opensource.org/licenses/OSL-3.0
+ * If you did not receive a copy of the license and are unable to
+ * obtain it through the world-wide-web, please send an email
+ * to license@prestashop.com so we can send you a copy immediately.
+ *
+ * DISCLAIMER
+ *
+ * Do not edit or add to this file if you wish to upgrade PrestaShop to newer
+ * versions in the future. If you wish to customize PrestaShop for your
+ * needs please refer to https://www.prestashop.com for more information.
+ *
+ * @author    PrestaShop SA <contact@prestashop.com>
+ * @copyright 2007-2019 PrestaShop SA and Contributors
+ * @license   https://opensource.org/licenses/OSL-3.0 Open Software License (OSL 3.0)
+ * International Registered Trademark & Property of PrestaShop SA
+ *}
 <div class="table-responsive">
 	<table class="table" id="documents_table">
 		<thead>
 			<tr>
 				<th>
-					<span class="title_box ">{l s='Date'}</span>
+					<span class="title_box ">{l s='Date' d='Admin.Global'}</span>
 				</th>
 				<th>
-					<span class="title_box ">{l s='Document'}</span>
+					<span class="title_box ">{l s='Document' d='Admin.Orderscustomers.Feature'}</span>
 				</th>
 				<th>
-					<span class="title_box ">{l s='Number'}</span>
+					<span class="title_box ">{l s='Number' d='Admin.Orderscustomers.Feature'}</span>
 				</th>
 				<th>
-					<span class="title_box ">{l s='Amount'}</span>
+					<span class="title_box ">{l s='Amount' d='Admin.Global'}</span>
 				</th>
 				<th></th>
 			</tr>
@@ -58,23 +58,23 @@
 						<td>
 							{if get_class($document) eq 'OrderInvoice'}
 								{if isset($document->is_delivery)}
-									{l s='Delivery slip'}
+									{l s='Delivery slip' d='Admin.Orderscustomers.Feature'}
 								{else}
-									{l s='Invoice'}
+									{l s='Invoice' d='Admin.Global'}
 								{/if}
 							{elseif get_class($document) eq 'OrderSlip'}
-								{l s='Credit Slip'}
+								{l s='Credit Slip' d='Admin.Orderscustomers.Feature'}
 							{/if}
 						</td>
 						<td>
 							{if get_class($document) eq 'OrderInvoice'}
 								{if isset($document->is_delivery)}
-									<a class="_blank" title="{l s='See the document'}" href="{$link->getAdminLink('AdminPdf')|escape:'html':'UTF-8'}&amp;submitAction=generateDeliverySlipPDF&amp;id_order_invoice={$document->id}">
+									<a class="_blank" title="{l s='See the document'}" href="{$link->getAdminLink('AdminPdf', true, [], ['submitAction' => 'generateDeliverySlipPDF', 'id_order_invoice' => $document->id])|escape:'html':'UTF-8'}">
 								{else}
-									<a class="_blank" title="{l s='See the document'}" href="{$link->getAdminLink('AdminPdf')|escape:'html':'UTF-8'}&amp;submitAction=generateInvoicePDF&amp;id_order_invoice={$document->id}">
+									<a class="_blank" title="{l s='See the document'}" href="{$link->getAdminLink('AdminPdf', true, [], ['submitAction' => 'generateInvoicePDF', 'id_order_invoice' => $document->id])|escape:'html':'UTF-8'}">
 							   {/if}
 							{elseif get_class($document) eq 'OrderSlip'}
-								<a class="_blank" title="{l s='See the document'}" href="{$link->getAdminLink('AdminPdf')|escape:'html':'UTF-8'}&amp;submitAction=generateOrderSlipPDF&amp;id_order_slip={$document->id}">
+								<a class="_blank" title="{l s='See the document'}" href="{$link->getAdminLink('AdminPdf', true, [], ['submitAction' => 'generateOrderSlipPDF', 'id_order_slip' => $document->id])|escape:'html':'UTF-8'}">
 							{/if}
 							{if get_class($document) eq 'OrderInvoice'}
 								{if isset($document->is_delivery)}
@@ -96,9 +96,9 @@
 								{if $document->getTotalPaid()}
 									<span>
 									{if $document->getRestPaid() > 0}
-										({displayPrice price=$document->getRestPaid() currency=$currency->id} {l s='not paid'})
+										({displayPrice price=$document->getRestPaid() currency=$currency->id} {l s='not paid' d='Admin.Orderscustomers.Feature'})
 									{elseif $document->getRestPaid() < 0}
-										({displayPrice price=-$document->getRestPaid() currency=$currency->id} {l s='overpaid'})
+										({displayPrice price=-$document->getRestPaid() currency=$currency->id} {l s='overpaid' d='Admin.Orderscustomers.Feature'})
 									{/if}
 									</span>
 								{/if}
@@ -114,17 +114,17 @@
 								{if $document->getRestPaid()}
 									<a href="#formAddPaymentPanel" class="js-set-payment btn btn-default anchor" data-amount="{$document->getRestPaid()}" data-id-invoice="{$document->id}" title="{l s='Set payment form'}">
 										<i class="icon-money"></i>
-										{l s='Enter payment'}
+										{l s='Enter payment' d='Admin.Orderscustomers.Feature'}
 									</a>
 								{/if}
 
 								<a href="#" class="btn btn-default" onclick="$('#invoiceNote{$document->id}').show(); return false;" title="{if $document->note eq ''}{l s='Add note'}{else}{l s='Edit note'}{/if}">
 									{if $document->note eq ''}
 										<i class="icon-plus-sign-alt"></i>
-										{l s='Add note'}
+										{l s='Add note' d='Admin.Orderscustomers.Feature'}
 									{else}
 										<i class="icon-pencil"></i>
-										{l s='Edit note'}
+										{l s='Edit note' d='Admin.Orderscustomers.Feature'}
 									{/if}
 								</a>
 
@@ -138,18 +138,18 @@
 						<td colspan="5">
 							<form action="{$current_index}&amp;viewOrder&amp;id_order={$order->id}{if isset($smarty.get.token)}&amp;token={$smarty.get.token|escape:'html':'UTF-8'}{/if}" method="post">
 								<p>
-									<label for="editNote{$document->id}" class="t">{l s='Note'}</label>
+									<label for="editNote{$document->id}" class="t">{l s='Note' d='Admin.Global'}</label>
 									<input type="hidden" name="id_order_invoice" value="{$document->id}" />
 									<textarea name="note" id="editNote{$document->id}" class="edit-note textarea-autosize">{$document->note|escape:'html':'UTF-8'}</textarea>
 								</p>
 								<p>
 									<button type="submit" name="submitEditNote" class="btn btn-default">
 										<i class="icon-save"></i>
-										{l s='Save'}
+										{l s='Save' d='Admin.Actions'}
 									</button>
 									<a class="btn btn-default" href="#" id="cancelNote" onclick="$('#invoiceNote{$document->id}').hide();return false;">
 										<i class="icon-remove"></i>
-										{l s='Cancel'}
+										{l s='Cancel' d='Admin.Actions'}
 									</a>
 								</p>
 							</form>
@@ -162,12 +162,12 @@
 					<td colspan="5" class="list-empty">
 						<div class="list-empty-msg">
 							<i class="icon-warning-sign list-empty-icon"></i>
-							{l s='There is no available document'}
+							{l s='There is no available document' d='Admin.Orderscustomers.Notification'}
 						</div>
 						{if isset($invoice_management_active) && $invoice_management_active}
 							<a class="btn btn-default" href="{$current_index}&amp;viewOrder&amp;submitGenerateInvoice&amp;id_order={$order->id}{if isset($smarty.get.token)}&amp;token={$smarty.get.token|escape:'html':'UTF-8'}{/if}">
 								<i class="icon-repeat"></i>
-								{l s='Generate invoice'}
+								{l s='Generate invoice' d='Admin.Orderscustomers.Feature'}
 							</a>
 						{/if}
 					</td>

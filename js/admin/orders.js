@@ -1,12 +1,12 @@
 /**
- * 2007-2015 PrestaShop
+ * 2007-2019 PrestaShop SA and Contributors
  *
  * NOTICE OF LICENSE
  *
- * This source file is subject to the Academic Free License (AFL 3.0)
+ * This source file is subject to the Open Software License (OSL 3.0)
  * that is bundled with this package in the file LICENSE.txt.
  * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/afl-3.0.php
+ * https://opensource.org/licenses/OSL-3.0
  * If you did not receive a copy of the license and are unable to
  * obtain it through the world-wide-web, please send an email
  * to license@prestashop.com so we can send you a copy immediately.
@@ -15,11 +15,11 @@
  *
  * Do not edit or add to this file if you wish to upgrade PrestaShop to newer
  * versions in the future. If you wish to customize PrestaShop for your
- * needs please refer to http://www.prestashop.com for more information.
+ * needs please refer to https://www.prestashop.com for more information.
  *
  * @author    PrestaShop SA <contact@prestashop.com>
- * @copyright 2007-2015 PrestaShop SA
- * @license   http://opensource.org/licenses/afl-3.0.php Academic Free License (AFL 3.0)
+ * @copyright 2007-2019 PrestaShop SA and Contributors
+ * @license   https://opensource.org/licenses/OSL-3.0 Open Software License (OSL 3.0)
  * International Registered Trademark & Property of PrestaShop SA
  */
 
@@ -185,7 +185,7 @@ function editProductRefreshTotal(element)
 		});
 
 		var total = makeTotalProductCaculation(qty, price);
-		
+
 		var totalProductCustom = element.find('td.total_product');
 		totalProductCustom.html(total); // temporary value, not formatted
 		formatCurrencyCldr(total, function(v) {
@@ -196,7 +196,7 @@ function editProductRefreshTotal(element)
 	else
 	{
 		var total = makeTotalProductCaculation(quantity, price);
-		
+
 		var totalProduct = element.find('td.total_product');
 		totalProduct.html(total); // temporary value, not formatted
 		formatCurrencyCldr(total, function(v) {
@@ -257,7 +257,7 @@ function updateAmounts(order)
 			$('#total_products td.amount').fadeIn('slow');
 		});
 	});
-	
+
 	$('#total_discounts td.amount').fadeOut('slow', function() {
 		formatCurrencyCldr(parseFloat(order.total_discounts_tax_incl), function(value) {
 			$('#total_discounts td.amount').html(value);
@@ -289,7 +289,7 @@ function updateAmounts(order)
 	$('.total_paid').fadeOut('slow', function() {
 		formatCurrencyCldr(parseFloat(order.total_paid_tax_incl), function(value) {
 			$('.total_paid').html(value);
-			$('#.total_paid').fadeIn('slow');
+			$('.total_paid').fadeIn('slow');
 		});
 	});
 	$('.alert').slideDown('slow');
@@ -301,6 +301,14 @@ function updateAmounts(order)
 	$('#shipping_table .weight').fadeOut('slow', function() {
 		$(this).html(order.weight);
 		$(this).fadeIn('slow');
+	});
+
+	var shippingCarrierPrice = $('#shipping_table .price_carrier_' + order.id_carrier + ' span');
+	$(shippingCarrierPrice).fadeOut('slow', function() {
+		formatCurrencyCldr(parseFloat(order.total_shipping_tax_incl), function(value) {
+			$(shippingCarrierPrice).html(value);
+			$(shippingCarrierPrice).fadeIn('slow');
+		});
 	});
 }
 
@@ -697,24 +705,27 @@ function init()
 
 	$('button.submitProductChange').unbind('click').click(function(e) {
 		e.preventDefault();
+    var $productLineRow = $(this).closest('tr.product-line-row');
+    var editProductQuantity = $productLineRow.find('td .edit_product_quantity').val();
+    var editProductPrice = $productLineRow.find('td .edit_product_price').val();
 
-		if ($(this).closest('tr.product-line-row').find('td .edit_product_quantity').val() <= 0)
-		{
+    if (editProductQuantity <= 0) {
 			jAlert(txt_add_product_no_product_quantity);
 			return false;
 		}
-		if ($(this).closest('tr.product-line-row').find('td .edit_product_price').val() <= 0)
-		{
-			jAlert(txt_add_product_no_product_price);
-			return false;
+    if (editProductPrice <= 0) {
+      var totalProduct = parseFloat($productLineRow.find('td.total_product').first().text());
+      if (totalProduct > 0) {
+        jAlert(txt_add_product_no_product_price);
+        return false;
+      }
 		}
-		if (confirm(txt_confirm))
-		{
+		if (confirm(txt_confirm)) {
 			var element = $(this);
 			var element_list = $('.customized-' + $(this).parent().parent().find('.edit_product_id_order_detail').val());
 			query = 'ajax=1&token='+token+'&action=editProductOnOrder&id_order='+id_order+'&';
 			if (element_list.length)
-				query += element_list.parent().parent().find('input:visible, select:visible, .edit_product_id_order_detail').serialize();
+				query += element_list.find('input:visible, select:visible, .edit_product_id_order_detail').serialize();
 			else
 				query += element.parent().parent().find('input:visible, select:visible, .edit_product_id_order_detail').serialize();
 
@@ -724,10 +735,8 @@ function init()
 				cache: false,
 				dataType: 'json',
 				data : query,
-				success : function(data)
-				{
-					if (data.result)
-					{
+				success : function(data) {
+					if (data.result) {
 						refreshProductLineView(element, data.view);
 						updateAmounts(data.order);
 						updateInvoice(data.invoices);
@@ -742,9 +751,9 @@ function init()
 						$('.add_product_fields').hide();
 						$('.row-editing-warning').hide();
 						$('td.product_action').attr('colspan', 3);
-					}
-					else
-						jAlert(data.error);
+					} else {
+            jAlert(data.error);
+          }
 				}
 			});
 		}

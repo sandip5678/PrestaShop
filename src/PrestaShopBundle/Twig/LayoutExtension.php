@@ -1,13 +1,13 @@
 <?php
 /**
- * 2007-2015 PrestaShop
+ * 2007-2019 PrestaShop SA and Contributors
  *
  * NOTICE OF LICENSE
  *
  * This source file is subject to the Open Software License (OSL 3.0)
  * that is bundled with this package in the file LICENSE.txt.
  * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
+ * https://opensource.org/licenses/OSL-3.0
  * If you did not receive a copy of the license and are unable to
  * obtain it through the world-wide-web, please send an email
  * to license@prestashop.com so we can send you a copy immediately.
@@ -16,33 +16,37 @@
  *
  * Do not edit or add to this file if you wish to upgrade PrestaShop to newer
  * versions in the future. If you wish to customize PrestaShop for your
- * needs please refer to http://www.prestashop.com for more information.
+ * needs please refer to https://www.prestashop.com for more information.
  *
  * @author    PrestaShop SA <contact@prestashop.com>
- * @copyright 2007-2015 PrestaShop SA
- * @license   http://opensource.org/licenses/osl-3.0.php Open Software License (OSL 3.0)
+ * @copyright 2007-2019 PrestaShop SA and Contributors
+ * @license   https://opensource.org/licenses/OSL-3.0 Open Software License (OSL 3.0)
  * International Registered Trademark & Property of PrestaShop SA
  */
+
 namespace PrestaShopBundle\Twig;
 
-use PrestaShop\PrestaShop\Adapter\LegacyContext;
-use Symfony\Component\HttpKernel\Kernel;
-use PrestaShop\PrestaShop\Adapter\Configuration;
 use Exception;
+use PrestaShop\PrestaShop\Adapter\Configuration;
+use PrestaShop\PrestaShop\Adapter\Currency\CurrencyDataProvider;
+use PrestaShop\PrestaShop\Adapter\LegacyContext;
 
 /**
- * This class is used by Twig_Environment and provide layout methods callable from a twig template
+ * This class is used by Twig_Environment and provide layout methods callable from a twig template.
  */
 class LayoutExtension extends \Twig_Extension implements \Twig_Extension_GlobalsInterface
 {
-    /**
-     * @var LegacyContext
-     */
+    /** @var LegacyContext */
     private $context;
-    /**
-     * @var string
-     */
+
+    /** @var string */
     private $environment;
+
+    /** @var Configuration */
+    private $configuration;
+
+    /** @var CurrencyDataProvider */
+    private $currencyDataProvider;
 
     /**
      * Constructor.
@@ -50,30 +54,55 @@ class LayoutExtension extends \Twig_Extension implements \Twig_Extension_Globals
      * Keeps the Context to look inside language settings.
      *
      * @param LegacyContext $context
-     * @param Kernel $kernel
+     * @param string $environment
+     * @param Configuration $configuration
+     * @param CurrencyDataProvider $currencyDataProvider
      */
-    public function __construct(LegacyContext $context, Kernel $kernel)
-    {
+    public function __construct(
+        LegacyContext $context,
+        $environment,
+        Configuration $configuration,
+        CurrencyDataProvider $currencyDataProvider
+    ) {
         $this->context = $context;
-        $this->environment = $kernel->getEnvironment();
-        $this->configuration = new Configuration();
+        $this->environment = $environment;
+        $this->configuration = $configuration;
+        $this->currencyDataProvider = $currencyDataProvider;
     }
 
     /**
-     * Provides globals for Twig templates
+     * Provides globals for Twig templates.
      *
-     * @return array The base globals available in twig templates.
+     * @return array the base globals available in twig templates
      */
     public function getGlobals()
     {
+        /*
+         * As this is a twig extension we need to be very resilient and prevent it from crashing
+         * the environment, for example the command debug:twig should not fail because of this extension
+         */
+
+        try {
+            $defaultCurrency = $this->context->getEmployeeCurrency() ?: $this->currencyDataProvider->getDefaultCurrency();
+        } catch (\Exception $e) {
+            $defaultCurrency = null;
+        }
+        try {
+            $rootUrl = $this->context->getRootUrl();
+        } catch (\Exception $e) {
+            $rootUrl = null;
+        }
+
         return array(
-            "root_url" => $this->context->getRootUrl(),
-            "js_translatable" => [],
+            'theme' => $this->context->getContext()->shop->theme,
+            'default_currency' => $defaultCurrency,
+            'root_url' => $rootUrl,
+            'js_translatable' => array(),
         );
     }
 
     /**
-     * Define available filters
+     * Define available filters.
      *
      * @return array Twig_SimpleFilter
      */
@@ -94,11 +123,12 @@ class LayoutExtension extends \Twig_Extension implements \Twig_Extension_Globals
         return array(
             new \Twig_SimpleFunction('getLegacyLayout', array($this, 'getLegacyLayout')),
             new \Twig_SimpleFunction('getAdminLink', array($this, 'getAdminLink')),
+            new \Twig_SimpleFunction('youtube_link', array($this, 'getYoutubeLink')),
         );
     }
 
     /**
-     * Returns a legacy configuration key
+     * Returns a legacy configuration key.
      *
      * @param string $key
      *
@@ -110,7 +140,7 @@ class LayoutExtension extends \Twig_Extension implements \Twig_Extension_Globals
     }
 
     /**
-     * Get admin legacy layout into old controller context
+     * Get admin legacy layout into old controller context.
      *
      * Parameters can be set manually into twig template or sent from controller
      * For details : check Resources/views/Admin/Layout.html.twig
@@ -120,17 +150,31 @@ class LayoutExtension extends \Twig_Extension implements \Twig_Extension_Globals
      * @param array $headerToolbarBtn The header toolbar to override
      * @param string $displayType The legacy display type variable
      * @param bool $showContentHeader Can force header toolbar (buttons and title) to be hidden with false value
+     * @param array|string $headerTabContent Tabs labels
      * @param bool $enableSidebar Allow to use right sidebar to display docs for instance
      * @param string $helpLink If specified, will be used instead of legacy one
+     * @param string $metaTitle
+     * @param bool $useRegularH1Structure allows complex <h1> structure if set to false
      *
      * @throws Exception if legacy layout has no $content var replacement
      *
      * @return string The html layout
      */
-    public function getLegacyLayout($controllerName = "", $title = "", $headerToolbarBtn = [], $displayType = "", $showContentHeader = true, $headerTabContent = '', $enableSidebar = false, $helpLink = '')
-    {
+    public function getLegacyLayout(
+        $controllerName = '',
+        $title = '',
+        $headerToolbarBtn = array(),
+        $displayType = '',
+        $showContentHeader = true,
+        $headerTabContent = '',
+        $enableSidebar = false,
+        $helpLink = '',
+        $jsRouterMetadata = [],
+        $metaTitle = '',
+        $useRegularH1Structure = true
+    ) {
         if ($this->environment == 'test') {
-            return <<<EOF
+            return <<<'EOF'
 <html>
   <head>
     <title>Test layout</title>
@@ -148,7 +192,19 @@ class LayoutExtension extends \Twig_Extension implements \Twig_Extension_Globals
 EOF;
         }
 
-        $layout = $this->context->getLegacyLayout($controllerName, $title, $headerToolbarBtn, $displayType, $showContentHeader, $headerTabContent, $enableSidebar, $helpLink);
+        $layout = $this->context->getLegacyLayout(
+            $controllerName,
+            $title,
+            $headerToolbarBtn,
+            $displayType,
+            $showContentHeader,
+            $headerTabContent,
+            $enableSidebar,
+            $helpLink,
+            $jsRouterMetadata,
+            $metaTitle,
+            $useRegularH1Structure
+        );
 
         //test if legacy template from "content.tpl" has '{$content}'
         if (false === strpos($layout, '{$content}')) {
@@ -167,7 +223,7 @@ EOF;
                  {% block content %}{% endblock %}
                  {% block content_footer %}{% endblock %}
                  {% block sidebar_right %}{% endblock %}',
-                'var currentIndex = \''.$this->context->getAdminLink($controllerName).'\';',
+                'var currentIndex = \'' . $this->context->getAdminLink($controllerName) . '\';',
                 '{% block stylesheets %}{% endblock %}{% block extra_stylesheets %}{% endblock %}</head>',
                 '{% block javascripts %}{% endblock %}{% block extra_javascripts %}{% endblock %}{% block translate_javascripts %}{% endblock %}</body>',
             ),
@@ -178,7 +234,7 @@ EOF;
     }
 
     /**
-     * This is a Twig port of the Smarty {$link->getAdminLink()} function
+     * This is a Twig port of the Smarty {$link->getAdminLink()} function.
      *
      * @param string $controller the controller name
      * @param bool $withToken
@@ -186,9 +242,20 @@ EOF;
      *
      * @return string
      */
-    public function getAdminLink($controllerName, $withToken = true, $extraParams = [])
+    public function getAdminLink($controllerName, $withToken = true, $extraParams = array())
     {
         return $this->context->getAdminLink($controllerName, $withToken, $extraParams);
+    }
+
+    /**
+     * KISS function to get an embeded iframe from Youtube.
+     */
+    public function getYoutubeLink($watchUrl)
+    {
+        $embedUrl = str_replace(array('watch?v=', 'youtu.be/'), array('embed/', 'youtube.com/embed/'), $watchUrl);
+
+        return '<iframe width="560" height="315" src="' . $embedUrl .
+            '" frameborder="0" allowfullscreen class="youtube-iframe m-x-auto"></iframe>';
     }
 
     /**

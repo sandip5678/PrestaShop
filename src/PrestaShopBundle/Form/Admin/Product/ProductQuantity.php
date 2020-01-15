@@ -1,13 +1,13 @@
 <?php
 /**
- * 2007-2015 PrestaShop
+ * 2007-2019 PrestaShop SA and Contributors
  *
  * NOTICE OF LICENSE
  *
  * This source file is subject to the Open Software License (OSL 3.0)
  * that is bundled with this package in the file LICENSE.txt.
  * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
+ * https://opensource.org/licenses/OSL-3.0
  * If you did not receive a copy of the license and are unable to
  * obtain it through the world-wide-web, please send an email
  * to license@prestashop.com so we can send you a copy immediately.
@@ -16,25 +16,29 @@
  *
  * Do not edit or add to this file if you wish to upgrade PrestaShop to newer
  * versions in the future. If you wish to customize PrestaShop for your
- * needs please refer to http://www.prestashop.com for more information.
+ * needs please refer to https://www.prestashop.com for more information.
  *
  * @author    PrestaShop SA <contact@prestashop.com>
- * @copyright 2007-2015 PrestaShop SA
- * @license   http://opensource.org/licenses/osl-3.0.php Open Software License (OSL 3.0)
+ * @copyright 2007-2019 PrestaShop SA and Contributors
+ * @license   https://opensource.org/licenses/OSL-3.0 Open Software License (OSL 3.0)
  * International Registered Trademark & Property of PrestaShop SA
  */
+
 namespace PrestaShopBundle\Form\Admin\Product;
 
+use Pack;
 use PrestaShopBundle\Form\Admin\Type\CommonAbstractType;
-use Symfony\Component\Form\FormBuilderInterface;
-use Symfony\Component\Validator\Constraints as Assert;
-use Symfony\Component\Form\FormEvents;
-use Symfony\Component\Form\FormEvent;
-use PrestaShopBundle\Form\Admin\Type as PsFormType;
+use PrestaShopBundle\Form\Admin\Type\DatePickerType;
+use PrestaShopBundle\Form\Admin\Type\TranslateType;
 use Symfony\Component\Form\Extension\Core\Type as FormType;
+use Symfony\Component\Form\FormBuilderInterface;
+use Symfony\Component\Form\FormEvent;
+use Symfony\Component\Form\FormEvents;
+use Symfony\Component\OptionsResolver\OptionsResolver;
+use Symfony\Component\Validator\Constraints as Assert;
 
 /**
- * This form class is responsible to generate the product quantity form
+ * This form class is responsible to generate the product quantity form.
  */
 class ProductQuantity extends CommonAbstractType
 {
@@ -43,7 +47,7 @@ class ProductQuantity extends CommonAbstractType
     private $configuration;
 
     /**
-     * Constructor
+     * Constructor.
      *
      * @param object $translator
      * @param object $router
@@ -65,128 +69,261 @@ class ProductQuantity extends CommonAbstractType
      */
     public function buildForm(FormBuilderInterface $builder, array $options)
     {
-        $builder->add('attributes', 'Symfony\Component\Form\Extension\Core\Type\TextType', array(
-            'attr' =>  [
-                'class' => 'tokenfield',
-                'data-limit' => 20,
-                'data-minLength' => 1,
-                'placeholder' => $this->translator->trans('Search for attributes', [], 'AdminProducts'),
-                'data-prefetch' => $this->router->generate('admin_attribute_get_all'),
-                'data-action' => $this->router->generate('admin_attribute_generator'),
-            ],
-            'label' =>  $this->translator->trans('Create combinations', [], 'AdminProducts')
-            ))
-            ->add('advanced_stock_management', 'Symfony\Component\Form\Extension\Core\Type\CheckboxType', array(
-                'required' => false,
-                'label' => $this->translator->trans('I want to use the advanced stock management system for this product.', [], 'AdminProducts'),
-            ))
-            ->add('pack_stock_type', 'Symfony\Component\Form\Extension\Core\Type\ChoiceType', ['choices_as_values' => true, ]) //see eventListener for details
-            ->add('depends_on_stock', 'Symfony\Component\Form\Extension\Core\Type\ChoiceType', array(
-                'choices'  => array(
-                    $this->translator->trans('The available quantities for the current product and its combinations are based on the stock in your warehouse (using the advanced stock management system). ', [], 'AdminProducts') => 1,
-                    $this->translator->trans('I want to specify available quantities manually.', [], 'AdminProducts') => 0,
-                ),
-                'choices_as_values' => true,
-                'expanded' => true,
-                'required' => true,
-                'multiple' => false,
-            ))
-            ->add('qty_0', 'Symfony\Component\Form\Extension\Core\Type\NumberType', array(
-                'required' => true,
-                'label' => $this->translator->trans('Quantity', [], 'AdminProducts'),
-                'constraints' => array(
-                    new Assert\NotBlank(),
-                    new Assert\Type(array('type' => 'numeric')),
-                ),
-            ))
-            ->add('combinations', 'Symfony\Component\Form\Extension\Core\Type\CollectionType', array(
-                'entry_type' =>'PrestaShopBundle\Form\Admin\Product\ProductCombination',
-                'allow_add' => true,
-                'allow_delete' => true
-            ))
-            ->add('out_of_stock', 'Symfony\Component\Form\Extension\Core\Type\ChoiceType', array(
-                'choices_as_values' => true,
-            ))
-            ->add('minimal_quantity', 'Symfony\Component\Form\Extension\Core\Type\NumberType', array(
-                'required' => true,
-                'label' => $this->translator->trans('Minimum quantity', [], 'AdminProducts'),
-                'constraints' => array(
-                    new Assert\NotBlank(),
-                    new Assert\Type(array('type' => 'numeric')),
-                ),
-            ))
-            ->add('available_now', 'PrestaShopBundle\Form\Admin\Type\TranslateType', array(
-                'type' => 'Symfony\Component\Form\Extension\Core\Type\TextType',
-                'options' => [],
-                'locales' => $this->locales,
-                'hideTabs' => true,
-                'label' =>  $this->translator->trans('Displayed text when in-stock', [], 'AdminProducts')
-            ))
-            ->add('available_later', 'PrestaShopBundle\Form\Admin\Type\TranslateType', array(
-                'type' => 'Symfony\Component\Form\Extension\Core\Type\TextType',
-                'options' => [],
-                'locales' => $this->locales,
-                'hideTabs' => true,
-                'label' =>  $this->translator->trans('Displayed text when out of stock', [], 'AdminProducts')
-            ))
-            ->add('available_date', 'PrestaShopBundle\Form\Admin\Type\DatePickerType', array(
-                'required' => false,
-                'label' => $this->translator->trans('Availability date:', [], 'AdminProducts'),
-                'attr' => ['placeholder' => 'YYYY-MM-DD']
-            ))
-            ->add('virtual_product', 'PrestaShopBundle\Form\Admin\Product\ProductVirtual', array(
-                'required' => false,
-                'label' => $this->translator->trans('Does this product have an associated file?', [], 'AdminProducts'),
-            ));
+        $is_stock_management = $this->configuration->get('PS_STOCK_MANAGEMENT');
+        $builder
+            ->add(
+                'attributes',
+                FormType\TextType::class,
+                [
+                    'attr' => [
+                        'class' => 'tokenfield',
+                        'data-minLength' => 1,
+                        'placeholder' => $this->translator->trans(
+                            'Combine several attributes, e.g.: "Size: all", "Color: red".',
+                            [],
+                            'Admin.Catalog.Help'
+                        ),
+                        'data-prefetch' => $this->router->generate('admin_attribute_get_all'),
+                        'data-action' => $this->router->generate('admin_attribute_generator'),
+                    ],
+                    'label' => $this->translator->trans('Create combinations', [], 'Admin.Catalog.Feature'),
+                    'empty_data' => '',
+                ]
+            )
+            ->add(
+                'advanced_stock_management',
+                FormType\CheckboxType::class,
+                [
+                    'required' => false,
+                    'label' => $this->translator->trans(
+                        'I want to use the advanced stock management system for this product.',
+                        [],
+                        'Admin.Catalog.Feature'
+                    ),
+                ]
+            )
+            ->add(
+                'pack_stock_type',
+                FormType\ChoiceType::class
+            )//see eventListener for details
+            ->add(
+                'depends_on_stock',
+                FormType\ChoiceType::class,
+                [
+                    'choices' => [
+                        $this->translator->trans(
+                            'The available quantities for the current product and its combinations are based on the stock in your warehouse (using the advanced stock management system). ',
+                            [],
+                            'Admin.Catalog.Feature'
+                        ) => 1,
+                        $this->translator->trans(
+                            'I want to specify available quantities manually.',
+                            [],
+                            'Admin.Catalog.Feature'
+                        ) => 0,
+                    ],
+                    'expanded' => true,
+                    'required' => true,
+                    'multiple' => false,
+                ]
+            );
 
-        $builder->addEventListener(FormEvents::PRE_SET_DATA, function (FormEvent $event) {
-            $form = $event->getForm();
+        if ($is_stock_management) {
+            $builder->add(
+                'qty_0',
+                FormType\NumberType::class,
+                [
+                    'required' => true,
+                    'label' => $this->translator->trans('Quantity', [], 'Admin.Catalog.Feature'),
+                    'constraints' => [
+                        new Assert\NotBlank(),
+                        new Assert\Type(['type' => 'numeric']),
+                    ],
+                ]
+            );
+        }
+        $builder
+            ->add(
+                'out_of_stock',
+                FormType\ChoiceType::class
+            )
+            ->add(
+                'minimal_quantity',
+                FormType\NumberType::class,
+                [
+                    'required' => true,
+                    'label' => $this->translator->trans('Minimum quantity for sale', [], 'Admin.Catalog.Feature'),
+                    'constraints' => [
+                        new Assert\NotBlank(),
+                        new Assert\Type(['type' => 'numeric']),
+                    ],
+                ]
+            )
+            ->add(
+                'location',
+                FormType\TextType::class,
+                [
+                    'label' => $this->translator->trans('Stock location', [], 'Admin.Catalog.Feature'),
+                ]
+            )
+            ->add(
+                'low_stock_threshold',
+                FormType\NumberType::class,
+                [
+                    'label' => $this->translator->trans('Low stock level', [], 'Admin.Catalog.Feature'),
+                    'attr' => [
+                        'placeholder' => $this->translator->trans('Leave empty to disable', [], 'Admin.Catalog.Help'),
+                    ],
+                    'constraints' => [
+                        new Assert\Type(['type' => 'numeric']),
+                    ],
+                ]
+            )
+            ->add(
+                'low_stock_alert',
+                FormType\CheckboxType::class,
+                [
+                    'label' => $this->translator->trans(
+                        'Send me an email when the quantity is below or equals this level',
+                        [],
+                        'Admin.Catalog.Feature'
+                    ),
+                    'constraints' => [
+                        new Assert\Type(['type' => 'bool']),
+                    ],
+                ]
+            )
+            ->add(
+                'available_now',
+                TranslateType::class,
+                [
+                    'type' => FormType\TextType::class,
+                    'options' => [],
+                    'locales' => $this->locales,
+                    'hideTabs' => true,
+                    'label' => $this->translator->trans('Label when in stock', [], 'Admin.Catalog.Feature'),
+                ]
+            )
+            ->add(
+                'available_later',
+                TranslateType::class,
+                [
+                    'type' => FormType\TextType::class,
+                    'options' => [],
+                    'locales' => $this->locales,
+                    'hideTabs' => true,
+                    'label' => $this->translator->trans(
+                        'Label when out of stock (and back order allowed)',
+                        [],
+                        'Admin.Catalog.Feature'
+                    ),
+                ]
+            )
+            ->add(
+                'available_date',
+                DatePickerType::class,
+                [
+                    'required' => false,
+                    'label' => $this->translator->trans('Availability date', [], 'Admin.Catalog.Feature'),
+                    'attr' => ['placeholder' => 'YYYY-MM-DD'],
+                ]
+            )
+            ->add(
+                'virtual_product',
+                ProductVirtual::class,
+                [
+                    'required' => false,
+                    'label' => $this->translator->trans(
+                        'Does this product have an associated file?',
+                        [],
+                        'Admin.Catalog.Feature'
+                    ),
+                ]
+            );
 
-            //Manage out_of_stock field with contextual values/label
-            $defaultChoiceLabel = $this->translator->trans('Use default', [], 'AdminProducts').' (';
-            $defaultChoiceLabel .= $this->configuration->get('PS_ORDER_OUT_OF_STOCK') == 1 ?
-                $this->translator->trans('Allow', [], 'AdminProducts') :
-                $this->translator->trans('Deny', [], 'AdminProducts');
-            $defaultChoiceLabel .= ')';
+        $builder->addEventListener(
+            FormEvents::PRE_SET_DATA,
+            function (FormEvent $event) {
+                $form = $event->getForm();
 
-            $form->add('out_of_stock', 'Symfony\Component\Form\Extension\Core\Type\ChoiceType', array(
-                'choices'  => array(
-                    $this->translator->trans('Deny', [], 'AdminProducts') => '0',
-                    $this->translator->trans('Allow', [], 'AdminProducts') => '1',
-                    $defaultChoiceLabel => '2',
-                ),
-                'choices_as_values' => true,
-                'expanded' => true,
-                'required' => false,
-                'placeholder' => false,
-                'label' => $this->translator->trans('When out of stock', [], 'AdminProducts')
-            ));
+                //Manage out_of_stock field with contextual values/label
+                $defaultChoiceLabel = $this->translator->trans(
+                    'Use default behavior',
+                    [],
+                    'Admin.Catalog.Feature'
+                ) . ' (';
+                $defaultChoiceLabel .= $this->configuration->get('PS_ORDER_OUT_OF_STOCK') == 1 ?
+                    $this->translator->trans('Allow orders', [], 'Admin.Catalog.Feature') :
+                    $this->translator->trans('Deny orders', [], 'Admin.Catalog.Feature');
+                $defaultChoiceLabel .= ')';
 
-            //Manage out_of_stock field with contextual values/label
-            $pack_stock_type = $this->configuration->get('PS_PACK_STOCK_TYPE');
-            $defaultChoiceLabel = $this->translator->trans('Default', [], 'AdminProducts').': ';
-            if ($pack_stock_type == 0) {
-                $defaultChoiceLabel .= $this->translator->trans('Decrement pack only.', [], 'AdminProducts');
-            } elseif ($pack_stock_type == 1) {
-                $defaultChoiceLabel .= $this->translator->trans('Decrement products in pack only.', [], 'AdminProducts');
-            } else {
-                $defaultChoiceLabel .= $this->translator->trans('Decrement both.', [], 'AdminProducts');
+                $form->add(
+                    'out_of_stock',
+                    FormType\ChoiceType::class,
+                    [
+                        'choices' => [
+                            $this->translator->trans('Deny orders', [], 'Admin.Catalog.Feature') => '0',
+                            $this->translator->trans('Allow orders', [], 'Admin.Catalog.Feature') => '1',
+                            $defaultChoiceLabel => '2',
+                        ],
+                        'expanded' => true,
+                        'required' => false,
+                        'placeholder' => false,
+                        'label' => $this->translator->trans('When out of stock', [], 'Admin.Catalog.Feature'),
+                    ]
+                );
+
+                //Manage out_of_stock field with contextual values/label
+                $pack_stock_type = $this->configuration->get('PS_PACK_STOCK_TYPE');
+                $defaultChoiceLabel = $this->translator->trans('Default', [], 'Admin.Global') . ': ';
+                if ($pack_stock_type == Pack::STOCK_TYPE_PACK_ONLY) {
+                    $defaultChoiceLabel .= $this->translator->trans(
+                        'Decrement pack only.',
+                        [],
+                        'Admin.Catalog.Feature'
+                    );
+                } elseif ($pack_stock_type == Pack::STOCK_TYPE_PRODUCTS_ONLY) {
+                    $defaultChoiceLabel .= $this->translator->trans(
+                        'Decrement products in pack only.',
+                        [],
+                        'Admin.Catalog.Feature'
+                    );
+                } else {
+                    $defaultChoiceLabel .= $this->translator->trans('Decrement both.', [], 'Admin.Catalog.Feature');
+                }
+
+                $form->add(
+                    'pack_stock_type',
+                    FormType\ChoiceType::class,
+                    [
+                        'choices' => [
+                            $this->translator->trans('Decrement pack only.', [], 'Admin.Catalog.Feature') => 0,
+                            $this->translator->trans('Decrement products in pack only.', [], 'Admin.Catalog.Feature') => 1,
+                            $this->translator->trans('Decrement both.', [], 'Admin.Catalog.Feature') => 2,
+                            $defaultChoiceLabel => 3,
+                        ],
+                        'expanded' => false,
+                        'required' => true,
+                        'placeholder' => false,
+                        'label' => $this->translator->trans('Pack quantities', [], 'Admin.Catalog.Feature'),
+                    ]
+                );
             }
+        );
+    }
 
-            $form->add('pack_stock_type', 'Symfony\Component\Form\Extension\Core\Type\ChoiceType', array(
-                'choices'  => array(
-                    $this->translator->trans('Decrement pack only.', [], 'AdminProducts') => '0',
-                    $this->translator->trans('Decrement products in pack only.', [], 'AdminProducts') => '1',
-                    $this->translator->trans('Decrement both.', [], 'AdminProducts') => '2',
-                    $defaultChoiceLabel => '3',
-                ),
-                'choices_as_values' => true,
-                'expanded' => false,
-                'required' => true,
-                'placeholder' => false,
-                'label' => $this->translator->trans('Pack quantities', [], 'AdminProducts')
-            ));
-        });
+    /**
+     * {@inheritdoc}
+     *
+     * Configure options
+     */
+    public function configureOptions(OptionsResolver $resolver)
+    {
+        $resolver->setDefaults(
+            [
+                'allow_extra_fields' => true,
+            ]
+        );
     }
 
     /**

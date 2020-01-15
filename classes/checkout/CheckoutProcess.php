@@ -1,13 +1,40 @@
 <?php
-
+/**
+ * 2007-2019 PrestaShop SA and Contributors
+ *
+ * NOTICE OF LICENSE
+ *
+ * This source file is subject to the Open Software License (OSL 3.0)
+ * that is bundled with this package in the file LICENSE.txt.
+ * It is also available through the world-wide-web at this URL:
+ * https://opensource.org/licenses/OSL-3.0
+ * If you did not receive a copy of the license and are unable to
+ * obtain it through the world-wide-web, please send an email
+ * to license@prestashop.com so we can send you a copy immediately.
+ *
+ * DISCLAIMER
+ *
+ * Do not edit or add to this file if you wish to upgrade PrestaShop to newer
+ * versions in the future. If you wish to customize PrestaShop for your
+ * needs please refer to https://www.prestashop.com for more information.
+ *
+ * @author    PrestaShop SA <contact@prestashop.com>
+ * @copyright 2007-2019 PrestaShop SA and Contributors
+ * @license   https://opensource.org/licenses/OSL-3.0 Open Software License (OSL 3.0)
+ * International Registered Trademark & Property of PrestaShop SA
+ */
 use PrestaShop\PrestaShop\Core\Foundation\Templating\RenderableInterface;
 use PrestaShop\PrestaShop\Core\Foundation\Templating\RenderableProxy;
 
 class CheckoutProcessCore implements RenderableInterface
 {
     private $smarty;
+
+    /**
+     * @var CheckoutSession
+     */
     private $checkoutSession;
-    private $steps = [];
+    private $steps = array();
     private $has_errors;
 
     private $template = 'checkout/checkout-process.tpl';
@@ -26,7 +53,7 @@ class CheckoutProcessCore implements RenderableInterface
         return $this->template;
     }
 
-    public function handleRequest(array $requestParameters = [])
+    public function handleRequest(array $requestParameters = array())
     {
         foreach ($this->getSteps() as $step) {
             $step->handleRequest($requestParameters);
@@ -56,23 +83,24 @@ class CheckoutProcessCore implements RenderableInterface
     public function setTemplate($templatePath)
     {
         $this->template = $templatePath;
+
         return $this;
     }
 
-    public function render(array $extraParams = [])
+    public function render(array $extraParams = array())
     {
         $scope = $this->smarty->createData(
             $this->smarty
         );
 
-        $params = [
+        $params = array(
             'steps' => array_map(function (CheckoutStepInterface $step) {
-                return [
+                return array(
                     'identifier' => $step->getIdentifier(),
-                    'ui'         => new RenderableProxy($step)
-                ];
-            }, $this->getSteps())
-        ];
+                    'ui' => new RenderableProxy($step),
+                );
+            }, $this->getSteps()),
+        );
 
         $scope->assign(array_merge($extraParams, $params));
 
@@ -87,6 +115,7 @@ class CheckoutProcessCore implements RenderableInterface
     public function setHasErrors($has_errors = true)
     {
         $this->has_errors = $has_errors;
+
         return $this;
     }
 
@@ -99,15 +128,16 @@ class CheckoutProcessCore implements RenderableInterface
     {
         $data = [];
         foreach ($this->getSteps() as $step) {
-            $defaultStepData = [
+            $defaultStepData = array(
                 'step_is_reachable' => $step->isReachable(),
-                'step_is_complete'  => $step->isComplete()
-            ];
+                'step_is_complete' => $step->isComplete(),
+            );
 
             $stepData = array_merge($defaultStepData, $step->getDataToPersist());
 
             $data[$step->getIdentifier()] = $stepData;
         }
+
         return $data;
     }
 
@@ -120,10 +150,11 @@ class CheckoutProcessCore implements RenderableInterface
                 $step
                     ->setReachable($stepData['step_is_reachable'])
                     ->setComplete($stepData['step_is_complete'])
-                    ->restorePersistedData($stepData)
-                ;
+                    ->restorePersistedData($stepData);
             }
         }
+
+        return $this;
     }
 
     public function setNextStepReachable()
@@ -131,12 +162,15 @@ class CheckoutProcessCore implements RenderableInterface
         foreach ($this->getSteps() as $step) {
             if (!$step->isReachable()) {
                 $step->setReachable(true);
+
                 break;
             }
+
             if (!$step->isComplete()) {
                 break;
             }
         }
+
         return $this;
     }
 
@@ -154,15 +188,47 @@ class CheckoutProcessCore implements RenderableInterface
         }
 
         foreach ($steps as $position => $step) {
-            $nextStep = $position < count($steps) - 1 ?
-                $steps[$position + 1] :
-                null
-            ;
+            $nextStep = ($position < count($steps) - 1) ? $steps[$position + 1] : null;
 
             if ($step->isReachable() && (!$step->isComplete() || ($nextStep && !$nextStep->isReachable()))) {
                 $step->setCurrent(true);
+
                 return $this;
             }
         }
+
+        return $this;
+    }
+
+    public function invalidateAllStepsAfterCurrent()
+    {
+        $markAsUnreachable = false;
+        foreach ($this->getSteps() as $step) {
+            if ($markAsUnreachable) {
+                $step->setComplete(false)->setReachable(false);
+            }
+
+            if ($step->isCurrent()) {
+                $markAsUnreachable = true;
+            }
+        }
+
+        return $this;
+    }
+
+    /**
+     * @return CheckoutStepInterface
+     *
+     * @throws \RuntimeException if no current step is found
+     */
+    public function getCurrentStep()
+    {
+        foreach ($this->getSteps() as $step) {
+            if ($step->isCurrent()) {
+                return $step;
+            }
+        }
+
+        throw new \RuntimeException('There should be at least one current step');
     }
 }

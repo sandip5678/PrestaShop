@@ -1,13 +1,13 @@
 <?php
 /**
- * 2007-2015 PrestaShop
+ * 2007-2019 PrestaShop SA and Contributors
  *
  * NOTICE OF LICENSE
  *
  * This source file is subject to the Open Software License (OSL 3.0)
  * that is bundled with this package in the file LICENSE.txt.
  * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
+ * https://opensource.org/licenses/OSL-3.0
  * If you did not receive a copy of the license and are unable to
  * obtain it through the world-wide-web, please send an email
  * to license@prestashop.com so we can send you a copy immediately.
@@ -16,23 +16,25 @@
  *
  * Do not edit or add to this file if you wish to upgrade PrestaShop to newer
  * versions in the future. If you wish to customize PrestaShop for your
- * needs please refer to http://www.prestashop.com for more information.
+ * needs please refer to https://www.prestashop.com for more information.
  *
  * @author    PrestaShop SA <contact@prestashop.com>
- * @copyright 2007-2015 PrestaShop SA
- * @license   http://opensource.org/licenses/osl-3.0.php Open Software License (OSL 3.0)
+ * @copyright 2007-2019 PrestaShop SA and Contributors
+ * @license   https://opensource.org/licenses/OSL-3.0 Open Software License (OSL 3.0)
  * International Registered Trademark & Property of PrestaShop SA
  */
+
 namespace PrestaShopBundle\Form\Admin\Product;
 
 use PrestaShopBundle\Form\Admin\Type\CommonAbstractType;
+use Symfony\Component\Form\Extension\Core\Type\CheckboxType;
+use Symfony\Component\Form\Extension\Core\Type\HiddenType;
+use Symfony\Component\Form\Extension\Core\Type\TextType;
 use Symfony\Component\Form\FormBuilderInterface;
-use Symfony\Component\Validator\Constraints as Assert;
-use Symfony\Component\Form\Extension\Core\Type as FormType;
 use Symfony\Component\OptionsResolver\OptionsResolver;
 
 /**
- * This form class is responsible to generate the basic product Warehouse combinations form
+ * This form class is responsible to generate the basic product Warehouse combinations form.
  */
 class ProductWarehouseCombination extends CommonAbstractType
 {
@@ -40,7 +42,7 @@ class ProductWarehouseCombination extends CommonAbstractType
     private $contextLegacy;
 
     /**
-     * Constructor
+     * Constructor.
      *
      * @param object $translator
      * @param object $legacyContext
@@ -58,17 +60,18 @@ class ProductWarehouseCombination extends CommonAbstractType
      */
     public function buildForm(FormBuilderInterface $builder, array $options)
     {
-        $builder->add('activated', 'Symfony\Component\Form\Extension\Core\Type\CheckboxType', array(
+        $builder->add('activated', CheckboxType::class, [
             'required' => false,
-            'label' => $this->translator->trans('Stored', [], 'AdminProducts')
-        ))
-        ->add('id_product_attribute', 'Symfony\Component\Form\Extension\Core\Type\HiddenType')
-        ->add('product_id', 'Symfony\Component\Form\Extension\Core\Type\HiddenType')
-        ->add('warehouse_id', 'Symfony\Component\Form\Extension\Core\Type\HiddenType')
-        ->add('location', 'Symfony\Component\Form\Extension\Core\Type\TextType', array(
-            'required' => false,
-            'label' => $this->translator->trans('Location (optional)', [], 'AdminProducts')
-        ));
+            'label' => $this->translator->trans('Stored', [], 'Admin.Catalog.Feature'),
+        ])
+            ->add('id_product_attribute', HiddenType::class)
+            ->add('product_id', HiddenType::class)
+            ->add('warehouse_id', HiddenType::class)
+            ->add('location', TextType::class, [
+                'required' => false,
+                'label' => $this->translator->trans('Location (optional)', [], 'Admin.Catalog.Feature'),
+                'empty_data' => '',
+            ]);
 
         //set default minimal values for collection prototype
         $builder->setData([
@@ -82,9 +85,9 @@ class ProductWarehouseCombination extends CommonAbstractType
      */
     public function configureOptions(OptionsResolver $resolver)
     {
-        $resolver->setDefaults(array(
+        $resolver->setDefaults([
             'id_warehouse' => null,
-        ));
+        ]);
     }
 
     /**

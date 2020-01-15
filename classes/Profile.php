@@ -1,13 +1,13 @@
 <?php
 /**
- * 2007-2015 PrestaShop
+ * 2007-2019 PrestaShop SA and Contributors
  *
  * NOTICE OF LICENSE
  *
  * This source file is subject to the Open Software License (OSL 3.0)
  * that is bundled with this package in the file LICENSE.txt.
  * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
+ * https://opensource.org/licenses/OSL-3.0
  * If you did not receive a copy of the license and are unable to
  * obtain it through the world-wide-web, please send an email
  * to license@prestashop.com so we can send you a copy immediately.
@@ -16,16 +16,24 @@
  *
  * Do not edit or add to this file if you wish to upgrade PrestaShop to newer
  * versions in the future. If you wish to customize PrestaShop for your
- * needs please refer to http://www.prestashop.com for more information.
+ * needs please refer to https://www.prestashop.com for more information.
  *
  * @author    PrestaShop SA <contact@prestashop.com>
- * @copyright 2007-2015 PrestaShop SA
- * @license   http://opensource.org/licenses/osl-3.0.php Open Software License (OSL 3.0)
+ * @copyright 2007-2019 PrestaShop SA and Contributors
+ * @license   https://opensource.org/licenses/OSL-3.0 Open Software License (OSL 3.0)
  * International Registered Trademark & Property of PrestaShop SA
  */
 
+/**
+ * Class ProfileCore.
+ */
 class ProfileCore extends ObjectModel
 {
+    const ALLOWED_PROFILE_TYPE_CHECK = [
+        'id_tab',
+        'class_name',
+    ];
+
     /** @var string Name */
     public $name;
 
@@ -45,109 +53,189 @@ class ProfileCore extends ObjectModel
     protected static $_cache_accesses = array();
 
     /**
-    * Get all available profiles
-    *
-    * @return array Profiles
-    */
-    public static function getProfiles($id_lang)
+     * Get all available profiles.
+     *
+     * @return array Profiles
+     */
+    public static function getProfiles($idLang)
     {
         return Db::getInstance(_PS_USE_SQL_SLAVE_)->executeS('
 		SELECT p.`id_profile`, `name`
-		FROM `'._DB_PREFIX_.'profile` p
-		LEFT JOIN `'._DB_PREFIX_.'profile_lang` pl ON (p.`id_profile` = pl.`id_profile` AND `id_lang` = '.(int)$id_lang.')
+		FROM `' . _DB_PREFIX_ . 'profile` p
+		LEFT JOIN `' . _DB_PREFIX_ . 'profile_lang` pl ON (p.`id_profile` = pl.`id_profile` AND `id_lang` = ' . (int) $idLang . ')
 		ORDER BY `id_profile` ASC');
     }
 
     /**
-    * Get the current profile name
-    *
-    * @return string Profile
-    */
-    public static function getProfile($id_profile, $id_lang = null)
+     * Get the current profile name.
+     *
+     * @param int $idProfile Profile ID
+     * @param null $idLang Language ID
+     *
+     * @return string Profile
+     */
+    public static function getProfile($idProfile, $idLang = null)
     {
-        if (!$id_lang) {
-            $id_lang = Configuration::get('PS_LANG_DEFAULT');
+        if (!$idLang) {
+            $idLang = Configuration::get('PS_LANG_DEFAULT');
         }
 
-        return Db::getInstance(_PS_USE_SQL_SLAVE_)->getRow('
+        return Db::getInstance(_PS_USE_SQL_SLAVE_)->getRow(
+            '
 			SELECT `name`
-			FROM `'._DB_PREFIX_.'profile` p
-			LEFT JOIN `'._DB_PREFIX_.'profile_lang` pl ON (p.`id_profile` = pl.`id_profile`)
-			WHERE p.`id_profile` = '.(int)$id_profile.'
-			AND pl.`id_lang` = '.(int)$id_lang
+			FROM `' . _DB_PREFIX_ . 'profile` p
+			LEFT JOIN `' . _DB_PREFIX_ . 'profile_lang` pl ON (p.`id_profile` = pl.`id_profile`)
+			WHERE p.`id_profile` = ' . (int) $idProfile . '
+			AND pl.`id_lang` = ' . (int) $idLang
         );
     }
 
     public function add($autodate = true, $null_values = false)
     {
-        if (parent::add($autodate, true)) {
-            $result = Db::getInstance()->execute('INSERT INTO '._DB_PREFIX_.'access (SELECT '.(int)$this->id.', id_tab, 0, 0, 0, 0 FROM '._DB_PREFIX_.'tab)');
-            $result &= Db::getInstance()->execute('
-				INSERT INTO '._DB_PREFIX_.'module_access
-				(`id_profile`, `id_module`, `configure`, `view`, `uninstall`)
-				(SELECT '.(int)$this->id.', id_module, 0, 1, 0 FROM '._DB_PREFIX_.'module)
-			');
-            return $result;
-        }
-        return false;
+        return parent::add($autodate, true);
     }
 
     public function delete()
     {
         if (parent::delete()) {
-            return (
-                Db::getInstance()->execute('DELETE FROM `'._DB_PREFIX_.'access` WHERE `id_profile` = '.(int)$this->id)
-                && Db::getInstance()->execute('DELETE FROM `'._DB_PREFIX_.'module_access` WHERE `id_profile` = '.(int)$this->id)
-            );
+            return
+                Db::getInstance()->execute('DELETE FROM `' . _DB_PREFIX_ . 'access` WHERE `id_profile` = ' . (int) $this->id)
+                && Db::getInstance()->execute('DELETE FROM `' . _DB_PREFIX_ . 'module_access` WHERE `id_profile` = ' . (int) $this->id);
         }
+
         return false;
     }
 
-    public static function getProfileAccess($id_profile, $id_tab)
+    /**
+     * Get access profile.
+     *
+     * @param int $idProfile Profile ID
+     * @param int $idTab Tab ID
+     *
+     * @return bool
+     */
+    public static function getProfileAccess($idProfile, $idTab)
     {
         // getProfileAccesses is cached so there is no performance leak
-        $accesses = Profile::getProfileAccesses($id_profile);
-        return (isset($accesses[$id_tab]) ? $accesses[$id_tab] : false);
+        $accesses = Profile::getProfileAccesses($idProfile);
+
+        return isset($accesses[$idTab]) ? $accesses[$idTab] : false;
     }
 
-    public static function getProfileAccesses($id_profile, $type = 'id_tab')
+    /**
+     * Get access profiles.
+     *
+     * @param int $idProfile Profile ID
+     * @param string $type Type
+     *
+     * @return bool
+     */
+    public static function getProfileAccesses($idProfile, $type = 'id_tab')
     {
-        if (!in_array($type, array('id_tab', 'class_name'))) {
+        if (!in_array($type, self::ALLOWED_PROFILE_TYPE_CHECK)) {
             return false;
         }
 
-        if (!isset(self::$_cache_accesses[$id_profile])) {
-            self::$_cache_accesses[$id_profile] = array();
+        if (!isset(self::$_cache_accesses[$idProfile])) {
+            self::$_cache_accesses[$idProfile] = array();
         }
 
-        if (!isset(self::$_cache_accesses[$id_profile][$type])) {
-            self::$_cache_accesses[$id_profile][$type] = array();
+        if (!isset(self::$_cache_accesses[$idProfile][$type])) {
+            self::$_cache_accesses[$idProfile][$type] = array();
             // Super admin profile has full auth
-            if ($id_profile == _PS_ADMIN_PROFILE_) {
-                foreach (Tab::getTabs(Context::getContext()->language->id) as $tab) {
-                    self::$_cache_accesses[$id_profile][$type][$tab[$type]] = array(
-                        'id_profile' => _PS_ADMIN_PROFILE_,
+            if ($idProfile == _PS_ADMIN_PROFILE_) {
+                $defaultPermission = [
+                    'id_profile' => _PS_ADMIN_PROFILE_,
+                    'view' => '1',
+                    'add' => '1',
+                    'edit' => '1',
+                    'delete' => '1',
+                ];
+                $roles = [];
+            } else {
+                $defaultPermission = [
+                    'id_profile' => $idProfile,
+                    'view' => '0',
+                    'add' => '0',
+                    'edit' => '0',
+                    'delete' => '0',
+                ];
+                $roles = self::generateAccessesArrayFromPermissions(
+                    Db::getInstance()->executeS('
+                        SELECT `slug`,
+                            `slug` LIKE "%CREATE" as "add",
+                            `slug` LIKE "%READ" as "view",
+                            `slug` LIKE "%UPDATE" as "edit",
+                            `slug` LIKE "%DELETE" as "delete"
+                        FROM `' . _DB_PREFIX_ . 'authorization_role` a
+                        LEFT JOIN `' . _DB_PREFIX_ . 'access` j ON j.id_authorization_role = a.id_authorization_role
+                        WHERE j.`id_profile` = ' . (int) $idProfile)
+                );
+            }
+            self::fillCacheAccesses(
+                $idProfile,
+                $defaultPermission,
+                $roles
+            );
+        }
+
+        return self::$_cache_accesses[$idProfile][$type];
+    }
+
+    public static function resetCacheAccesses()
+    {
+        self::$_cache_accesses = array();
+    }
+
+    /**
+     * @param int $idProfile Profile ID
+     * @param array $defaultData Cached data
+     * @param array $accesses Data loaded from the database
+     */
+    private static function fillCacheAccesses($idProfile, $defaultData = [], $accesses = [])
+    {
+        foreach (Tab::getTabs(Context::getContext()->language->id) as $tab) {
+            $accessData = [];
+            if (isset($accesses[strtoupper($tab['class_name'])])) {
+                $accessData = $accesses[strtoupper($tab['class_name'])];
+            }
+
+            foreach (self::ALLOWED_PROFILE_TYPE_CHECK as $type) {
+                self::$_cache_accesses[$idProfile][$type][$tab[$type]] = array_merge(
+                    array(
                         'id_tab' => $tab['id_tab'],
                         'class_name' => $tab['class_name'],
-                        'view' => '1',
-                        'add' => '1',
-                        'edit' => '1',
-                        'delete' => '1',
-                    );
-                }
-            } else {
-                $result = Db::getInstance()->executeS('
-				SELECT *
-				FROM `'._DB_PREFIX_.'access` a
-				LEFT JOIN `'._DB_PREFIX_.'tab` t ON t.id_tab = a.id_tab
-				WHERE `id_profile` = '.(int)$id_profile);
-
-                foreach ($result as $row) {
-                    self::$_cache_accesses[$id_profile][$type][$row[$type]] = $row;
-                }
+                    ),
+                    $defaultData,
+                    $accessData
+                );
             }
         }
+    }
 
-        return self::$_cache_accesses[$id_profile][$type];
+    /**
+     * Creates the array of accesses [role => add / view / edit / delete] from a given list of roles
+     *
+     * @param array $rolesGiven
+     *
+     * @return array
+     */
+    private static function generateAccessesArrayFromPermissions($rolesGiven)
+    {
+        // Modify array to merge the class names together.
+        $accessPerTab = [];
+        foreach ($rolesGiven as $role) {
+            preg_match(
+                '/ROLE_MOD_[A-Z]+_(?P<classname>[A-Z][A-Z0-9]*)_[A-Z]+/',
+                $role['slug'],
+                $matches
+            );
+            if (empty($matches['classname'])) {
+                continue;
+            }
+            $accessPerTab[$matches['classname']][array_search('1', $role)] = '1';
+        }
+
+        return $accessPerTab;
     }
 }

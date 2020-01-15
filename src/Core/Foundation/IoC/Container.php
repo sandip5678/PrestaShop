@@ -1,13 +1,13 @@
 <?php
 /**
- * 2007-2015 PrestaShop
+ * 2007-2019 PrestaShop SA and Contributors
  *
  * NOTICE OF LICENSE
  *
  * This source file is subject to the Open Software License (OSL 3.0)
  * that is bundled with this package in the file LICENSE.txt.
  * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
+ * https://opensource.org/licenses/OSL-3.0
  * If you did not receive a copy of the license and are unable to
  * obtain it through the world-wide-web, please send an email
  * to license@prestashop.com so we can send you a copy immediately.
@@ -16,14 +16,17 @@
  *
  * Do not edit or add to this file if you wish to upgrade PrestaShop to newer
  * versions in the future. If you wish to customize PrestaShop for your
- * needs please refer to http://www.prestashop.com for more information.
+ * needs please refer to https://www.prestashop.com for more information.
  *
  * @author    PrestaShop SA <contact@prestashop.com>
- * @copyright 2007-2015 PrestaShop SA
- * @license   http://opensource.org/licenses/osl-3.0.php Open Software License (OSL 3.0)
+ * @copyright 2007-2019 PrestaShop SA and Contributors
+ * @license   https://opensource.org/licenses/OSL-3.0 Open Software License (OSL 3.0)
  * International Registered Trademark & Property of PrestaShop SA
  */
+
 namespace PrestaShop\PrestaShop\Core\Foundation\IoC;
+
+use ReflectionClass;
 
 class Container
 {
@@ -51,7 +54,7 @@ class Container
 
         $this->bindings[$serviceName] = array(
             'constructor' => $constructor,
-            'shared' => $shared
+            'shared' => $shared,
         );
 
         return $this;
@@ -63,22 +66,25 @@ class Container
             throw new Exception(
                 sprintf(
                     'Namespace alias `%1$s` already exists and points to `%2$s`',
-                    $alias, $this->namespaceAliases[$alias]
+                    $alias,
+                    $this->namespaceAliases[$alias]
                 )
             );
         }
 
         $this->namespaceAliases[$alias] = $namespacePrefix;
+
         return $this;
     }
 
     public function resolveClassName($className)
     {
         $colonPos = strpos($className, ':');
-        if (0 !== $colonPos) {
+        if (0 !== $colonPos && false !== $colonPos) {
             $alias = substr($className, 0, $colonPos);
             if ($this->knowsNamespaceAlias($alias)) {
                 $class = ltrim(substr($className, $colonPos + 1), '\\');
+
                 return $this->namespaceAliases[$alias] . '\\' . $class;
             }
         }
@@ -91,7 +97,7 @@ class Container
         $className = $this->resolveClassName($className);
 
         try {
-            $refl = new \ReflectionClass($className);
+            $refl = new ReflectionClass($className);
         } catch (\ReflectionException $re) {
             throw new Exception(sprintf('This doesn\'t seem to be a class name: `%s`.', $className));
         }

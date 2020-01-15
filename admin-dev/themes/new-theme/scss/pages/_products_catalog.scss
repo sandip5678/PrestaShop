@@ -1,21 +1,34 @@
 .products-catalog {
 
   > .content {
-    background: $white;
+    background: #ffffff;
     padding: {
       top: $grid-gutter-width / 2;
       bottom: $grid-gutter-width / 2;
     }
     margin-bottom: 20px;
+
+    .row {
+      align-items: center;
+    }
   }
 
   > .content:last-child {
     margin-bottom: 0;
   }
 
+  // actions at the top of the page
+  #catalog-actions {
+    align-items: start;
+
+    .row + .row {
+      padding-top: $grid-gutter-width / 2;
+    }
+  }
+
   .icon-caret {
-    font-size: rem(10px);
-    vertical-align: rem(1px);
+    font-size: 0.625rem;
+    vertical-align: 0.0625rem;
     cursor: pointer;
     display: inline-block;
 
@@ -33,8 +46,26 @@
       display: inline-block;
       width: 48%;
     }
+    .action-enabled {
+      color: $brand-success
+    }
+    .action-disabled {
+      color: $brand-danger
+    }
   }
 
+  .bulk-catalog {
+    .dropdown-item {
+      border: 0;
+    }
+  }
+
+  .dropdown-toggle.product-edit {
+    color: $gray-medium;
+    &:after {
+      content: "more_vert";
+    }
+  }
 }
 
 .emptycatalog-icon {

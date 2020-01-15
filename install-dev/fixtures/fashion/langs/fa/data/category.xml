@@ -1,79 +1,57 @@
 <?xml version="1.0"?>
 <entity_category>
+  <category id="Clothes" id_shop="1">
+    <name>لباس ها</name>
+    <description>&lt;p&gt;&lt;span style="font-size:10pt;font-style:normal;"&gt;لباس های مد روز ما را بررسی کنید. گلچینی از بهترین آیتم ها برای تکمیل قفسه لباس شما. استایلی خاص بر اساس شخصیت خود انتخاب کنید.&lt;/span&gt;&lt;/p&gt;</description>
+    <link_rewrite>clothes</link_rewrite>
+    <meta_title/>
+    <meta_keywords/>
+    <meta_description/>
+  </category>
+  <category id="Men" id_shop="1">
+    <name>آقایان</name>
+    <description>&lt;p&gt;&lt;span style="font-size:10pt;font-style:normal;"&gt;تیشرت ها، ژاکت ها، پیراهن ها و اکسسوری های مردانه. از ملزومات اولیه تا ملزومات اصلی برای خلق هر نوع استایل. &lt;/span&gt;&lt;/p&gt;</description>
+    <link_rewrite>men</link_rewrite>
+    <meta_title/>
+    <meta_keywords/>
+    <meta_description/>
+  </category>
   <category id="Women" id_shop="1">
-    <name>زنانه</name>
-    <description>&lt;p&gt;&lt;strong&gt;در اینجا تمام مجموعه مدل های زنانه را پیدا کنید.&lt;/strong&gt;&lt;/p&gt;&#xD;
-&lt;p&gt;شامل لباس هایی برای کمد لباس شما و خیلی بیشتر:&lt;/p&gt;&#xD;
-&lt;p&gt;کفش، تیشرت های مارک دار، پیراهن زنانه، جین زنانه!&lt;/p&gt;</description>
+    <name>خانم ها</name>
+    <description>&lt;p&gt;&lt;span style="font-size:10pt;font-style:normal;"&gt;تیشرت ها، ژاکت ها، پیراهن ها و اکسسوری های زنانه. از ملزومات اولیه تا ملزومات اصلی برای خلق هر نوع استایل. &lt;/span&gt;&lt;/p&gt;</description>
     <link_rewrite>women</link_rewrite>
     <meta_title/>
     <meta_keywords/>
     <meta_description/>
   </category>
-  <category id="Tops" id_shop="1">
-    <name>تاپ</name>
-    <description>&lt;p&gt;انتخاب از بین تیشرت، تاپ، بلوز، آستین کوتاه، آستین بلند و بیشتر.&lt;/p&gt;&#xD;
-&lt;p&gt;بخشی که شما را زیبا می کند پیدا کنید!&lt;/p&gt;</description>
-    <link_rewrite>tops</link_rewrite>
+  <category id="Accessories" id_shop="1">
+    <name>اکسسوری ها</name>
+    <description>&lt;p&gt;&lt;span style="font-size:10pt;font-style:normal;"&gt;آیتم ها و اکسسوری هایی برای روی میز، آشپزخانه و یا اتاق نشیمن شما. منزل خود را با طراحی خود تبدیل به خانه ای چشم نواز کنید. &lt;/span&gt;&lt;/p&gt;</description>
+    <link_rewrite>accessories</link_rewrite>
     <meta_title/>
     <meta_keywords/>
     <meta_description/>
   </category>
-  <category id="T-shirts" id_shop="1">
-    <name>تیشرت</name>
-    <description>&lt;p&gt;کمد لباس خود را پر کنید رنگ های متفاوت ما را ببینید،&lt;/p&gt;&#xD;
-&lt;p&gt;از طرح ها و مدل های مختلف بازدید کنید!&lt;/p&gt;</description>
-    <link_rewrite>tshirts</link_rewrite>
+  <category id="Stationery" id_shop="1">
+    <name>نوشت افزار</name>
+    <description>&lt;p&gt;&lt;span style="font-size:10pt;font-style:normal;"&gt;دفترچه های یادداشت، سررسیدها، ملزومات اداری و سایر موارد مورد نیاز. تمامی چیزهایی که برای تلفیق راحتی با کاربرد پذیری، چه برای محل کار و چه برای منزل خود نیاز دارید. &lt;/span&gt;&lt;/p&gt;</description>
+    <link_rewrite>stationery</link_rewrite>
     <meta_title/>
     <meta_keywords/>
     <meta_description/>
   </category>
-  <category id="Tops_1" id_shop="1">
-    <name>تاپ</name>
-    <description>از بین مدل های بسیار زیاد ما بهترین تاپ را برای خود برگزینید. </description>
-    <link_rewrite>top</link_rewrite>
+  <category id="Home_Accessories" id_shop="1">
+    <name>ملزومات خانه</name>
+    <description>&lt;p&gt;&lt;span style="font-size:10pt;font-style:normal;"&gt;به جزییات اهمیت دهید. با گلچین ملزومات خانگی ما به طراحی داخلی خود جانی تازه ببخشید. &lt;/span&gt;&lt;/p&gt;</description>
+    <link_rewrite>home-accessories</link_rewrite>
     <meta_title/>
     <meta_keywords/>
     <meta_description/>
   </category>
-  <category id="Blouses" id_shop="1">
-    <name>بلوز</name>
-    <description>بلوزهای مورد علاقه خود را با طرح های زیبا پیدا کنید.</description>
-    <link_rewrite>blouses</link_rewrite>
-    <meta_title/>
-    <meta_keywords/>
-    <meta_description/>
-  </category>
-  <category id="Dresses" id_shop="1">
-    <name>پیراهن</name>
-    <description>&lt;p&gt;پیراهن مورد علاقه خود را از بین انتخاب های فراوان پیراهن مجلسی، پیراهن راحتی و پیراهن تابستانه پیدا کنید!&lt;/p&gt;&#xD;
-&lt;p&gt;لباس هایی برای هر روز، هر سلیقه و هر موقعیت.&lt;/p&gt;</description>
-    <link_rewrite>dresses</link_rewrite>
-    <meta_title/>
-    <meta_keywords/>
-    <meta_description/>
-  </category>
-  <category id="Casual_Dresses" id_shop="1">
-    <name>پیراهن راحت</name>
-    <description>&lt;p&gt;دنبال لباسی برای روز هستید؟نگاهی به&lt;/p&gt;&#xD;
-&lt;p&gt;مجموعه ما بیاندازید تا بهترین برای خودتان انتخاب کنید.&lt;/p&gt;</description>
-    <link_rewrite>casual-dresses</link_rewrite>
-    <meta_title/>
-    <meta_keywords/>
-    <meta_description/>
-  </category>
-  <category id="Evening_Dresses" id_shop="1">
-    <name>پیراهن مجلسی</name>
-    <description>لباس های ما را مرور کنید تا برای یک شب فراموش نشدنی یک لباس مناسب خود پیدا کنید!</description>
-    <link_rewrite>evening-dresses</link_rewrite>
-    <meta_title/>
-    <meta_keywords/>
-    <meta_description/>
-  </category>
-  <category id="Summer_Dresses" id_shop="1">
-    <name>پیراهن تابستانه</name>
-    <description>پیراهن کوتاه، پیراهن بلند،  پیراهن طرح دار، بهترین لباس را برای تابستان پیدا کنید.</description>
-    <link_rewrite>summer-dresses</link_rewrite>
+  <category id="Art" id_shop="1">
+    <name>هنر</name>
+    <description>&lt;p&gt;&lt;span style="font-size:10pt;font-style:normal;"&gt;پوسترهای همراه قاب و تصاویر خطی، تمام چیزهایی که برای شخصیت دادن به دیوارهای خود و آوردن پروژه های خلاق خود به زندگی نیاز دارید.&lt;/span&gt;&lt;/p&gt;</description>
+    <link_rewrite>art</link_rewrite>
     <meta_title/>
     <meta_keywords/>
     <meta_description/>
