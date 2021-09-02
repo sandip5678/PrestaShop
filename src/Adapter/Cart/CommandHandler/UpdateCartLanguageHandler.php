@@ -1,11 +1,12 @@
 <?php
 /**
- * 2007-2019 PrestaShop SA and Contributors
+ * Copyright since 2007 PrestaShop SA and Contributors
+ * PrestaShop is an International Registered Trademark & Property of PrestaShop SA
  *
  * NOTICE OF LICENSE
  *
  * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
+ * that is bundled with this package in the file LICENSE.md.
  * It is also available through the world-wide-web at this URL:
  * https://opensource.org/licenses/OSL-3.0
  * If you did not receive a copy of the license and are unable to
@@ -16,12 +17,11 @@
  *
  * Do not edit or add to this file if you wish to upgrade PrestaShop to newer
  * versions in the future. If you wish to customize PrestaShop for your
- * needs please refer to https://www.prestashop.com for more information.
+ * needs please refer to https://devdocs.prestashop.com/ for more information.
  *
- * @author    PrestaShop SA <contact@prestashop.com>
- * @copyright 2007-2019 PrestaShop SA and Contributors
+ * @author    PrestaShop SA and Contributors <contact@prestashop.com>
+ * @copyright Since 2007 PrestaShop SA and Contributors
  * @license   https://opensource.org/licenses/OSL-3.0 Open Software License (OSL 3.0)
- * International Registered Trademark & Property of PrestaShop SA
  */
 
 namespace PrestaShop\PrestaShop\Adapter\Cart\CommandHandler;
@@ -58,10 +58,7 @@ final class UpdateCartLanguageHandler extends AbstractCartHandler implements Upd
                 throw new CartException('Failed to update cart language');
             }
         } catch (PrestaShopException $e) {
-            throw new CartException(sprintf(
-                'An error occurred while trying to update language for cart with id "%s"',
-                $cart->id
-            ));
+            throw new CartException(sprintf('An error occurred while trying to update language for cart with id "%s"', $cart->id));
         }
     }
 
@@ -79,16 +76,13 @@ final class UpdateCartLanguageHandler extends AbstractCartHandler implements Upd
             $lang = new Language($languageId->getValue());
         } catch (PrestaShopException $e) {
             throw new LanguageException(
-                $languageId,
-                sprintf('An error occurred when fetching language object with id %s', $languageId->getValue())
+                sprintf('An error occurred when fetching language object with id %d', $languageId->getValue()),
+                $languageId->getValue()
             );
         }
 
         if ($languageId->getValue() !== $lang->id) {
-            throw new LanguageNotFoundException(
-                $languageId,
-                sprintf('Language with id "%s" was not found', $languageId->getValue())
-            );
+            throw new LanguageNotFoundException($languageId, sprintf('Language with id "%s" was not found', $languageId->getValue()));
         }
 
         return $lang;
@@ -102,11 +96,7 @@ final class UpdateCartLanguageHandler extends AbstractCartHandler implements Upd
     private function assertLanguageIsActive(Language $lang): void
     {
         if (!$lang->active) {
-            throw new LanguageException(sprintf(
-                'Language with id "%s" is not active',
-                $lang->id),
-                LanguageException::NOT_ACTIVE
-            );
+            throw new LanguageException(sprintf('Language with id "%s" is not active', $lang->id), LanguageException::NOT_ACTIVE);
         }
     }
 }

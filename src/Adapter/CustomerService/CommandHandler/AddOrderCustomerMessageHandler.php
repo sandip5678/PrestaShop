@@ -1,11 +1,12 @@
 <?php
 /**
- * 2007-2019 PrestaShop SA and Contributors
+ * Copyright since 2007 PrestaShop SA and Contributors
+ * PrestaShop is an International Registered Trademark & Property of PrestaShop SA
  *
  * NOTICE OF LICENSE
  *
  * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
+ * that is bundled with this package in the file LICENSE.md.
  * It is also available through the world-wide-web at this URL:
  * https://opensource.org/licenses/OSL-3.0
  * If you did not receive a copy of the license and are unable to
@@ -16,12 +17,11 @@
  *
  * Do not edit or add to this file if you wish to upgrade PrestaShop to newer
  * versions in the future. If you wish to customize PrestaShop for your
- * needs please refer to https://www.prestashop.com for more information.
+ * needs please refer to https://devdocs.prestashop.com/ for more information.
  *
- * @author    PrestaShop SA <contact@prestashop.com>
- * @copyright 2007-2019 PrestaShop SA and Contributors
+ * @author    PrestaShop SA and Contributors <contact@prestashop.com>
+ * @copyright Since 2007 PrestaShop SA and Contributors
  * @license   https://opensource.org/licenses/OSL-3.0 Open Software License (OSL 3.0)
- * International Registered Trademark & Property of PrestaShop SA
  */
 
 namespace PrestaShop\PrestaShop\Adapter\CustomerService\CommandHandler;
@@ -30,7 +30,6 @@ use Configuration;
 use Customer;
 use CustomerMessage;
 use CustomerThread;
-use Language;
 use Mail;
 use Order;
 use PrestaShop\PrestaShop\Core\ConstraintValidator\Constraints\CleanHtml;
@@ -105,19 +104,13 @@ final class AddOrderCustomerMessageHandler implements AddOrderCustomerMessageHan
         $order = new Order($command->getOrderId()->getValue());
 
         if (0 >= $order->id) {
-            throw new OrderNotFoundException(
-                $command->getOrderId(),
-                "Order with id {$command->getOrderId()->getValue()} was not found"
-            );
+            throw new OrderNotFoundException($command->getOrderId(), "Order with id {$command->getOrderId()->getValue()} was not found");
         }
 
         $customer = new Customer($order->id_customer);
 
         if (0 >= $customer->id) {
-            throw new CustomerMessageException(
-                "Associated order customer with id {$command->getOrderId()->getValue()} was not found",
-                CustomerMessageException::ORDER_CUSTOMER_NOT_FOUND
-            );
+            throw new CustomerMessageException("Associated order customer with id {$command->getOrderId()->getValue()} was not found", CustomerMessageException::ORDER_CUSTOMER_NOT_FOUND);
         }
 
         $customerServiceThreadId = CustomerThread::getIdCustomerThreadByEmailAndIdOrder(
@@ -129,22 +122,14 @@ final class AddOrderCustomerMessageHandler implements AddOrderCustomerMessageHan
             try {
                 $customerServiceThreadId = $this->createCustomerMessageThread($order);
             } catch (\PrestaShopException $e) {
-                throw new CustomerMessageException(
-                    'An unexpected error occurred when creating customer message thread',
-                    0,
-                    $e
-                );
+                throw new CustomerMessageException('An unexpected error occurred when creating customer message thread', 0, $e);
             }
         }
 
         try {
             $this->createMessage($customerServiceThreadId, $command);
         } catch (\PrestaShopException $e) {
-            throw new CustomerMessageException(
-                'An unexpected error occurred when creating customer message',
-                0,
-                $e
-            );
+            throw new CustomerMessageException('An unexpected error occurred when creating customer message', 0, $e);
         }
 
         $failedMailSentMessage = 'An unexpected error occurred when sending the email';
@@ -156,11 +141,7 @@ final class AddOrderCustomerMessageHandler implements AddOrderCustomerMessageHan
                 throw new CannotSendEmailException($failedMailSentMessage);
             }
         } catch (\PrestaShopException $e) {
-            throw new CannotSendEmailException(
-                $failedMailSentMessage,
-                0,
-                $e
-            );
+            throw new CannotSendEmailException($failedMailSentMessage, 0, $e);
         }
     }
 
@@ -174,13 +155,7 @@ final class AddOrderCustomerMessageHandler implements AddOrderCustomerMessageHan
         $errors = $this->validator->validate($message, new CleanHtml());
 
         if (0 !== \count($errors)) {
-            throw new CustomerMessageConstraintException(
-                sprintf(
-                    'Given message "%s" contains javascript events or script tags',
-                    $message
-                ),
-                CustomerMessageConstraintException::INVALID_MESSAGE
-            );
+            throw new CustomerMessageConstraintException(sprintf('Given message "%s" contains javascript events or script tags', $message), CustomerMessageConstraintException::INVALID_MESSAGE);
         }
     }
 
@@ -252,20 +227,20 @@ final class AddOrderCustomerMessageHandler implements AddOrderCustomerMessageHan
         $message = $command->getMessage();
 
         if (Configuration::get('PS_MAIL_TYPE', null, null, $order->id_shop) != Mail::TYPE_TEXT) {
-            $message = Tools::nl2br($command->getMessage());
+            $message = Tools::nl2br(Tools::htmlentitiesUTF8($command->getMessage()));
         }
 
-        $orderLanguage = new Language((int) $order->id_lang);
-        $varsTpl = array(
+        $orderLanguage = $order->getAssociatedLanguage();
+        $varsTpl = [
             '{lastname}' => $customer->lastname,
             '{firstname}' => $customer->firstname,
             '{id_order}' => $order->id,
             '{order_name}' => $order->getUniqReference(),
             '{message}' => $message,
-        );
+        ];
 
         return Mail::Send(
-            (int) $order->id_lang,
+            (int) $orderLanguage->getId(),
             'order_merchant_comment',
             $this->translator->trans(
                 'New message regarding your order',

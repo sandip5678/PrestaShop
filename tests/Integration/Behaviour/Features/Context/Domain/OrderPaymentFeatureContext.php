@@ -1,16 +1,41 @@
 <?php
+/**
+ * Copyright since 2007 PrestaShop SA and Contributors
+ * PrestaShop is an International Registered Trademark & Property of PrestaShop SA
+ *
+ * NOTICE OF LICENSE
+ *
+ * This source file is subject to the Open Software License (OSL 3.0)
+ * that is bundled with this package in the file LICENSE.md.
+ * It is also available through the world-wide-web at this URL:
+ * https://opensource.org/licenses/OSL-3.0
+ * If you did not receive a copy of the license and are unable to
+ * obtain it through the world-wide-web, please send an email
+ * to license@prestashop.com so we can send you a copy immediately.
+ *
+ * DISCLAIMER
+ *
+ * Do not edit or add to this file if you wish to upgrade PrestaShop to newer
+ * versions in the future. If you wish to customize PrestaShop for your
+ * needs please refer to https://devdocs.prestashop.com/ for more information.
+ *
+ * @author    PrestaShop SA and Contributors <contact@prestashop.com>
+ * @copyright Since 2007 PrestaShop SA and Contributors
+ * @license   https://opensource.org/licenses/OSL-3.0 Open Software License (OSL 3.0)
+ */
 
 namespace Tests\Integration\Behaviour\Features\Context\Domain;
 
 use Behat\Gherkin\Node\TableNode;
 use DateTimeImmutable;
-use PHPUnit_Framework_Assert;
+use PHPUnit\Framework\Assert as Assert;
+use PrestaShop\PrestaShop\Core\Domain\Order\Exception\NegativePaymentAmountException;
+use PrestaShop\PrestaShop\Core\Domain\Order\Exception\OrderConstraintException;
 use PrestaShop\PrestaShop\Core\Domain\Order\Payment\Command\AddPaymentCommand;
 use PrestaShop\PrestaShop\Core\Domain\Order\Query\GetOrderForViewing;
 use PrestaShop\PrestaShop\Core\Domain\Order\QueryResult\OrderForViewing;
 use PrestaShop\PrestaShop\Core\Domain\Order\QueryResult\OrderPaymentForViewing;
 use PrestaShop\PrestaShop\Core\Domain\Order\QueryResult\OrderPaymentsForViewing;
-use PrestaShopException;
 use RuntimeException;
 use Tests\Integration\Behaviour\Features\Context\SharedStorage;
 
@@ -34,7 +59,7 @@ class OrderPaymentFeatureContext extends AbstractDomainFeatureContext
                 $data['date'],
                 $data['payment_method'],
                 $data['amount'],
-                (int) $data['id_currency'],
+                SharedStorage::getStorage()->get($data['currency'])->id,
                 isset($data['id_invoice']) ? (int) $data['id_invoice'] : null,
                 $data['transaction_id']
             )
@@ -60,12 +85,7 @@ class OrderPaymentFeatureContext extends AbstractDomainFeatureContext
 
         $countOfOrderPaymentsFromDb = count($orderPaymentForViewingArray);
         if (count($orderPaymentForViewingArray) !== $numberOfPayments) {
-            throw new RuntimeException(sprintf(
-                'Order "%s" number of payments  is "%s", but "%s" was expected',
-                $orderReference,
-                $countOfOrderPaymentsFromDb,
-                $numberOfPayments
-            ));
+            throw new RuntimeException(sprintf('Order "%s" number of payments  is "%s", but "%s" was expected', $orderReference, $countOfOrderPaymentsFromDb, $numberOfPayments));
         }
     }
 
@@ -84,7 +104,7 @@ class OrderPaymentFeatureContext extends AbstractDomainFeatureContext
         /** @var OrderPaymentForViewing $orderPaymentForViewing */
         $orderPaymentForViewing = $this->getFirstPaymentForViewing($orderId, $orderForViewing);
         $invoiceNumber = $orderPaymentForViewing->getInvoiceNumber();
-        PHPUnit_Framework_Assert::assertNotNull($invoiceNumber);
+        Assert::assertNotNull($invoiceNumber);
     }
 
     /**
@@ -107,7 +127,7 @@ class OrderPaymentFeatureContext extends AbstractDomainFeatureContext
             $orderPaymentForViewing->getPaymentId(), $dataArray
         );
 
-        PHPUnit_Framework_Assert::assertEquals($expectedOrderPaymentForViewing, $orderPaymentForViewing);
+        Assert::assertEquals($expectedOrderPaymentForViewing, $orderPaymentForViewing);
     }
 
     /**
@@ -129,21 +149,35 @@ class OrderPaymentFeatureContext extends AbstractDomainFeatureContext
                     $data['date'],
                     $data['payment_method'],
                     $data['amount'],
-                    (int) $data['id_currency'],
+                    SharedStorage::getStorage()->get($data['currency'])->id,
                     isset($data['id_invoice']) ? (int) $data['id_invoice'] : null,
                     $data['transaction_id']
                 )
             );
-        } catch (PrestaShopException $exception) {
-            $msg = $exception->getMessage();
-            $expectedMsg = 'Property Order->total_paid_real is not valid';
-            if ($msg !== 'Property Order->total_paid_real is not valid') {
-                throw new RuntimeException(sprintf(
-                    'Not expected exception is thrown "%s" but "%s" was expected',
-                    $msg,
-                    $expectedMsg));
-            }
+        } catch (NegativePaymentAmountException $exception) {
+            $this->setLastException($exception);
+        } catch (OrderConstraintException $exception) {
+            $this->setLastException($exception);
         }
+    }
+
+    /**
+     * @Then I should get error that payment amount is negative
+     */
+    public function assertLastErrorIsNegativePaymentAmount(): void
+    {
+        $this->assertLastErrorIs(NegativePaymentAmountException::class);
+    }
+
+    /**
+     * @Then I should get error that payment method is invalid
+     */
+    public function assertLastErrorIsInvalidPaymentMethod(): void
+    {
+        $this->assertLastErrorIs(
+            OrderConstraintException::class,
+            OrderConstraintException::INVALID_PAYMENT_METHOD
+        );
     }
 
     private function mapToOrderPaymentForViewing(int $paymentId, array $data)

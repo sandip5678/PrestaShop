@@ -1,11 +1,12 @@
 <?php
 /**
- * 2007-2019 PrestaShop and Contributors
+ * Copyright since 2007 PrestaShop SA and Contributors
+ * PrestaShop is an International Registered Trademark & Property of PrestaShop SA
  *
  * NOTICE OF LICENSE
  *
  * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
+ * that is bundled with this package in the file LICENSE.md.
  * It is also available through the world-wide-web at this URL:
  * https://opensource.org/licenses/OSL-3.0
  * If you did not receive a copy of the license and are unable to
@@ -16,19 +17,17 @@
  *
  * Do not edit or add to this file if you wish to upgrade PrestaShop to newer
  * versions in the future. If you wish to customize PrestaShop for your
- * needs please refer to https://www.prestashop.com for more information.
+ * needs please refer to https://devdocs.prestashop.com/ for more information.
  *
- * @author    PrestaShop SA <contact@prestashop.com>
- * @copyright 2007-2019 PrestaShop SA and Contributors
+ * @author    PrestaShop SA and Contributors <contact@prestashop.com>
+ * @copyright Since 2007 PrestaShop SA and Contributors
  * @license   https://opensource.org/licenses/OSL-3.0 Open Software License (OSL 3.0)
- * International Registered Trademark & Property of PrestaShop SA
  */
 
 namespace PrestaShop\PrestaShop\Adapter\Attachment\CommandHandler;
 
 use Attachment;
 use PrestaShop\PrestaShop\Adapter\Attachment\AbstractAttachmentHandler;
-use PrestaShop\PrestaShop\Adapter\File\Uploader\AttachmentFileUploader;
 use PrestaShop\PrestaShop\Core\Domain\Attachment\AttachmentFileUploaderInterface;
 use PrestaShop\PrestaShop\Core\Domain\Attachment\Command\EditAttachmentCommand;
 use PrestaShop\PrestaShop\Core\Domain\Attachment\CommandHandler\EditAttachmentHandlerInterface;
@@ -45,7 +44,7 @@ use Symfony\Component\Validator\Validator\ValidatorInterface;
 final class EditAttachmentHandler extends AbstractAttachmentHandler implements EditAttachmentHandlerInterface
 {
     /**
-     * @var AttachmentFileUploader
+     * @var AttachmentFileUploaderInterface
      */
     protected $fileUploader;
 
@@ -75,15 +74,11 @@ final class EditAttachmentHandler extends AbstractAttachmentHandler implements E
         try {
             $attachment = new Attachment($attachmentIdValue);
         } catch (PrestaShopException $e) {
-            throw new AttachmentNotFoundException(
-                sprintf('Attachment with id "%s" was not found.', $attachmentIdValue)
-            );
+            throw new AttachmentNotFoundException(sprintf('Attachment with id "%s" was not found.', $attachmentIdValue));
         }
 
         if ($attachment->id !== $attachmentIdValue) {
-            throw new AttachmentNotFoundException(
-                sprintf('Attachment with id "%s" was not found.', $attachmentIdValue)
-            );
+            throw new AttachmentNotFoundException(sprintf('Attachment with id "%s" was not found.', $attachmentIdValue));
         }
 
         $this->updateAttachmentFromCommandData($attachment, $command);
@@ -102,10 +97,7 @@ final class EditAttachmentHandler extends AbstractAttachmentHandler implements E
     {
         try {
             if (!$attachment->validateFields(false) && !$attachment->validateFieldsLang(false)) {
-                throw new AttachmentConstraintException(
-                    'Attachment contains invalid field values',
-                    AttachmentConstraintException::INVALID_FIELDS
-                );
+                throw new AttachmentConstraintException('Attachment contains invalid field values', AttachmentConstraintException::INVALID_FIELDS);
             }
 
             $this->assertDescriptionContainsCleanHtml($command->getLocalizedDescriptions());

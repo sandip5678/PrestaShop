@@ -1,11 +1,12 @@
 <?php
 /**
- * 2007-2019 PrestaShop SA and Contributors
+ * Copyright since 2007 PrestaShop SA and Contributors
+ * PrestaShop is an International Registered Trademark & Property of PrestaShop SA
  *
  * NOTICE OF LICENSE
  *
  * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
+ * that is bundled with this package in the file LICENSE.md.
  * It is also available through the world-wide-web at this URL:
  * https://opensource.org/licenses/OSL-3.0
  * If you did not receive a copy of the license and are unable to
@@ -16,23 +17,24 @@
  *
  * Do not edit or add to this file if you wish to upgrade PrestaShop to newer
  * versions in the future. If you wish to customize PrestaShop for your
- * needs please refer to https://www.prestashop.com for more information.
+ * needs please refer to https://devdocs.prestashop.com/ for more information.
  *
- * @author    PrestaShop SA <contact@prestashop.com>
- * @copyright 2007-2019 PrestaShop SA and Contributors
+ * @author    PrestaShop SA and Contributors <contact@prestashop.com>
+ * @copyright Since 2007 PrestaShop SA and Contributors
  * @license   https://opensource.org/licenses/OSL-3.0 Open Software License (OSL 3.0)
- * International Registered Trademark & Property of PrestaShop SA
  */
 
 namespace PrestaShopBundle\Command;
 
+use Doctrine\ORM\EntityManager;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Tools\SchemaTool;
-use Symfony\Bundle\FrameworkBundle\Command\ContainerAwareCommand;
+use PDO;
+use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 
-class UpdateSchemaCommand extends ContainerAwareCommand
+class UpdateSchemaCommand extends Command
 {
     /**
      * @var EntityManagerInterface
@@ -44,6 +46,15 @@ class UpdateSchemaCommand extends ContainerAwareCommand
     private $dbName;
 
     private $dbPrefix;
+
+    public function __construct(string $databaseName, string $databasePrefix, EntityManager $manager)
+    {
+        parent::__construct();
+        $this->dbName = $databaseName;
+        $this->dbPrefix = $databasePrefix;
+        $this->em = $manager;
+        $this->metadata = $manager->getMetadataFactory()->getAllMetadata();
+    }
 
     protected function configure()
     {
@@ -58,14 +69,6 @@ class UpdateSchemaCommand extends ContainerAwareCommand
      */
     protected function execute(InputInterface $input, OutputInterface $output)
     {
-        $container = $this->getContainer();
-
-        $this->dbName = $container->getParameter('database_name');
-        $this->dbPrefix = $container->getParameter('database_prefix');
-
-        $this->em = $container->get('doctrine')->getManager();
-        $this->metadata = $this->em->getMetadataFactory()->getAllMetadata();
-
         $conn = $this->em->getConnection();
         $conn->beginTransaction();
 
@@ -92,12 +95,12 @@ class UpdateSchemaCommand extends ContainerAwareCommand
         $schemaTool = new SchemaTool($this->em);
         $updateSchemaSql = $schemaTool->getUpdateSchemaSql($this->metadata, false);
 
-        $removedTables = array();
-        $dropForeignKeyQueries = array();
+        $removedTables = [];
+        $dropForeignKeyQueries = [];
 
         // Remove the DROP TABLE
         foreach ($updateSchemaSql as $key => $sql) {
-            $matches = array();
+            $matches = [];
             if (preg_match('/DROP TABLE (.+?)$/', $sql, $matches)) {
                 unset($updateSchemaSql[$key]);
                 $removedTables[] = $matches[1];
@@ -106,7 +109,7 @@ class UpdateSchemaCommand extends ContainerAwareCommand
 
         // Then remove the ALTER TABLE on removed tables
         foreach ($updateSchemaSql as $key => $sql) {
-            $matches = array();
+            $matches = [];
             if (preg_match('/ALTER TABLE (.+?) /', $sql, $matches)) {
                 $alteredTables = $matches[1];
                 if (in_array($alteredTables, $removedTables)) {
@@ -134,7 +137,7 @@ class UpdateSchemaCommand extends ContainerAwareCommand
             }
         }
 
-        $constraints = array();
+        $constraints = [];
 
         // Move DROP FOREIGN KEY at the beginning of the sql list
         foreach ($updateSchemaSql as $key => $sql) {
@@ -150,10 +153,10 @@ class UpdateSchemaCommand extends ContainerAwareCommand
 
         // Put back DEFAULT fields, since it cannot be described in the ORM model
         foreach ($updateSchemaSql as $key => $sql) {
-            $matches = array();
+            $matches = [];
             if (preg_match('/ALTER TABLE (.+?) /', $sql, $matches)) {
                 $tableName = $matches[1];
-                $matches = array();
+                $matches = [];
                 if (preg_match_all('/([^\s,]*?) CHANGE (.+?) (.+?)(,|$)/', $sql, $matches)) {
                     foreach ($matches[2] as $matchKey => $fieldName) {
                         // remove table name
@@ -213,12 +216,16 @@ class UpdateSchemaCommand extends ContainerAwareCommand
             } catch (\Exception $e) {
                 $conn->rollBack();
 
-                throw($e);
+                throw ($e);
             }
         }
-        $conn->commit();
+        if (!$conn->getWrappedConnection() instanceof PDO || $conn->getWrappedConnection()->inTransaction()) {
+            $conn->commit();
+        }
 
         $pluralization = (1 > $sqls) ? 'query was' : 'queries were';
         $output->writeln(sprintf('Database schema updated successfully! "<info>%s</info>" %s executed', $sqls, $pluralization));
+
+        return 0;
     }
 }

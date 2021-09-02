@@ -1,11 +1,12 @@
 <?php
 /**
- * 2007-2019 PrestaShop SA and Contributors
+ * Copyright since 2007 PrestaShop SA and Contributors
+ * PrestaShop is an International Registered Trademark & Property of PrestaShop SA
  *
  * NOTICE OF LICENSE
  *
  * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
+ * that is bundled with this package in the file LICENSE.md.
  * It is also available through the world-wide-web at this URL:
  * https://opensource.org/licenses/OSL-3.0
  * If you did not receive a copy of the license and are unable to
@@ -16,12 +17,11 @@
  *
  * Do not edit or add to this file if you wish to upgrade PrestaShop to newer
  * versions in the future. If you wish to customize PrestaShop for your
- * needs please refer to https://www.prestashop.com for more information.
+ * needs please refer to https://devdocs.prestashop.com/ for more information.
  *
- * @author    PrestaShop SA <contact@prestashop.com>
- * @copyright 2007-2019 PrestaShop SA and Contributors
+ * @author    PrestaShop SA and Contributors <contact@prestashop.com>
+ * @copyright Since 2007 PrestaShop SA and Contributors
  * @license   https://opensource.org/licenses/OSL-3.0 Open Software License (OSL 3.0)
- * International Registered Trademark & Property of PrestaShop SA
  */
 
 /**
@@ -66,6 +66,8 @@ class TranslateCore
     /**
      * Get a translation for an admin controller.
      *
+     * @deprecated Use Context::getContext()->getTranslator()->trans()
+     *
      * @param $string
      * @param string $class
      * @param bool $addslashes
@@ -75,40 +77,9 @@ class TranslateCore
      */
     public static function getAdminTranslation($string, $class = 'AdminTab', $addslashes = false, $htmlentities = true, $sprintf = null)
     {
-        static $modulesTabs = null;
+        @trigger_error(__FUNCTION__ . 'is deprecated. Use Context::getContext()->getTranslator()->trans() instead.', E_USER_DEPRECATED);
 
-        // @todo remove global keyword in translations files and use static
-        global $_LANGADM;
-
-        if ($modulesTabs === null) {
-            $modulesTabs = Tab::getModuleTabList();
-        }
-
-        if ($_LANGADM == null) {
-            $iso = Context::getContext()->language->iso_code;
-            if (empty($iso)) {
-                $iso = Language::getIsoById((int) Configuration::get('PS_LANG_DEFAULT'));
-            }
-            if (file_exists(_PS_TRANSLATIONS_DIR_ . $iso . '/admin.php')) {
-                include_once _PS_TRANSLATIONS_DIR_ . $iso . '/admin.php';
-            }
-        }
-
-        if (isset($modulesTabs[strtolower($class)])) {
-            $classNameController = $class . 'controller';
-            // if the class is extended by a module, use modules/[module_name]/xx.php lang file
-            if (class_exists($classNameController) && Module::getModuleNameFromClass($classNameController)) {
-                return Translate::getModuleTranslation(Module::$classInModule[$classNameController], $string, $classNameController, $sprintf, $addslashes);
-            }
-        }
-
-        $string = preg_replace("/\\\*'/", "\'", $string);
-        $key = md5($string);
-        if (isset($_LANGADM[$class . $key])) {
-            $str = $_LANGADM[$class . $key];
-        } else {
-            $str = Translate::getGenericAdminTranslation($string, $key, $_LANGADM);
-        }
+        $str = Context::getContext()->getTranslator()->trans($string);
 
         if ($htmlentities) {
             $str = htmlspecialchars($str, ENT_QUOTES, 'utf-8');
@@ -123,36 +94,7 @@ class TranslateCore
             $str = Translate::checkAndReplaceArgs($str, $sprintf);
         }
 
-        return $addslashes ? addslashes($str) : stripslashes($str);
-    }
-
-    /**
-     * Return the translation for a string if it exists for the base AdminController or for helpers.
-     *
-     * @param $string string to translate
-     * @param null $key md5 key if already calculated (optional)
-     * @param array $langArray Global array of admin translations
-     *
-     * @return string translation
-     */
-    public static function getGenericAdminTranslation($string, $key, &$langArray)
-    {
-        $string = preg_replace("/\\\*'/", "\'", $string);
-        if (null === $key) {
-            $key = md5($string);
-        }
-
-        if (isset($langArray['AdminController' . $key])) {
-            $str = $langArray['AdminController' . $key];
-        } elseif (isset($langArray['Helper' . $key])) {
-            $str = $langArray['Helper' . $key];
-        } elseif (isset($langArray['AdminTab' . $key])) {
-            $str = $langArray['AdminTab' . $key];
-        } else {
-            $str = $string;
-        }
-
-        return $str;
+        return $addslashes ? addslashes($str) : $str;
     }
 
     /**
@@ -161,7 +103,7 @@ class TranslateCore
      * @param string|Module $module
      * @param string $originalString
      * @param string $source
-     * @param null $sprintf
+     * @param string|array|null $sprintf
      * @param bool $js
      * @param string|null $locale
      * @param bool $fallback [default=true] If true, this method falls back to the new translation system if no translation is found
@@ -180,12 +122,12 @@ class TranslateCore
         $fallback = true,
         $escape = true
     ) {
-        global $_MODULES, $_MODULE, $_LANGADM;
+        global $_MODULES, $_MODULE;
 
-        static $langCache = array();
+        static $langCache = [];
         // $_MODULES is a cache of translations for all module.
         // $translations_merged is a cache of wether a specific module's translations have already been added to $_MODULES
-        static $translationsMerged = array();
+        static $translationsMerged = [];
 
         $name = $module instanceof Module ? $module->name : $module;
 
@@ -198,7 +140,7 @@ class TranslateCore
         }
 
         if (!isset($translationsMerged[$name][$iso])) {
-            $filesByPriority = array(
+            $filesByPriority = [
                 // PrestaShop 1.5 translations
                 _PS_MODULE_DIR_ . $name . '/translations/' . $iso . '.php',
                 // PrestaShop 1.4 translations
@@ -206,7 +148,7 @@ class TranslateCore
                 // Translations in theme
                 _PS_THEME_DIR_ . 'modules/' . $name . '/translations/' . $iso . '.php',
                 _PS_THEME_DIR_ . 'modules/' . $name . '/' . $iso . '.php',
-            );
+            ];
             foreach ($filesByPriority as $file) {
                 if (file_exists($file)) {
                     include_once $file;
@@ -240,9 +182,6 @@ class TranslateCore
                 $ret = stripslashes($_MODULES[$currentKey]);
             } elseif (!empty($_MODULES[$defaultKey])) {
                 $ret = stripslashes($_MODULES[$defaultKey]);
-            } elseif (!empty($_LANGADM)) {
-                // if translation was not found in module, look for it in AdminController or Helpers
-                $ret = stripslashes(Translate::getGenericAdminTranslation($string, $key, $_LANGADM));
             } else {
                 $ret = stripslashes($string);
             }
@@ -267,9 +206,9 @@ class TranslateCore
         }
 
         if (!is_array($sprintf) && null !== $sprintf) {
-            $sprintf_for_trans = array($sprintf);
+            $sprintf_for_trans = [$sprintf];
         } elseif (null === $sprintf) {
-            $sprintf_for_trans = array();
+            $sprintf_for_trans = [];
         } else {
             $sprintf_for_trans = $sprintf;
         }
@@ -301,7 +240,7 @@ class TranslateCore
         if (!Validate::isLangIsoCode($iso)) {
             Context::getContext()->getTranslator()->trans(
                 'Invalid language ISO code (%s)',
-                array(Tools::safeOutput($iso)),
+                [Tools::safeOutput($iso)],
                 'Admin.International.Notification'
             );
         }
@@ -356,7 +295,7 @@ class TranslateCore
                 // Make positions start at 1 so that it behaves similar to the %1$d etc. sprintf positional params
                 $position = $index + 1;
                 // extract tag name
-                $match = array();
+                $match = [];
                 if (preg_match('/^\s*<\s*(\w+)/', $tag, $match)) {
                     $opener = $tag;
                     $closer = '</' . $match[1] . '>';
@@ -390,7 +329,7 @@ class TranslateCore
     {
         Tools::displayAsDeprecated();
 
-        return Translate::postProcessTranslation($string, array('tags' => $tags));
+        return Translate::postProcessTranslation($string, ['tags' => $tags]);
     }
 
     /**

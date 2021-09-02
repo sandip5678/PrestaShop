@@ -1,9 +1,33 @@
 <?php
+/**
+ * Copyright since 2007 PrestaShop SA and Contributors
+ * PrestaShop is an International Registered Trademark & Property of PrestaShop SA
+ *
+ * NOTICE OF LICENSE
+ *
+ * This source file is subject to the Open Software License (OSL 3.0)
+ * that is bundled with this package in the file LICENSE.md.
+ * It is also available through the world-wide-web at this URL:
+ * https://opensource.org/licenses/OSL-3.0
+ * If you did not receive a copy of the license and are unable to
+ * obtain it through the world-wide-web, please send an email
+ * to license@prestashop.com so we can send you a copy immediately.
+ *
+ * DISCLAIMER
+ *
+ * Do not edit or add to this file if you wish to upgrade PrestaShop to newer
+ * versions in the future. If you wish to customize PrestaShop for your
+ * needs please refer to https://devdocs.prestashop.com/ for more information.
+ *
+ * @author    PrestaShop SA and Contributors <contact@prestashop.com>
+ * @copyright Since 2007 PrestaShop SA and Contributors
+ * @license   https://opensource.org/licenses/OSL-3.0 Open Software License (OSL 3.0)
+ */
 
 namespace Tests\Integration\Behaviour\Features\Context\Domain;
 
 use Behat\Gherkin\Node\TableNode;
-use PHPUnit_Framework_Assert;
+use PHPUnit\Framework\Assert as Assert;
 use PrestaShop\PrestaShop\Core\Domain\Contact\Command\AddContactCommand;
 use PrestaShop\PrestaShop\Core\Domain\Contact\Command\EditContactCommand;
 use PrestaShop\PrestaShop\Core\Domain\Contact\Query\GetContactForEditing;
@@ -46,8 +70,8 @@ class ContactFeatureContext extends AbstractDomainFeatureContext
             $editableContact->isMessagesSavingEnabled()
         );
         $addContactCommand->setEmail($editableContact->getEmail()->getValue())
-                          ->setLocalisedDescription($editableContact->getLocalisedDescription())
-                          ->setShopAssociation($editableContact->getShopAssociation());
+            ->setLocalisedDescription($editableContact->getLocalisedDescription())
+            ->setShopAssociation($editableContact->getShopAssociation());
 
         /** @var ContactId $contactId */
         $contactId = $this->getCommandBus()->handle($addContactCommand);
@@ -72,7 +96,7 @@ class ContactFeatureContext extends AbstractDomainFeatureContext
         /** @var EditableContact $editableContact */
         $editableContact = $this->getQueryBus()->handle(new GetContactForEditing($contactId));
 
-        PHPUnit_Framework_Assert::assertEquals($expectedEditableContact, $editableContact);
+        Assert::assertEquals($expectedEditableContact, $editableContact);
     }
 
     /**

@@ -1,11 +1,12 @@
 <?php
 /**
- * 2007-2019 PrestaShop SA and Contributors
+ * Copyright since 2007 PrestaShop SA and Contributors
+ * PrestaShop is an International Registered Trademark & Property of PrestaShop SA
  *
  * NOTICE OF LICENSE
  *
  * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
+ * that is bundled with this package in the file LICENSE.md.
  * It is also available through the world-wide-web at this URL:
  * https://opensource.org/licenses/OSL-3.0
  * If you did not receive a copy of the license and are unable to
@@ -16,20 +17,20 @@
  *
  * Do not edit or add to this file if you wish to upgrade PrestaShop to newer
  * versions in the future. If you wish to customize PrestaShop for your
- * needs please refer to https://www.prestashop.com for more information.
+ * needs please refer to https://devdocs.prestashop.com/ for more information.
  *
- * @author    PrestaShop SA <contact@prestashop.com>
- * @copyright 2007-2019 PrestaShop SA and Contributors
+ * @author    PrestaShop SA and Contributors <contact@prestashop.com>
+ * @copyright Since 2007 PrestaShop SA and Contributors
  * @license   https://opensource.org/licenses/OSL-3.0 Open Software License (OSL 3.0)
- * International Registered Trademark & Property of PrestaShop SA
  */
+
+declare(strict_types=1);
 
 namespace Tests\Integration\Behaviour\Features\Context\Domain;
 
 use Behat\Gherkin\Node\TableNode;
 use Configuration;
 use Exception;
-use Feature;
 use PrestaShop\PrestaShop\Core\Domain\Feature\Command\AddFeatureCommand;
 use PrestaShop\PrestaShop\Core\Domain\Feature\Command\EditFeatureCommand;
 use PrestaShop\PrestaShop\Core\Domain\Feature\Exception\FeatureConstraintException;
@@ -37,7 +38,6 @@ use PrestaShop\PrestaShop\Core\Domain\Feature\Query\GetFeatureForEditing;
 use PrestaShop\PrestaShop\Core\Domain\Feature\QueryResult\EditableFeature;
 use PrestaShop\PrestaShop\Core\Domain\Feature\ValueObject\FeatureId;
 use RuntimeException;
-use Tests\Integration\Behaviour\Features\Context\SharedStorage;
 
 class FeatureFeatureContext extends AbstractDomainFeatureContext
 {
@@ -49,7 +49,7 @@ class FeatureFeatureContext extends AbstractDomainFeatureContext
         $properties = $node->getRowsHash();
         $featureId = $this->createProductFeature($properties['name']);
 
-        SharedStorage::getStorage()->set($reference, new Feature($featureId->getValue()));
+        $this->getSharedStorage()->set($reference, (int) $featureId->getValue());
     }
 
     /**
@@ -57,20 +57,8 @@ class FeatureFeatureContext extends AbstractDomainFeatureContext
      */
     public function productFeatureNameShouldBe($reference, $name)
     {
-        $defaultLanguageId = Configuration::get('PS_LANG_DEFAULT');
-        /** @var Feature $productFeature */
-        $productFeature = SharedStorage::getStorage()->get($reference);
-
-        if ($productFeature->name[$defaultLanguageId] !== $name) {
-            throw new RuntimeException(
-                sprintf(
-                    'Feature "%s" name was expected to be "%s" but is "%s"',
-                    $reference,
-                    $name,
-                    $productFeature->name[$defaultLanguageId]
-                )
-            );
-        }
+        $productFeatureId = $this->getSharedStorage()->get($reference);
+        $this->productFeatureWithIdNameShouldBe($productFeatureId, $name);
     }
 
     /**
@@ -79,6 +67,15 @@ class FeatureFeatureContext extends AbstractDomainFeatureContext
     public function productFeatureWithIdExists($featureId)
     {
         $this->getQueryBus()->handle(new GetFeatureForEditing((int) $featureId));
+    }
+
+    /**
+     * @Given /^product feature with reference "([^"]*)" exists$/
+     */
+    public function productFeatureWithReferenceExists(string $featureReference): void
+    {
+        $productFeatureId = $this->getSharedStorage()->get($featureReference);
+        $this->getQueryBus()->handle(new GetFeatureForEditing($productFeatureId));
     }
 
     /**
@@ -99,8 +96,17 @@ class FeatureFeatureContext extends AbstractDomainFeatureContext
 
             $this->getCommandBus()->handle($editFeatureCommand);
         } catch (Exception $e) {
-            $this->lastException = $e;
+            $this->setLastException($e);
         }
+    }
+
+    /**
+     * @When /^I update product feature with reference "([^"]*)" field "name" in default language to "([^"]*)"$/
+     */
+    public function iUpdateProductFeatureWithReferenceNameTo(string $featureReference, string $featureName): void
+    {
+        $productFeatureId = $this->getSharedStorage()->get($featureReference);
+        $this->iUpdateProductFeatureWithIdNameTo($productFeatureId, $featureName);
     }
 
     /**
@@ -115,13 +121,17 @@ class FeatureFeatureContext extends AbstractDomainFeatureContext
         $featureNames = $editableFeature->getName();
 
         if ($featureNames[$defaultLanguageId] !== $featureName) {
-            throw new RuntimeException(sprintf(
-                'Product feature with id "%s" has name "%s", but "%s" was expected',
-                $featureId,
-                $featureNames[$defaultLanguageId],
-                $featureName
-            ));
+            throw new RuntimeException(sprintf('Product feature with id "%s" has name "%s", but "%s" was expected', $featureId, $featureNames[$defaultLanguageId], $featureName));
         }
+    }
+
+    /**
+     * @Then /^product feature with reference "([^"]*)" field "name" in default language should be "([^"]*)"$/
+     */
+    public function productFeatureWithReferenceNameShouldBe(string $featureReference, string $featureName): void
+    {
+        $productFeatureId = $this->getSharedStorage()->get($featureReference);
+        $this->productFeatureWithIdNameShouldBe($productFeatureId, $featureName);
     }
 
     /**
@@ -140,7 +150,7 @@ class FeatureFeatureContext extends AbstractDomainFeatureContext
         try {
             $this->createProductFeature('');
         } catch (Exception $e) {
-            $this->lastException = $e;
+            $this->setLastException($e);
         }
     }
 

@@ -1,11 +1,12 @@
 <?php
 /**
- * 2007-2019 PrestaShop SA and Contributors
+ * Copyright since 2007 PrestaShop SA and Contributors
+ * PrestaShop is an International Registered Trademark & Property of PrestaShop SA
  *
  * NOTICE OF LICENSE
  *
  * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
+ * that is bundled with this package in the file LICENSE.md.
  * It is also available through the world-wide-web at this URL:
  * https://opensource.org/licenses/OSL-3.0
  * If you did not receive a copy of the license and are unable to
@@ -16,18 +17,19 @@
  *
  * Do not edit or add to this file if you wish to upgrade PrestaShop to newer
  * versions in the future. If you wish to customize PrestaShop for your
- * needs please refer to https://www.prestashop.com for more information.
+ * needs please refer to https://devdocs.prestashop.com/ for more information.
  *
- * @author    PrestaShop SA <contact@prestashop.com>
- * @copyright 2007-2019 PrestaShop SA and Contributors
+ * @author    PrestaShop SA and Contributors <contact@prestashop.com>
+ * @copyright Since 2007 PrestaShop SA and Contributors
  * @license   https://opensource.org/licenses/OSL-3.0 Open Software License (OSL 3.0)
- * International Registered Trademark & Property of PrestaShop SA
  */
 
 namespace Tests\Unit\Core\MailTemplate;
 
+use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 use PrestaShop\PrestaShop\Core\Exception\FileNotFoundException;
+use PrestaShop\PrestaShop\Core\Exception\InvalidArgumentException;
 use PrestaShop\PrestaShop\Core\Hook\HookDispatcherInterface;
 use PrestaShop\PrestaShop\Core\MailTemplate\FolderThemeCatalog;
 use PrestaShop\PrestaShop\Core\MailTemplate\FolderThemeScanner;
@@ -40,7 +42,6 @@ use PrestaShop\PrestaShop\Core\MailTemplate\ThemeCollection;
 use PrestaShop\PrestaShop\Core\MailTemplate\ThemeCollectionInterface;
 use PrestaShop\PrestaShop\Core\MailTemplate\ThemeInterface;
 use Symfony\Component\Filesystem\Filesystem;
-use PrestaShop\PrestaShop\Core\Exception\InvalidArgumentException;
 
 class FolderThemeCatalogTest extends TestCase
 {
@@ -69,7 +70,7 @@ class FolderThemeCatalogTest extends TestCase
      */
     private $moduleLayouts;
 
-    public function setUp()
+    public function setUp(): void
     {
         parent::setUp();
         $this->tempDir = sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'mail_layouts';
@@ -113,7 +114,7 @@ class FolderThemeCatalogTest extends TestCase
         $layout = $coreLayouts[0];
         $this->assertInstanceOf(LayoutInterface::class, $layout);
         $coreFolder = implode(DIRECTORY_SEPARATOR, [
-            realpath($this->tempDir),
+            '@MailThemes',
             'classic',
             MailTemplateInterface::CORE_CATEGORY,
         ]);
@@ -165,7 +166,7 @@ class FolderThemeCatalogTest extends TestCase
 
     public function testInvalidTheme()
     {
-        $this->setExpectedException(InvalidArgumentException::class, 'Invalid requested theme "unknown", only available themes are: classic, modern');
+        $this->expectException(InvalidArgumentException::class, 'Invalid requested theme "unknown", only available themes are: classic, modern');
 
         /** @var HookDispatcherInterface $dispatcherMock */
         $dispatcherMock = $this->getMockBuilder(HookDispatcherInterface::class)
@@ -201,8 +202,8 @@ class FolderThemeCatalogTest extends TestCase
             $caughtException = $e;
         }
         $this->assertNotNull($caughtException);
-        $this->assertContains('Invalid mail themes folder', $caughtException->getMessage());
-        $this->assertContains(': no such directory', $caughtException->getMessage());
+        $this->assertStringContainsString('Invalid mail themes folder', $caughtException->getMessage());
+        $this->assertStringContainsString(': no such directory', $caughtException->getMessage());
     }
 
     public function testListThemesWithoutCoreFolder()
@@ -272,7 +273,7 @@ class FolderThemeCatalogTest extends TestCase
     /**
      * @param int $layoutsCount
      *
-     * @return \PHPUnit_Framework_MockObject_MockObject|HookDispatcherInterface
+     * @return MockObject|HookDispatcherInterface
      */
     private function createHookDispatcherMock($layoutsCount)
     {

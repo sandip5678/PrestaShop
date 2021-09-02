@@ -1,11 +1,12 @@
 <?php
 /**
- * 2007-2019 PrestaShop SA and Contributors
+ * Copyright since 2007 PrestaShop SA and Contributors
+ * PrestaShop is an International Registered Trademark & Property of PrestaShop SA
  *
  * NOTICE OF LICENSE
  *
  * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
+ * that is bundled with this package in the file LICENSE.md.
  * It is also available through the world-wide-web at this URL:
  * https://opensource.org/licenses/OSL-3.0
  * If you did not receive a copy of the license and are unable to
@@ -16,29 +17,29 @@
  *
  * Do not edit or add to this file if you wish to upgrade PrestaShop to newer
  * versions in the future. If you wish to customize PrestaShop for your
- * needs please refer to https://www.prestashop.com for more information.
+ * needs please refer to https://devdocs.prestashop.com/ for more information.
  *
- * @author    PrestaShop SA <contact@prestashop.com>
- * @copyright 2007-2019 PrestaShop SA and Contributors
+ * @author    PrestaShop SA and Contributors <contact@prestashop.com>
+ * @copyright Since 2007 PrestaShop SA and Contributors
  * @license   https://opensource.org/licenses/OSL-3.0 Open Software License (OSL 3.0)
- * International Registered Trademark & Property of PrestaShop SA
  */
 
 namespace PrestaShop\PrestaShop\Adapter\Category\QueryHandler;
 
-use Shop;
 use Category;
 use Db;
 use ImageManager;
 use ImageType;
 use PDO;
-use PrestaShop\PrestaShop\Core\Domain\Category\QueryResult\EditableCategory;
+use PrestaShop\PrestaShop\Core\Domain\Category\Exception\CannotEditRootCategoryException;
 use PrestaShop\PrestaShop\Core\Domain\Category\Exception\CategoryNotFoundException;
 use PrestaShop\PrestaShop\Core\Domain\Category\Query\GetCategoryForEditing;
 use PrestaShop\PrestaShop\Core\Domain\Category\QueryHandler\GetCategoryForEditingHandlerInterface;
+use PrestaShop\PrestaShop\Core\Domain\Category\QueryResult\EditableCategory;
 use PrestaShop\PrestaShop\Core\Domain\Category\ValueObject\CategoryId;
 use PrestaShop\PrestaShop\Core\Domain\Category\ValueObject\MenuThumbnailId;
 use PrestaShop\PrestaShop\Core\Image\Parser\ImageTagSourceParserInterface;
+use Shop;
 
 /**
  * Class GetCategoryForEditingHandler.
@@ -62,16 +63,18 @@ final class GetCategoryForEditingHandler implements GetCategoryForEditingHandler
      * {@inheritdoc}
      *
      * @throws CategoryNotFoundException
+     * @throws CannotEditRootCategoryException
      */
     public function handle(GetCategoryForEditing $query)
     {
         $category = new Category($query->getCategoryId()->getValue());
 
         if (!$category->id || (!$category->isAssociatedToShop() && Shop::getContext() == Shop::CONTEXT_SHOP)) {
-            throw new CategoryNotFoundException(
-                $query->getCategoryId(),
-                sprintf('Category with id "%s" was not found', $query->getCategoryId()->getValue())
-            );
+            throw new CategoryNotFoundException($query->getCategoryId(), sprintf('Category with id "%s" was not found', $query->getCategoryId()->getValue()));
+        }
+
+        if ($category->isRootCategory()) {
+            throw new CannotEditRootCategoryException();
         }
 
         /**
@@ -144,7 +147,7 @@ final class GetCategoryForEditingHandler implements GetCategoryForEditingHandler
     /**
      * @param CategoryId $categoryId
      *
-     * @return array
+     * @return array|null
      */
     private function getThumbnailImage(CategoryId $categoryId)
     {
