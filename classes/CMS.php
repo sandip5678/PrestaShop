@@ -29,13 +29,12 @@
  */
 class CMSCore extends ObjectModel
 {
-    /** @var string Name */
+    /** @var int|null */
     public $id;
     public $id_cms;
     public $head_seo_title;
     public $meta_title;
     public $meta_description;
-    public $meta_keywords;
     public $content;
     public $link_rewrite;
     public $id_cms_category;
@@ -59,11 +58,10 @@ class CMSCore extends ObjectModel
 
             /* Lang fields */
             'meta_description' => ['type' => self::TYPE_STRING, 'lang' => true, 'validate' => 'isGenericName', 'size' => 512],
-            'meta_keywords' => ['type' => self::TYPE_STRING, 'lang' => true, 'validate' => 'isGenericName', 'size' => 255],
             'meta_title' => ['type' => self::TYPE_STRING, 'lang' => true, 'validate' => 'isGenericName', 'required' => true, 'size' => 255],
             'head_seo_title' => ['type' => self::TYPE_STRING, 'lang' => true, 'validate' => 'isGenericName', 'size' => 255],
             'link_rewrite' => ['type' => self::TYPE_STRING, 'lang' => true, 'validate' => 'isLinkRewrite', 'required' => true, 'size' => 128],
-            'content' => ['type' => self::TYPE_HTML, 'lang' => true, 'validate' => 'isCleanHtml', 'size' => 3999999999999],
+            'content' => ['type' => self::TYPE_HTML, 'lang' => true, 'validate' => 'isCleanHtml', 'size' => 1073741823],
         ],
     ];
 
@@ -129,13 +127,13 @@ class CMSCore extends ObjectModel
      * Get links.
      *
      * @param int $idLang Language ID
-     * @param null $selection
+     * @param array|null $selection
      * @param bool $active
      * @param Link|null $link
      *
      * @return array
      */
-    public static function getLinks($idLang, $selection = null, $active = true, Link $link = null)
+    public static function getLinks($idLang, $selection = null, $active = true, ?Link $link = null)
     {
         if (!$link) {
             $link = Context::getContext()->link;
@@ -163,7 +161,7 @@ class CMSCore extends ObjectModel
     }
 
     /**
-     * @param null $idLang
+     * @param int|null $idLang
      * @param bool $idBlock
      * @param bool $active
      *
@@ -187,8 +185,8 @@ class CMSCore extends ObjectModel
     }
 
     /**
-     * @param $way
-     * @param $position
+     * @param int|null $way
+     * @param int|null $position
      *
      * @return bool
      */
@@ -232,7 +230,7 @@ class CMSCore extends ObjectModel
     }
 
     /**
-     * @param $idCategory
+     * @param int $idCategory
      *
      * @return bool
      */
@@ -258,14 +256,13 @@ class CMSCore extends ObjectModel
     }
 
     /**
-     * @param $idCategory
+     * @param int $idCategory
      *
      * @return false|string|null
      */
     public static function getLastPosition($idCategory)
     {
-        $sql = '
-		SELECT MAX(position) + 1
+        $sql = 'SELECT MAX(position) + 1
 		FROM `' . _DB_PREFIX_ . 'cms`
 		WHERE `id_cms_category` = ' . (int) $idCategory;
 
@@ -273,10 +270,10 @@ class CMSCore extends ObjectModel
     }
 
     /**
-     * @param null $idLang
-     * @param null $idCmsCategory
+     * @param int|null $idLang
+     * @param int|null $idCmsCategory
      * @param bool $active
-     * @param null $idShop
+     * @param int|null $idShop
      *
      * @return array|false|mysqli_result|PDOStatement|resource|null
      */
@@ -307,22 +304,6 @@ class CMSCore extends ObjectModel
         }
 
         $sql->orderBy('position');
-
-        return Db::getInstance()->executeS($sql);
-    }
-
-    /**
-     * @param $idCms
-     *
-     * @return array|false|mysqli_result|PDOStatement|resource|null
-     */
-    public static function getUrlRewriteInformations($idCms)
-    {
-        $sql = 'SELECT l.`id_lang`, c.`link_rewrite`
-				FROM `' . _DB_PREFIX_ . 'cms_lang` AS c
-				LEFT JOIN  `' . _DB_PREFIX_ . 'lang` AS l ON c.`id_lang` = l.`id_lang`
-				WHERE c.`id_cms` = ' . (int) $idCms . '
-				AND l.`active` = 1';
 
         return Db::getInstance()->executeS($sql);
     }

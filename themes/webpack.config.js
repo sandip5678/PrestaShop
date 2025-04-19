@@ -36,16 +36,14 @@ module.exports = (env, argv) => {
     output: {
       path: path.resolve(__dirname),
       filename: 'core.js',
+      chunkFilename: '[chunkhash]-chunk.js',
     },
     module: {
       rules: [
         {
           test: /\.js$/,
           use: {
-            loader: 'babel-loader',
-            options: {
-              presets: ['@babel/preset-env'],
-            },
+            loader: 'esbuild-loader',
           },
         },
       ],
@@ -53,7 +51,7 @@ module.exports = (env, argv) => {
     externals: {
       prestashop: 'prestashop',
     },
-    devtool: 'source-map',
+    devtool: mode === 'production' ? false : 'source-map',
     optimization: {
       minimize: true,
       minimizer: [new TerserPlugin({

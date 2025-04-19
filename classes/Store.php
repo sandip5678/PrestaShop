@@ -24,6 +24,8 @@
  * @license   https://opensource.org/licenses/OSL-3.0 Open Software License (OSL 3.0)
  */
 
+use PrestaShopBundle\Form\Admin\Type\FormattedTextareaType;
+
 /**
  * Class StoreCore.
  */
@@ -32,19 +34,22 @@ class StoreCore extends ObjectModel
     /** @var int Store id */
     public $id;
 
+    /** @var int|bool Store id */
+    public $id_image;
+
     /** @var int Country id */
     public $id_country;
 
     /** @var int State id */
     public $id_state;
 
-    /** @var string Store name */
+    /** @var string|array<string> Name */
     public $name;
 
-    /** @var string Address first line */
+    /** @var string|array<string> Address first line */
     public $address1;
 
-    /** @var string Address second line (optional) */
+    /** @var string|array<string> Address second line (optional) */
     public $address2;
 
     /** @var string Postal code */
@@ -59,7 +64,7 @@ class StoreCore extends ObjectModel
     /** @var float Longitude */
     public $longitude;
 
-    /** @var string Store hours (PHP serialized) */
+    /** @var string|array Store hours (PHP serialized) */
     public $hours;
 
     /** @var string Phone number */
@@ -68,7 +73,7 @@ class StoreCore extends ObjectModel
     /** @var string Fax number */
     public $fax;
 
-    /** @var string Note */
+    /** @var string|array<string> Note */
     public $note;
 
     /** @var string e-mail */
@@ -108,8 +113,8 @@ class StoreCore extends ObjectModel
             'name' => ['type' => self::TYPE_STRING, 'lang' => true, 'validate' => 'isGenericName', 'required' => true, 'size' => 255],
             'address1' => ['type' => self::TYPE_STRING, 'lang' => true, 'validate' => 'isAddress', 'required' => true, 'size' => 255],
             'address2' => ['type' => self::TYPE_STRING, 'lang' => true, 'validate' => 'isAddress', 'size' => 255],
-            'hours' => ['type' => self::TYPE_STRING, 'lang' => true, 'validate' => 'isJson', 'size' => 65000],
-            'note' => ['type' => self::TYPE_STRING, 'lang' => true, 'validate' => 'isCleanHtml', 'size' => 65000],
+            'hours' => ['type' => self::TYPE_STRING, 'lang' => true, 'validate' => 'isJson', 'size' => FormattedTextareaType::LIMIT_MEDIUMTEXT_UTF8_MB4],
+            'note' => ['type' => self::TYPE_STRING, 'lang' => true, 'validate' => 'isCleanHtml', 'size' => FormattedTextareaType::LIMIT_MEDIUMTEXT_UTF8_MB4],
         ],
     ];
 
@@ -124,8 +129,8 @@ class StoreCore extends ObjectModel
     /**
      * StoreCore constructor.
      *
-     * @param null $idStore
-     * @param null $idLang
+     * @param int|null $idStore
+     * @param int|null $idLang
      */
     public function __construct($idStore = null, $idLang = null)
     {
@@ -137,25 +142,19 @@ class StoreCore extends ObjectModel
     /**
      * Get Stores by language.
      *
-     * @param $idLang
+     * @param int $idLang
      *
-     * @return array|false|mysqli_result|PDOStatement|resource|null
+     * @return array
      */
     public static function getStores($idLang)
     {
-        $stores = Db::getInstance()->executeS(
-            '
-            SELECT s.id_store AS `id`, s.*, sl.*
-            FROM ' . _DB_PREFIX_ . 'store s
-            ' . Shop::addSqlAssociation('store', 's') . '
-            LEFT JOIN ' . _DB_PREFIX_ . 'store_lang sl ON (
-            sl.id_store = s.id_store
-            AND sl.id_lang = ' . (int) $idLang . '
-            )
-            WHERE s.active = 1'
+        return Db::getInstance()->executeS(
+            'SELECT s.id_store AS `id`, s.*, sl.*
+            FROM ' . _DB_PREFIX_ . 'store s  ' . Shop::addSqlAssociation('store', 's') . '
+            LEFT JOIN ' . _DB_PREFIX_ . 'store_lang sl ON (sl.id_store = s.id_store AND sl.id_lang = ' . (int) $idLang . ')
+            WHERE s.active = 1
+            ORDER BY sl.`name` ASC'
         );
-
-        return $stores;
     }
 
     /**
@@ -204,5 +203,15 @@ class StoreCore extends ObjectModel
         );
 
         return isset($row['id_store']);
+    }
+
+    /**
+     * This method checks if at least one store is configured
+     *
+     * @return bool
+     */
+    public static function atLeastOneStoreExists()
+    {
+        return (bool) Db::getInstance()->getValue('SELECT `id_store` FROM ' . _DB_PREFIX_ . 'store', false);
     }
 }

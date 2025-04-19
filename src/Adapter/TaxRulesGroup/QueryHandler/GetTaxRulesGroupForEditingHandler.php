@@ -27,6 +27,7 @@
 namespace PrestaShop\PrestaShop\Adapter\TaxRulesGroup\QueryHandler;
 
 use PrestaShop\PrestaShop\Adapter\TaxRulesGroup\AbstractTaxRulesGroupHandler;
+use PrestaShop\PrestaShop\Core\CommandBus\Attributes\AsQueryHandler;
 use PrestaShop\PrestaShop\Core\Domain\TaxRulesGroup\Exception\TaxRulesGroupNotFoundException;
 use PrestaShop\PrestaShop\Core\Domain\TaxRulesGroup\Query\GetTaxRulesGroupForEditing;
 use PrestaShop\PrestaShop\Core\Domain\TaxRulesGroup\QueryHandler\GetTaxRulesGroupForEditingHandlerInterface;
@@ -35,6 +36,7 @@ use PrestaShop\PrestaShop\Core\Domain\TaxRulesGroup\QueryResult\EditableTaxRules
 /**
  * Handles query which gets tax rules group for editing
  */
+#[AsQueryHandler]
 final class GetTaxRulesGroupForEditingHandler extends AbstractTaxRulesGroupHandler implements GetTaxRulesGroupForEditingHandlerInterface
 {
     /**
@@ -47,6 +49,11 @@ final class GetTaxRulesGroupForEditingHandler extends AbstractTaxRulesGroupHandl
         $taxRulesGroupId = $query->getTaxRulesGroupId();
         $taxRulesGroup = $this->getTaxRulesGroup($taxRulesGroupId);
 
-        return new EditableTaxRulesGroup($taxRulesGroupId, (bool) $taxRulesGroup->active);
+        return new EditableTaxRulesGroup(
+            $taxRulesGroupId,
+            $taxRulesGroup->name,
+            (bool) $taxRulesGroup->active,
+            $taxRulesGroup->getAssociatedShops()
+        );
     }
 }

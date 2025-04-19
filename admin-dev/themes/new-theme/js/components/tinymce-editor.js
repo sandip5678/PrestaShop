@@ -22,6 +22,7 @@
  * @copyright Since 2007 PrestaShop SA and Contributors
  * @license   https://opensource.org/licenses/OSL-3.0 Open Software License (OSL 3.0)
  */
+import ComponentsMap from '@components/components-map';
 import {EventEmitter} from './event-emitter';
 
 const {$} = window;
@@ -79,11 +80,13 @@ class TinyMCEEditor {
   initTinyMCE(config) {
     const cfg = {
       selector: '.rte',
-      plugins: 'align colorpicker link image filemanager table media placeholder lists advlist code table autoresize',
+      plugins:
+        /* eslint-disable-next-line max-len */
+        'align colorpicker link image filemanager table media placeholder lists advlist code table autoresize hr',
       browser_spellcheck: true,
       toolbar1:
         /* eslint-disable-next-line max-len */
-        'code,colorpicker,bold,italic,underline,strikethrough,blockquote,link,align,bullist,numlist,table,image,media,formatselect',
+        'code,colorpicker,bold,italic,underline,strikethrough,blockquote,link,align,bullist,numlist,table,image,media,formatselect,hr',
       toolbar2: '',
       language: window.iso_user,
       external_filemanager_path: `${config.baseAdminUrl}filemanager/`,
@@ -95,10 +98,10 @@ class TinyMCEEditor {
       skin: 'prestashop',
       mobile: {
         theme: 'mobile',
-        plugins: ['lists', 'align', 'link', 'table', 'placeholder', 'advlist', 'code'],
+        plugins: ['lists', 'align', 'link', 'table', 'placeholder', 'advlist', 'code', 'hr'],
         toolbar:
           /* eslint-disable-next-line max-len */
-          'undo code colorpicker bold italic underline strikethrough blockquote link align bullist numlist table formatselect styleselect',
+          'undo code colorpicker bold italic underline strikethrough blockquote link align bullist numlist table formatselect styleselect hr',
       },
       menubar: false,
       statusbar: false,
@@ -109,7 +112,7 @@ class TinyMCEEditor {
       valid_children: '+*[*]',
       valid_elements: '*[*]',
       rel_list: [{title: 'nofollow', value: 'nofollow'}],
-      editor_selector: 'autoload_rte',
+      editor_selector: ComponentsMap.tineMceEditor.selectorClass,
       init_instance_callback: () => {
         this.changeToMaterial();
       },

@@ -27,7 +27,9 @@
 namespace PrestaShop\PrestaShop\Adapter\Shop;
 
 use Context as LegacyContext;
+use PrestaShop\PrestaShop\Core\Domain\Shop\ValueObject\ShopConstraint;
 use PrestaShop\PrestaShop\Core\Multistore\MultistoreContextCheckerInterface;
+use PrestaShop\PrestaShop\Core\Shop\ShopConstraintContextInterface;
 use PrestaShop\PrestaShop\Core\Shop\ShopContextInterface;
 use Shop;
 use ShopGroup;
@@ -35,7 +37,7 @@ use ShopGroup;
 /**
  * This class will provide legacy shop context.
  */
-class Context implements MultistoreContextCheckerInterface, ShopContextInterface
+class Context implements MultistoreContextCheckerInterface, ShopContextInterface, ShopConstraintContextInterface
 {
     /**
      * Get shops list.
@@ -58,6 +60,13 @@ class Context implements MultistoreContextCheckerInterface, ShopContextInterface
     public function getContextShopID($null_value_without_multishop = false)
     {
         return Shop::getContextShopID($null_value_without_multishop);
+    }
+
+    public function getContextShopIds(): array
+    {
+        return array_map(static function ($shopId): int {
+            return (int) $shopId;
+        }, $this->getContextListShopID());
     }
 
     /**
@@ -90,18 +99,6 @@ class Context implements MultistoreContextCheckerInterface, ShopContextInterface
     }
 
     /**
-     * Get if it's a GroupShop context.
-     *
-     * @return bool
-     *
-     * @deprecated since 1.7.6.0, to be removed in 1.8. Use $this->isGroupShopContext() instead.
-     */
-    public function isShopGroupContext()
-    {
-        return $this->isGroupShopContext();
-    }
-
-    /**
      * Get if it's a Shop context.
      *
      * @return bool
@@ -109,18 +106,6 @@ class Context implements MultistoreContextCheckerInterface, ShopContextInterface
     public function isShopContext()
     {
         return Shop::getContext() === Shop::CONTEXT_SHOP;
-    }
-
-    /**
-     * Get if it's a All context.
-     *
-     * @return bool
-     *
-     * @deprecated since 1.7.6.0, to be removed in 1.8. Use $this->isAllShopContext() instead.
-     */
-    public function isAllContext()
-    {
-        return $this->isAllShopContext();
     }
 
     /**
@@ -227,5 +212,21 @@ class Context implements MultistoreContextCheckerInterface, ShopContextInterface
     public function getShopName()
     {
         return LegacyContext::getContext()->shop->name;
+    }
+
+    /**
+     * @param bool $strict
+     *
+     * @return ShopConstraint
+     */
+    public function getShopConstraint(bool $strict = false): ShopConstraint
+    {
+        if ($this->isShopContext()) {
+            return ShopConstraint::shop((int) $this->getContextShopID(), $strict);
+        } elseif ($this->isGroupShopContext()) {
+            return ShopConstraint::shopGroup((int) $this->getContextShopGroup()->id, $strict);
+        }
+
+        return ShopConstraint::allShops();
     }
 }

@@ -30,6 +30,7 @@ namespace PrestaShop\PrestaShop\Core\Form\IdentifiableObject\CommandBuilder\Prod
 use PrestaShop\PrestaShop\Core\Domain\Product\Customization\Command\RemoveAllCustomizationFieldsFromProductCommand;
 use PrestaShop\PrestaShop\Core\Domain\Product\Customization\Command\SetProductCustomizationFieldsCommand;
 use PrestaShop\PrestaShop\Core\Domain\Product\ValueObject\ProductId;
+use PrestaShop\PrestaShop\Core\Domain\Shop\ValueObject\ShopConstraint;
 
 /**
  * Builds commands from product customizations form
@@ -39,13 +40,13 @@ final class CustomizationFieldsCommandsBuilder implements ProductCommandsBuilder
     /**
      * {@inheritdoc}
      */
-    public function buildCommands(ProductId $productId, array $formData): array
+    public function buildCommands(ProductId $productId, array $formData, ShopConstraint $singleShopConstraint): array
     {
-        if (!isset($formData['specifications']['customizations'])) {
+        if (!isset($formData['details']['customizations'])) {
             return [];
         }
 
-        $customizations = $formData['specifications']['customizations'];
+        $customizations = $formData['details']['customizations'];
 
         if (empty($customizations['customization_fields'])) {
             return [new RemoveAllCustomizationFieldsFromProductCommand($productId->getValue())];
@@ -54,7 +55,8 @@ final class CustomizationFieldsCommandsBuilder implements ProductCommandsBuilder
         return [
             new SetProductCustomizationFieldsCommand(
                 $productId->getValue(),
-                $this->buildCustomizationFields($customizations['customization_fields'])
+                $this->buildCustomizationFields($customizations['customization_fields']),
+                $singleShopConstraint
             ),
         ];
     }
@@ -72,7 +74,7 @@ final class CustomizationFieldsCommandsBuilder implements ProductCommandsBuilder
                 'type' => (int) $customization['type'],
                 'localized_names' => $customization['name'],
                 'is_required' => (bool) $customization['required'],
-                'added_by_module' => false,
+                'added_by_module' => isset($customization['addedByModule']) ? (bool) $customization['addedByModule'] : false,
                 'id' => isset($customization['id']) ? (int) $customization['id'] : null,
             ];
         }

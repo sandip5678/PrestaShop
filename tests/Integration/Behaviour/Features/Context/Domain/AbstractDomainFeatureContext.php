@@ -27,76 +27,26 @@
 namespace Tests\Integration\Behaviour\Features\Context\Domain;
 
 use Behat\Behat\Context\Context;
-use Behat\Behat\Hook\Scope\AfterScenarioScope;
 use Behat\Gherkin\Node\TableNode;
-use Behat\Testwork\Hook\Scope\BeforeSuiteScope;
-use Behat\Testwork\Tester\Result\TestResult;
-use Configuration;
-use Exception;
+use Currency;
 use Language;
-use ObjectModel;
 use PrestaShop\PrestaShop\Core\CommandBus\CommandBusInterface;
 use RuntimeException;
 use Symfony\Component\DependencyInjection\ContainerInterface;
+use Tests\Integration\Behaviour\Features\Context\AbstractPrestaShopFeatureContext;
 use Tests\Integration\Behaviour\Features\Context\CommonFeatureContext;
-use Tests\Integration\Behaviour\Features\Context\SharedStorage;
+use Tests\Integration\Behaviour\Features\Context\LastExceptionTrait;
+use Tests\Resources\MailDevClient;
 
-abstract class AbstractDomainFeatureContext implements Context
+abstract class AbstractDomainFeatureContext extends AbstractPrestaShopFeatureContext implements Context
 {
-    /**
-     * Shared storage key for last thrown exception
-     */
-    const LAST_EXCEPTION_STORAGE_KEY = 'LAST_EXCEPTION';
+    use LastExceptionTrait;
 
-    /**
-     * @BeforeSuite
-     *
-     * @param BeforeSuiteScope $scope
-     */
-    public static function prepare(BeforeSuiteScope $scope)
-    {
-        // Disable legacy object model cache to prevent conflicts between scenarios.
-        ObjectModel::disableCache();
-    }
-
-    /**
-     * @AfterScenario
-     */
-    public function checkLastException(AfterScenarioScope $scope)
-    {
-        $e = $this->getLastException();
-        $this->cleanLastException();
-
-        if (TestResult::FAILED === $scope->getTestResult()->getResultCode() && null !== $e) {
-            throw new RuntimeException(sprintf('Might be related to the last exception: %s: %s Use -vvv for additional stack trace info', get_class($e), $e->getMessage()), 0, $e);
-        }
-    }
-
-    /**
-     * @BeforeScenario
-     */
-    public function cleanLastException()
-    {
-        $this->getSharedStorage()->set(self::LAST_EXCEPTION_STORAGE_KEY, null);
-    }
-
-    protected function setLastException(Exception $e): void
-    {
-        $this->getSharedStorage()->set(self::LAST_EXCEPTION_STORAGE_KEY, $e);
-    }
-
-    protected function getLastException(): ?Exception
-    {
-        if (!$this->getSharedStorage()->exists(self::LAST_EXCEPTION_STORAGE_KEY)) {
-            return null;
-        }
-
-        if (!$e = $this->getSharedStorage()->get(self::LAST_EXCEPTION_STORAGE_KEY)) {
-            return null;
-        }
-
-        return $e;
-    }
+    protected const JPG_IMAGE_TYPE = '.jpg';
+    protected const JPG_IMAGE_STRING = 'iVBORw0KGgoAAAANSUhEUgAAABwAAAASCAMAAAB/2U7WAAAABl'
+        . 'BMVEUAAAD///+l2Z/dAAAASUlEQVR4XqWQUQoAIAxC2/0vXZDr'
+        . 'EX4IJTRkb7lobNUStXsB0jIXIAMSsQnWlsV+wULF4Avk9fLq2r'
+        . '8a5HSE35Q3eO2XP1A1wQkZSgETvDtKdQAAAABJRU5ErkJggg==';
 
     /**
      * @return CommandBusInterface
@@ -114,45 +64,53 @@ abstract class AbstractDomainFeatureContext implements Context
         return CommonFeatureContext::getContainer()->get('prestashop.core.query_bus');
     }
 
-    /**
-     * @return SharedStorage
-     */
-    protected function getSharedStorage()
-    {
-        return SharedStorage::getStorage();
-    }
-
     protected function getContainer(): ContainerInterface
     {
         return CommonFeatureContext::getContainer();
     }
 
-    /**
-     * @throws RuntimeException
-     */
-    protected function assertLastErrorIsNull(): void
+    protected function getMailDevClient(): MailDevClient
     {
-        $e = $this->getLastException();
-
-        if (null !== $e) {
-            throw new RuntimeException(sprintf('An unexpected exception was thrown %s: %s', get_class($e), $e->getMessage()), 0, $e);
-        }
+        return $this->getContainer()->get(MailDevClient::class);
     }
 
     /**
-     * @param string $expectedError
-     * @param int|null $errorCode
+     * @param string $references
+     *
+     * @return int[]
      */
-    protected function assertLastErrorIs($expectedError, $errorCode = null)
+    protected function referencesToIds(string $references): array
     {
-        $e = $this->getLastException();
+        if (empty($references)) {
+            return [];
+        }
 
-        if (!$e instanceof $expectedError) {
-            throw new RuntimeException(sprintf('Last error should be "%s", but got "%s"', $expectedError, $e ? get_class($e) : 'null'), 0, $e);
+        $ids = [];
+        foreach (explode(',', $references) as $reference) {
+            $reference = trim($reference);
+
+            if (!$this->getSharedStorage()->exists($reference)) {
+                throw new RuntimeException(sprintf('Reference %s does not exist in shared storage', $reference));
+            }
+
+            $ids[] = $this->getSharedStorage()->get($reference);
         }
-        if (null !== $errorCode && $e->getCode() !== $errorCode) {
-            throw new RuntimeException(sprintf('Last error should have code "%s", but has "%s"', $errorCode, $e ? $e->getCode() : 'null'), 0, $e);
+
+        return $ids;
+    }
+
+    /**
+     * @param string $reference
+     *
+     * @return int
+     */
+    protected function referenceToId(string $reference): int
+    {
+        if (!$this->getSharedStorage()->exists($reference)) {
+            throw new RuntimeException(sprintf('Reference %s does not exist in shared storage', $reference));
         }
+
+        return $this->getSharedStorage()->get($reference);
     }
 
     /**
@@ -203,12 +161,14 @@ abstract class AbstractDomainFeatureContext implements Context
         return $localizedValues;
     }
 
-    /**
-     * @return int
-     */
-    protected function getDefaultLangId(): int
+    protected function getDefaultCurrencyId(): int
     {
-        return (int) Configuration::get('PS_LANG_DEFAULT');
+        return Currency::getDefaultCurrencyId();
+    }
+
+    protected function getDefaultCurrencyIsoCode(): string
+    {
+        return Currency::getIsoCodeById($this->getDefaultCurrencyId());
     }
 
     /**
@@ -240,5 +200,29 @@ abstract class AbstractDomainFeatureContext implements Context
         }
 
         return $parsedRow;
+    }
+
+    /**
+     * @param string $dirImage
+     * @param string $imageName
+     * @param int $objectId
+     *
+     * @return string
+     */
+    protected function pretendImageUploaded(string $dirImage, string $imageName, int $objectId): string
+    {
+        // @todo: refactor CategoryCoverUploader. Move uploaded file in Form handler instead of Uploader and use the uploader here in tests
+        $im = imagecreatefromstring(base64_decode(self::JPG_IMAGE_STRING));
+        if ($im !== false) {
+            header('Content-Type: image/jpg');
+            imagejpeg(
+                $im,
+                $dirImage . $objectId . self::JPG_IMAGE_TYPE,
+                0
+            );
+            imagedestroy($im);
+        }
+
+        return $imageName;
     }
 }

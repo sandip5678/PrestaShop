@@ -79,7 +79,10 @@ class RedirectOptionListener implements EventSubscriberInterface
         $targetOptions['placeholder'] = $this->getEntityAttribute($targetOptions, $entityType, 'placeholder');
         $targetOptions['help'] = $this->getEntityAttribute($targetOptions, $entityType, 'help');
         $targetOptions['remote_url'] = $this->getEntityAttribute($targetOptions, $entityType, 'search-url');
-        if (RedirectType::TYPE_NOT_FOUND === $dataType) {
+        $targetOptions['filtered_identities'] = json_decode($this->getEntityAttribute($targetOptions, $entityType, 'filtered'));
+        if (RedirectType::TYPE_NOT_FOUND === $dataType || RedirectType::TYPE_GONE === $dataType
+            || RedirectType::TYPE_DEFAULT === $dataType || RedirectType::TYPE_GONE_DISPLAYED === $dataType
+            || RedirectType::TYPE_SUCCESS_DISPLAYED === $dataType || RedirectType::TYPE_NOT_FOUND_DISPLAYED === $dataType) {
             $targetOptions['row_attr']['class'] = 'd-none';
         }
 

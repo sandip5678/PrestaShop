@@ -73,9 +73,11 @@ class NotificationsResults
                     'customer_name' => $notification->getCustomerName(),
                     'date_add' => $notification->getDateAdd(),
                     'customer_view_url' => $notification->getCustomerViewUrl(),
+                    'customer_thread_view_url' => $notification->getCustomerThreadViewUrl(),
+                    'order_view_url' => $notification->getOrderViewUrl(),
                 ];
             }
-            $response[($element->getType()->getValue())] = [
+            $response[$element->getType()->getValue()] = [
                 'total' => $element->getTotal(),
                 'results' => $notifications,
             ];

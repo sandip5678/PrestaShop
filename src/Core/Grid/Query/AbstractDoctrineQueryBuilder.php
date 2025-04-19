@@ -34,22 +34,29 @@ use Doctrine\DBAL\Connection;
 abstract class AbstractDoctrineQueryBuilder implements DoctrineQueryBuilderInterface
 {
     /**
-     * @var Connection
-     */
-    protected $connection;
-
-    /**
-     * @var string
-     */
-    protected $dbPrefix;
-
-    /**
      * @param Connection $connection
      * @param string $dbPrefix
      */
-    public function __construct(Connection $connection, $dbPrefix)
+    public function __construct(
+        protected readonly Connection $connection,
+        protected readonly string $dbPrefix
+    ) {
+    }
+
+    /**
+     * Escape percent in query for LIKE query
+     *      '20%' => '20\%'
+     *
+     * @param string $value
+     *
+     * @return string
+     */
+    protected function escapePercent(string $value): string
     {
-        $this->connection = $connection;
-        $this->dbPrefix = $dbPrefix;
+        return str_replace(
+            '%',
+            '\%',
+            $value
+        );
     }
 }

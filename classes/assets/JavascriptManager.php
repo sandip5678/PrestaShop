@@ -1,5 +1,4 @@
 <?php
-
 /**
  * Copyright since 2007 PrestaShop SA and Contributors
  * PrestaShop is an International Registered Trademark & Property of PrestaShop SA
@@ -48,12 +47,12 @@ class JavascriptManagerCore extends AbstractAssetManager
     }
 
     /**
-     * @param $id
+     * @param string $id
      * @param string $relativePath
      * @param string $position
      * @param int $priority
      * @param bool $inline
-     * @param string $attribute
+     * @param string|null $attribute
      * @param string $server
      * @param string|null $version
      */
@@ -88,7 +87,7 @@ class JavascriptManagerCore extends AbstractAssetManager
     }
 
     /**
-     * @param $id
+     * @param string $id
      * @param string $fullPath
      * @param string $position
      * @param int $priority
@@ -99,10 +98,10 @@ class JavascriptManagerCore extends AbstractAssetManager
      */
     protected function add($id, $fullPath, $position, $priority, $inline, $attribute, $server, ?string $version)
     {
-        $priority = is_int($priority) ? $priority : self::DEFAULT_PRIORITY;
         $position = $this->getSanitizedPosition($position);
         $attribute = $this->getSanitizedAttribute($attribute);
 
+        $srcPath = $fullPath;
         $fullPath = $version ? $fullPath . '?' . $version : $fullPath;
 
         if ('remote' === $server) {
@@ -116,7 +115,7 @@ class JavascriptManagerCore extends AbstractAssetManager
         $this->list[$position][$type][$id] = [
             'id' => $id,
             'type' => $type,
-            'path' => $fullPath,
+            'path' => $srcPath,
             'uri' => $uri,
             'priority' => $priority,
             'attribute' => $attribute,

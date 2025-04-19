@@ -41,7 +41,11 @@ class CustomizationCore extends ObjectModel
     /** @var int */
     public $id_product;
 
-    /** @var int */
+    /**
+     * @deprecated Since 9.0.0. Use the quantity from the table cart_product instead.
+     *
+     * @var int
+     */
     public $quantity;
 
     /** @var int */
@@ -124,12 +128,12 @@ class CustomizationCore extends ObjectModel
 			SELECT ore.`id_order_return`, ord.`id_order_detail`, ord.`id_customization`, ord.`product_quantity`
 			FROM `' . _DB_PREFIX_ . 'order_return` ore
 			INNER JOIN `' . _DB_PREFIX_ . 'order_return_detail` ord ON (ord.`id_order_return` = ore.`id_order_return`)
-			WHERE ore.`id_order` = ' . (int) ($idOrder) . ' AND ord.`id_customization` != 0')) === false) {
+			WHERE ore.`id_order` = ' . (int) $idOrder . ' AND ord.`id_customization` != 0')) === false) {
             return false;
         }
         $customizations = [];
         foreach ($result as $row) {
-            $customizations[(int) ($row['id_customization'])] = $row;
+            $customizations[(int) $row['id_customization']] = $row;
         }
 
         return $customizations;
@@ -145,12 +149,12 @@ class CustomizationCore extends ObjectModel
      */
     public static function getOrderedCustomizations($idCart)
     {
-        if (!$result = Db::getInstance(_PS_USE_SQL_SLAVE_)->executeS('SELECT `id_customization`, `quantity` FROM `' . _DB_PREFIX_ . 'customization` WHERE `id_cart` = ' . (int) ($idCart))) {
+        if (!$result = Db::getInstance(_PS_USE_SQL_SLAVE_)->executeS('SELECT `id_customization`, `quantity` FROM `' . _DB_PREFIX_ . 'customization` WHERE `id_cart` = ' . (int) $idCart)) {
             return false;
         }
         $customizations = [];
         foreach ($result as $row) {
-            $customizations[(int) ($row['id_customization'])] = $row;
+            $customizations[(int) $row['id_customization']] = $row;
         }
 
         return $customizations;
@@ -169,6 +173,7 @@ class CustomizationCore extends ObjectModel
             return 0;
         }
 
+        // For anyone migrating this - not sure why there is a SUM, when there can be only one line
         return (float) Db::getInstance()->getValue(
             '
             SELECT SUM(`price`) FROM `' . _DB_PREFIX_ . 'customized_data`
@@ -189,6 +194,7 @@ class CustomizationCore extends ObjectModel
             return 0;
         }
 
+        // For anyone migrating this - not sure why there is a SUM, when there can be only one line
         return (float) Db::getInstance()->getValue(
             '
             SELECT SUM(`weight`) FROM `' . _DB_PREFIX_ . 'customized_data`
@@ -263,7 +269,7 @@ class CustomizationCore extends ObjectModel
 
         if (!empty($inValues)) {
             $results = Db::getInstance()->executeS(
-                            'SELECT `id_customization`, `id_product`, `quantity`, `quantity_refunded`, `quantity_returned`
+                'SELECT `id_customization`, `id_product`, `quantity`, `quantity_refunded`, `quantity_returned`
 							 FROM `' . _DB_PREFIX_ . 'customization`
 							 WHERE `id_customization` IN (' . $inValues . ')'
             );
@@ -318,8 +324,8 @@ class CustomizationCore extends ObjectModel
      *
      * @since 1.5.0.1
      *
-     * @param $table
-     * @param $hasActiveColumn
+     * @param string|null $table Name of table linked to entity
+     * @param bool $hasActiveColumn True if the table has an active column
      *
      * @return bool
      */
@@ -417,8 +423,8 @@ class CustomizationCore extends ObjectModel
      */
     public static function deleteCustomizationFieldLangByShop($idCustomizationField, $shopList)
     {
-        $return = Db::getInstance()->execute('DELETE FROM `' . _DB_PREFIX_ . 'customization_field_lang` 
-                WHERE `id_customization_field` = ' . (int) $idCustomizationField . ' 
+        $return = Db::getInstance()->execute('DELETE FROM `' . _DB_PREFIX_ . 'customization_field_lang`
+                WHERE `id_customization_field` = ' . (int) $idCustomizationField . '
                 AND `id_shop` IN (' . implode(',', $shopList) . ')');
 
         if (!$return) {

@@ -51,11 +51,11 @@ class ThemeRepository implements AddonRepositoryInterface
      */
     private $shop;
     /**
-     * @var array
+     * @var array|null
      */
     public $themes;
 
-    public function __construct(ConfigurationInterface $configuration, Filesystem $filesystem, Shop $shop = null)
+    public function __construct(ConfigurationInterface $configuration, Filesystem $filesystem, ?Shop $shop = null)
     {
         $this->appConfiguration = $configuration;
         $this->filesystem = $filesystem;
@@ -126,16 +126,14 @@ class ThemeRepository implements AddonRepositoryInterface
     {
         $filter->setType(AddonListFilterType::THEME);
 
-        if (!isset($filter->status)) {
+        if (empty($filter->status)) {
             $filter->setStatus(AddonListFilterStatus::ALL);
         }
 
         $themes = $this->getThemesOnDisk();
 
-        if (count($filter->exclude) > 0) {
-            foreach ($filter->exclude as $name) {
-                unset($themes[$name]);
-            }
+        foreach ($filter->exclude as $name) {
+            unset($themes[$name]);
         }
 
         return $themes;

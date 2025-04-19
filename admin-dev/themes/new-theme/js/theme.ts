@@ -34,7 +34,6 @@ import 'magnific-popup';
 import 'dropzone';
 import 'typeahead.js/dist/typeahead.jquery';
 import 'typeahead.js/dist/bloodhound.min';
-import 'sprintf-js';
 import 'jquery-serializejson';
 
 import '@scss/theme.scss';
@@ -54,7 +53,9 @@ import initDatePickers from '@js/app/utils/datepicker';
 import initInvalidFields from '@js/app/utils/fields';
 import initEmailFields from '@js/app/utils/email-idn';
 import initNumberCommaTransformer from '@js/app/utils/number-comma-transformer';
-import initPrestashopComponents from '@js/app/utils/init-components';
+import initPrestashopComponents from '@app/utils/init-components';
+import watchSymfonyDebugBar from '@app/utils/watch-symfony-debug-bar';
+import '@js/components/header/search-form';
 
 const {$} = window;
 
@@ -70,4 +71,5 @@ $(() => {
   initInvalidFields();
   initEmailFields('input[type="email"]');
   initNumberCommaTransformer('.js-comma-transformer');
+  watchSymfonyDebugBar();
 });

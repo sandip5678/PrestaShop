@@ -27,6 +27,7 @@
 namespace PrestaShop\PrestaShop\Adapter\Category\CommandHandler;
 
 use Category;
+use PrestaShop\PrestaShop\Core\CommandBus\Attributes\AsCommandHandler;
 use PrestaShop\PrestaShop\Core\Domain\Category\Command\BulkDeleteCategoriesCommand;
 use PrestaShop\PrestaShop\Core\Domain\Category\CommandHandler\BulkDeleteCategoriesHandlerInterface;
 use PrestaShop\PrestaShop\Core\Domain\Category\Exception\CannotDeleteRootCategoryForShopException;
@@ -36,6 +37,7 @@ use PrestaShop\PrestaShop\Core\Domain\Category\Exception\FailedToDeleteCategoryE
 /**
  * Class BulkDeleteCategoriesHandler.
  */
+#[AsCommandHandler]
 final class BulkDeleteCategoriesHandler extends AbstractDeleteCategoryHandler implements BulkDeleteCategoriesHandlerInterface
 {
     /**
@@ -47,6 +49,7 @@ final class BulkDeleteCategoriesHandler extends AbstractDeleteCategoryHandler im
      */
     public function handle(BulkDeleteCategoriesCommand $command)
     {
+        $deletedCategoryIdsByParent = [];
         foreach ($command->getCategoryIds() as $categoryId) {
             $category = new Category($categoryId->getValue());
 
@@ -62,7 +65,13 @@ final class BulkDeleteCategoriesHandler extends AbstractDeleteCategoryHandler im
                 throw new FailedToDeleteCategoryException(sprintf('Failed to delete category with id %s', var_export($categoryId->getValue(), true)));
             }
 
-            $this->handleProductsUpdate((int) $category->id_parent, $command->getDeleteMode());
+            $deletedCategoryIdsByParent[(int) $category->id_parent][] = $categoryId->getValue();
         }
+
+        if (empty($deletedCategoryIdsByParent)) {
+            return;
+        }
+
+        $this->updateProductCategories($deletedCategoryIdsByParent, $command->getDeleteMode());
     }
 }

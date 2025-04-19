@@ -78,7 +78,7 @@ export default class SubmitRowActionExtension {
     if (!isGetOrPostMethod) {
       $form.append(
         $('<input>', {
-          type: '_hidden',
+          type: 'hidden',
           name: '_method',
           value: method,
         }),
@@ -106,7 +106,7 @@ export default class SubmitRowActionExtension {
     const closeButtonLabel = $submitBtn.data('closeButtonLabel');
     const confirmButtonClass = $submitBtn.data('confirmButtonClass');
 
-    const modal = new (ConfirmModal as any)(
+    const modal = new ConfirmModal(
       {
         id: GridMap.confirmModal(grid.getId()),
         confirmTitle,

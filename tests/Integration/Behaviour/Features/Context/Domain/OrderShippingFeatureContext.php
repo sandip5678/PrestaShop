@@ -27,7 +27,7 @@
 namespace Tests\Integration\Behaviour\Features\Context\Domain;
 
 use Order;
-use PHPUnit\Framework\Assert as Assert;
+use PHPUnit\Framework\Assert;
 use PrestaShop\PrestaShop\Core\Domain\Order\Command\ChangeOrderDeliveryAddressCommand;
 use PrestaShop\PrestaShop\Core\Domain\Order\Command\ChangeOrderInvoiceAddressCommand;
 use PrestaShop\PrestaShop\Core\Domain\Order\Command\UpdateOrderShippingDetailsCommand;
@@ -112,15 +112,11 @@ class OrderShippingFeatureContext extends AbstractDomainFeatureContext
     /**
      * @param int $orderId
      *
-     * @return array|OrderCarrierForViewing[]
-     *
-     * @throws RuntimeException
+     * @return OrderCarrierForViewing[]
      */
-    private function getOrderCarriersForViewing(int $orderId)
+    private function getOrderCarriersForViewing(int $orderId): array
     {
-        /** @var OrderForViewing $orderForViewing */
         $orderForViewing = $this->getQueryBus()->handle(new GetOrderForViewing($orderId));
-        /** @var OrderCarrierForViewing[] $orderCarriers */
         $orderCarriersForViewing = $orderForViewing->getShipping()->getCarriers();
 
         if (count($orderCarriersForViewing) == 0) {

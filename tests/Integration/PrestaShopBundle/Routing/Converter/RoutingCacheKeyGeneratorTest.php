@@ -28,11 +28,18 @@ declare(strict_types=1);
 
 namespace Tests\Integration\PrestaShopBundle\Routing\Converter;
 
-use Module;
+use PrestaShop\PrestaShop\Adapter\Module\Module;
+use PrestaShop\PrestaShop\Core\Context\ContextBuilderPreparer;
+use PrestaShop\PrestaShop\Core\Module\ModuleRepository;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\Routing\Route;
 use Tools;
 
+/**
+ * These tests clear the cache manually, so it's better to run it isolated.
+ *
+ * @group isolatedProcess
+ */
 class RoutingCacheKeyGeneratorTest extends KernelTestCase
 {
     /**
@@ -52,7 +59,12 @@ class RoutingCacheKeyGeneratorTest extends KernelTestCase
             Tools::recurseCopy($dirResources . '/Resources/modules_tests/demo', _PS_MODULE_DIR_ . '/demo');
         }
 
-        $this->module = self::$kernel->getContainer()->get('prestashop.core.admin.module.repository')->getModule('demo');
+        // Language context must be initialized because ModuleRepository depends on it
+        /** @var ContextBuilderPreparer $preparer */
+        $preparer = self::$kernel->getContainer()->get(ContextBuilderPreparer::class);
+        $preparer->prepareLanguageId(1);
+
+        $this->module = self::$kernel->getContainer()->get(ModuleRepository::class)->getModule('demo');
         $this->module->onInstall();
         self::$kernel->getContainer()->get('prestashop.core.cache.clearer.cache_clearer_chain')->clear();
     }
@@ -67,6 +79,7 @@ class RoutingCacheKeyGeneratorTest extends KernelTestCase
             Tools::deleteDirectory($dirResources . '/Resources/modules_tests/demo');
         }
         $this->module->onUninstall();
+        parent::tearDown();
     }
 
     public function testRoutesAreRegistered(): void

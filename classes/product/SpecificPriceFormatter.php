@@ -63,7 +63,8 @@ class SpecificPriceFormatterCore
      *
      * @param array $specificPrice
      * @param bool $isTaxIncluded
-     * @param Context $context
+     * @param Currency $currency
+     * @param bool $displayDiscountPrice
      */
     public function __construct(array $specificPrice, bool $isTaxIncluded, Currency $currency, bool $displayDiscountPrice)
     {
@@ -99,8 +100,7 @@ class SpecificPriceFormatterCore
 
             // Since this price is set in default currency,
             // we need to convert it into current currency
-            $this->specificPrice['id_currency'];
-            $currentPriceCurrentCurrency = \Tools::convertPrice($currentPriceDefaultCurrency, $this->currency, true);
+            $currentPriceCurrentCurrency = Tools::convertPrice($currentPriceDefaultCurrency, $this->currency, true);
 
             if ($this->specificPrice['reduction_type'] == 'amount') {
                 if (!$this->specificPrice['reduction_tax'] && $this->isTaxIncluded) {
@@ -161,7 +161,11 @@ class SpecificPriceFormatterCore
             }
         }
 
-        $this->specificPrice['save'] = $priceFormatter->format((($initialPrice * $this->specificPrice['quantity']) - ($discountPrice * $this->specificPrice['quantity'])));
+        $this->specificPrice['save'] = $priceFormatter->format(($initialPrice * $this->specificPrice['quantity']) - ($discountPrice * $this->specificPrice['quantity']));
+        $this->specificPrice['discounted_unit_price'] = $priceFormatter->format($discountPrice);
+        $this->specificPrice['discounted_unit_price_raw'] = $discountPrice;
+        $this->specificPrice['initial_price'] = $priceFormatter->format($initialPrice);
+        $this->specificPrice['initial_price_raw'] = $initialPrice;
 
         return $this->specificPrice;
     }

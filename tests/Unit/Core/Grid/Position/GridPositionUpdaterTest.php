@@ -45,7 +45,7 @@ class GridPositionUpdaterTest extends TestCase
     public function testUpdate()
     {
         $positionUpdate = $this->createPositionUpdate();
-        //Most of the assertions are actually in the mock
+        // Most of the assertions are actually in the mock
         $updateHandler = $this->createUpdateHandlerMockWithAssertions();
         $gridUpdater = new GridPositionUpdater($updateHandler);
 
@@ -86,7 +86,7 @@ class GridPositionUpdaterTest extends TestCase
         $positionUpdate = new PositionUpdate(
             $collection,
             $this->getDefinition(),
-            42
+            '42'
         );
 
         return $positionUpdate;

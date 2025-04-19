@@ -70,8 +70,7 @@ class AdminCountriesControllerCore extends AdminController
         ];
 
         $zones_array = [];
-        $this->zones = Zone::getZones();
-        foreach ($this->zones as $zone) {
+        foreach (Zone::getZones() as $zone) {
             $zones_array[$zone['id_zone']] = $zone['name'];
         }
 
@@ -154,6 +153,11 @@ class AdminCountriesControllerCore extends AdminController
         return parent::renderList();
     }
 
+    /**
+     * @return string|void
+     *
+     * @throws SmartyException
+     */
     public function renderForm()
     {
         if (!($obj = $this->loadObject(true))) {
@@ -247,7 +251,7 @@ class AdminCountriesControllerCore extends AdminController
                 ],
                 [
                     'type' => 'switch',
-                    'label' => $this->trans('Does it need Zip/Postal code?', [], 'Admin.International.Feature'),
+                    'label' => $this->trans('Does it need a ZIP/Postal code?', [], 'Admin.International.Feature'),
                     'name' => 'need_zip_code',
                     'required' => false,
                     'is_bool' => true,
@@ -266,7 +270,7 @@ class AdminCountriesControllerCore extends AdminController
                 ],
                 [
                     'type' => 'text',
-                    'label' => $this->trans('Zip/Postal code format', [], 'Admin.International.Feature'),
+                    'label' => $this->trans('ZIP/Postal code format', [], 'Admin.International.Feature'),
                     'name' => 'zip_code_format',
                     'required' => true,
                     'desc' => $this->trans('Indicate the format of the postal code: use L for a letter, N for a number, and C for the country\'s ISO 3166-1 alpha-2 code. For example, NNNNN for the United States, France, Poland and many other; LNNNNLLL for Argentina, etc. If you do not want PrestaShop to verify the postal code for this country, leave it blank.', [], 'Admin.International.Help'),
@@ -360,7 +364,7 @@ class AdminCountriesControllerCore extends AdminController
         if (Shop::isFeatureActive()) {
             $this->fields_form['input'][] = [
                 'type' => 'shop',
-                'label' => $this->trans('Shop association', [], 'Admin.Global'),
+                'label' => $this->trans('Store association', [], 'Admin.Global'),
                 'name' => 'checkBoxShopAsso',
             ];
         }
@@ -388,7 +392,7 @@ class AdminCountriesControllerCore extends AdminController
 
                 if (count($ids)) {
                     $res = Db::getInstance()->execute(
-                            'UPDATE `' . _DB_PREFIX_ . 'state`
+                        'UPDATE `' . _DB_PREFIX_ . 'state`
 							SET `id_zone` = ' . (int) Tools::getValue('id_zone') . '
 							WHERE `id_state` IN (' . implode(',', $ids) . ')'
                     );
@@ -450,12 +454,18 @@ class AdminCountriesControllerCore extends AdminController
         return $country;
     }
 
+    /**
+     * @return bool|ObjectModel|null
+     *
+     * @throws PrestaShopException
+     */
     public function processStatus()
     {
         parent::processStatus();
 
+        $object = $this->loadObject();
         /** @var Country $object */
-        if (Validate::isLoadedObject($object = $this->loadObject()) && $object->active == 1) {
+        if (Validate::isLoadedObject($object) && $object->active == 1) {
             return Country::addModuleRestrictions([], [['id_country' => $object->id]], []);
         }
 
@@ -464,6 +474,8 @@ class AdminCountriesControllerCore extends AdminController
 
     /**
      * Allow the assignation of zone only if the form is displayed.
+     *
+     * @return bool|void
      */
     protected function processBulkAffectZone()
     {
@@ -480,12 +492,11 @@ class AdminCountriesControllerCore extends AdminController
     protected function displayValidFields()
     {
         /* The following translations are needed later - don't remove the comments!
-        $this->trans('Customer', array(), 'Admin.Global');
-        $this->trans('Warehouse', [], 'Admin.Global');
-        $this->trans('Country', array(), 'Admin.Global');
+        $this->trans('Customer', [], 'Admin.Global');
+        $this->trans('Country', [], 'Admin.Global');
         $this->trans('State', [], 'Admin.Global');
         $this->trans('Address', [], 'Admin.Global');
-        */
+         */
 
         $html_tabnav = '<ul class="nav nav-tabs" id="custom-address-fields">';
         $html_tabcontent = '<div class="tab-content" >';
@@ -502,7 +513,7 @@ class AdminCountriesControllerCore extends AdminController
             }
             $fields = [];
             $html_tabnav .= '<li' . ($class_tab_active ? ' class="' . $class_tab_active . '"' : '') . '>
-				<a href="#availableListFieldsFor_' . $class_name . '"><i class="icon-caret-down"></i>&nbsp;' . Translate::getAdminTranslation($class_name, 'AdminCountries') . '</a></li>';
+				<a href="#availableListFieldsFor_' . $class_name . '"><i class="icon-caret-down"></i>&nbsp;' . Context::getContext()->getTranslator()->trans($class_name, [], 'AdminCountries') . '</a></li>';
 
             foreach (AddressFormat::getValidateFields($class_name) as $name) {
                 $fields[] = '<a href="javascript:void(0);" class="addPattern btn btn-default btn-xs" id="' . ($class_name == 'Address' ? $name : $class_name . ':' . $name) . '">

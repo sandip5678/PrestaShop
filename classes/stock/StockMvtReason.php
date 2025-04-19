@@ -23,6 +23,10 @@
  * @copyright Since 2007 PrestaShop SA and Contributors
  * @license   https://opensource.org/licenses/OSL-3.0 Open Software License (OSL 3.0)
  */
+
+/**
+ * @deprecated since 9.0 and will be removed in 10.0, this object model is no longer needed
+ */
 class StockMvtReasonCore extends ObjectModel
 {
     /** @var int identifier of the movement reason */
@@ -41,7 +45,7 @@ class StockMvtReasonCore extends ObjectModel
     public $date_upd;
 
     /** @var bool True if the movement reason has been deleted (staying in database as deleted) */
-    public $deleted = 0;
+    public $deleted = false;
 
     /**
      * @since 1.5.0

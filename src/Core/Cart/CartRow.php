@@ -27,6 +27,8 @@
 namespace PrestaShop\PrestaShop\Core\Cart;
 
 use Cart;
+use CartCore;
+use Exception;
 use PrestaShop\PrestaShop\Adapter\AddressFactory;
 use PrestaShop\PrestaShop\Adapter\Cache\CacheAdapter;
 use PrestaShop\PrestaShop\Adapter\CoreException;
@@ -205,12 +207,12 @@ class CartRow
      *
      * @return AmountImmutable
      *
-     * @throws \Exception
+     * @throws Exception
      */
     public function getInitialUnitPrice()
     {
         if (!$this->isProcessed) {
-            throw new \Exception('Row must be processed before getting its total');
+            throw new Exception('Row must be processed before getting its total');
         }
 
         return $this->initialUnitPrice;
@@ -221,12 +223,12 @@ class CartRow
      *
      * @return AmountImmutable
      *
-     * @throws \Exception
+     * @throws Exception
      */
     public function getInitialTotalPrice()
     {
         if (!$this->isProcessed) {
-            throw new \Exception('Row must be processed before getting its total');
+            throw new Exception('Row must be processed before getting its total');
         }
 
         return $this->initialTotalPrice;
@@ -237,12 +239,12 @@ class CartRow
      *
      * @return AmountImmutable
      *
-     * @throws \Exception
+     * @throws Exception
      */
     public function getFinalUnitPrice()
     {
         if (!$this->isProcessed) {
-            throw new \Exception('Row must be processed before getting its total');
+            throw new Exception('Row must be processed before getting its total');
         }
 
         return $this->finalUnitPrice;
@@ -253,12 +255,12 @@ class CartRow
      *
      * @return AmountImmutable
      *
-     * @throws \Exception
+     * @throws Exception
      */
     public function getFinalTotalPrice()
     {
         if (!$this->isProcessed) {
-            throw new \Exception('Row must be processed before getting its total');
+            throw new Exception('Row must be processed before getting its total');
         }
 
         return $this->finalTotalPrice;
@@ -267,11 +269,11 @@ class CartRow
     /**
      * run initial row calculation.
      *
-     * @param Cart $cart
+     * @param CartCore $cart
      *
      * @throws CoreException
      */
-    public function processCalculation(Cart $cart)
+    public function processCalculation(CartCore $cart)
     {
         $rowData = $this->getRowData();
         $quantity = (int) $rowData['cart_quantity'];
@@ -297,12 +299,12 @@ class CartRow
         $this->isProcessed = true;
     }
 
-    protected function getProductPrice(Cart $cart, $rowData)
+    protected function getProductPrice(CartCore $cart, $rowData)
     {
         $productId = (int) $rowData['id_product'];
         $quantity = (int) $rowData['cart_quantity'];
 
-        $addressId = $cart->getProductAddressId($rowData);
+        $addressId = $cart->getProductAddressId();
         if (!$addressId) {
             $addressId = $cart->getTaxAddressId();
         }
@@ -361,7 +363,8 @@ class CartRow
                     (int) $rowData['id_product_attribute'],
                     $computationParameters['withTaxes'],
                     true,
-                    $this->useEcotax
+                    $this->useEcotax,
+                    (int) $rowData['id_customization']
                 );
             }
             if (null === $productPrices[$productPrice]['value']) {
@@ -474,7 +477,7 @@ class CartRow
     {
         $percent = (float) $percent;
         if ($percent < 0 || $percent > 100) {
-            throw new \Exception('Invalid percentage discount given: ' . $percent);
+            throw new Exception('Invalid percentage discount given: ' . $percent);
         }
         $discountTaxIncluded = $this->finalTotalPrice->getTaxIncluded() * $percent / 100;
         $discountTaxExcluded = $this->finalTotalPrice->getTaxExcluded() * $percent / 100;

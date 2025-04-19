@@ -33,7 +33,7 @@ use Tests\Integration\PrestaShopBundle\Translation\CatalogueVerifier;
 /**
  * Tests extract of translations from legacy translation files
  *
- * @doc ./vendor/bin/phpunit -c tests/Integration/phpunit.xml --filter="LegacyFileLoaderTest"
+ * ./vendor/bin/phpunit -c tests/Integration/phpunit.xml --filter="LegacyFileLoaderTest"
  */
 class LegacyFileLoaderTest extends KernelTestCase
 {
@@ -50,9 +50,9 @@ class LegacyFileLoaderTest extends KernelTestCase
     /**
      * {@inheritdoc}
      */
-    public function __construct($name = null, array $data = [], $dataName = '')
+    public function __construct($name = null)
     {
-        parent::__construct($name, $data, $dataName);
+        parent::__construct($name);
 
         $this->catalogueVerifier = new CatalogueVerifier($this);
     }

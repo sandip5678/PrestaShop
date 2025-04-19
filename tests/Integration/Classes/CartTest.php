@@ -1,5 +1,4 @@
 <?php
-
 /**
  * Copyright since 2007 PrestaShop SA and Contributors
  * PrestaShop is an International Registered Trademark & Property of PrestaShop SA
@@ -36,6 +35,7 @@ use CartRule;
 use Configuration;
 use Context;
 use Currency;
+use DateTime;
 use Db;
 use Exception;
 use Group;
@@ -131,7 +131,7 @@ class CartTest extends TestCase
         $name = $rate . '% TAX';
 
         if (!array_key_exists($name, $taxes)) {
-            $tax = new Tax(null, Configuration::get('PS_LANG_DEFAULT'));
+            $tax = new Tax(null, (int) Configuration::get('PS_LANG_DEFAULT'));
             $tax->name = $name;
             $tax->rate = $rate;
             $tax->active = true;
@@ -145,19 +145,19 @@ class CartTest extends TestCase
     /**
      * This is cached by $rate.
      */
-    private static function getIdTaxRulesGroup(int $rate): string
+    private static function getIdTaxRulesGroup(int $rate): int
     {
         static $groups = [];
 
         $name = $rate . '% TRG';
 
         if (!array_key_exists($name, $groups)) {
-            $taxRulesGroup = new TaxRulesGroup(null, Configuration::get('PS_LANG_DEFAULT'));
+            $taxRulesGroup = new TaxRulesGroup(null, (int) Configuration::get('PS_LANG_DEFAULT'));
             $taxRulesGroup->name = $name;
             $taxRulesGroup->active = true;
             self::assertTrue((bool) $taxRulesGroup->save());
 
-            $taxRule = new TaxRule(null, Configuration::get('PS_LANG_DEFAULT'));
+            $taxRule = new TaxRule(null, (int) Configuration::get('PS_LANG_DEFAULT'));
             $taxRule->id_tax = self::getIdTax($rate);
             $taxRule->id_country = Configuration::get('PS_COUNTRY_DEFAULT');
             $taxRule->id_tax_rules_group = $taxRulesGroup->id;
@@ -167,19 +167,19 @@ class CartTest extends TestCase
             $groups[$name] = $taxRulesGroup->id;
         }
 
-        return $groups[$name];
+        return (int) $groups[$name];
     }
 
     /**
      * This is cached by $name.
      */
-    private static function makeProduct(string $name, float $price, string $id_tax_rules_group): Product
+    private static function makeProduct(string $name, float $price, int $id_tax_rules_group): Product
     {
-        $product = new Product(null, false, Configuration::get('PS_LANG_DEFAULT'));
+        $product = new Product(null, false, (int) Configuration::get('PS_LANG_DEFAULT'));
         $product->id_tax_rules_group = $id_tax_rules_group;
         $product->name = $name;
         $product->price = $price;
-        $product->link_rewrite = Tools::link_rewrite($name);
+        $product->link_rewrite = Tools::str2url($name);
         self::assertTrue($product->save());
 
         return $product;
@@ -188,7 +188,7 @@ class CartTest extends TestCase
     private static function makeAddress(): Address
     {
         $address = new Address();
-        $address->id_country = Configuration::get('PS_COUNTRY_DEFAULT');
+        $address->id_country = (int) Configuration::get('PS_COUNTRY_DEFAULT');
         $address->firstname = 'Unit';
         $address->lastname = 'Tester';
         $address->address1 = '55 rue Raspail';
@@ -201,8 +201,8 @@ class CartTest extends TestCase
 
     private static function makeCart(): Cart
     {
-        $cart = new Cart(null, Configuration::get('PS_LANG_DEFAULT'));
-        $cart->id_currency = Configuration::get('PS_CURRENCY_DEFAULT');
+        $cart = new Cart(null, (int) Configuration::get('PS_LANG_DEFAULT'));
+        $cart->id_currency = Currency::getDefaultCurrencyId();
         $cart->id_address_invoice = self::$id_address;
         self::assertTrue($cart->save());
         Context::getContext()->cart = $cart;
@@ -214,12 +214,12 @@ class CartTest extends TestCase
      * null $shippingCost is interpreted as free shipping
      * Carriers are cached by $name.
      */
-    private static function getIdCarrier(string $name, int $shippingCost = null, string $id_tax_rules_group = null): string
+    private static function getIdCarrier(string $name, ?int $shippingCost = null, ?int $id_tax_rules_group = null): int
     {
         static $carriers = [];
 
         if (!array_key_exists($name, $carriers)) {
-            $carrier = new Carrier(null, Configuration::get('PS_LANG_DEFAULT'));
+            $carrier = new Carrier(null, (int) Configuration::get('PS_LANG_DEFAULT'));
 
             $carrier->name = $name;
             $carrier->delay = '28 days later';
@@ -263,7 +263,7 @@ class CartTest extends TestCase
                 );
             }
 
-            $carriers[$name] = $carrier->id;
+            $carriers[$name] = (int) $carrier->id;
         }
 
         return $carriers[$name];
@@ -271,12 +271,12 @@ class CartTest extends TestCase
 
     private static function makeCartRule(int $amount, string $type): CartRule
     {
-        $cartRule = new CartRule(null, Configuration::get('PS_LANG_DEFAULT'));
+        $cartRule = new CartRule(null, (int) Configuration::get('PS_LANG_DEFAULT'));
 
         $cartRule->name = $amount . ' ' . $type . ' Cart Rule';
 
-        $date_from = new \DateTime();
-        $date_to = new \DateTime();
+        $date_from = new DateTime();
+        $date_to = new DateTime();
 
         $date_from->modify('-2 days');
         $date_to->modify('+2 days');
@@ -285,7 +285,6 @@ class CartTest extends TestCase
         $cartRule->date_to = $date_to->format('Y-m-d H:i:s');
 
         $cartRule->quantity = 1;
-        $cartRule->quantity_per_user;
 
         if ($type === 'before tax') {
             $cartRule->reduction_amount = $amount;
@@ -312,7 +311,7 @@ class CartTest extends TestCase
         parent::setUp();
 
         // Context needs a currency but doesn't set it by itself, use default one.
-        Context::getContext()->currency = new Currency(Configuration::get('PS_CURRENCY_DEFAULT'));
+        Context::getContext()->currency = Currency::getDefaultCurrency();
 
         Group::clearCachedValues();
         self::setRoundingType('line');
@@ -399,7 +398,7 @@ class CartTest extends TestCase
 
         $product = self::makeProduct('Yo Product', 10, self::getIdTaxRulesGroup(20));
 
-        self::makeCartRule(5, 'before tax')->id;
+        self::makeCartRule(5, 'before tax');
         $cart = self::makeCart();
 
         $cart->updateQty(1, $product->id);

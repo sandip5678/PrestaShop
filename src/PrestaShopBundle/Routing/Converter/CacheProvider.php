@@ -26,15 +26,15 @@
 
 namespace PrestaShopBundle\Routing\Converter;
 
-use Symfony\Component\Cache\Adapter\AdapterInterface;
+use Psr\Cache\CacheItemPoolInterface;
 
 /**
  * Class CacheProvider.
  */
-class CacheProvider extends AbstractLegacyRouteProvider
+class CacheProvider extends AbstractLegacyRouteProvider implements CacheCleanerInterface
 {
     /**
-     * @var AdapterInterface
+     * @var CacheItemPoolInterface
      */
     private $cache;
 
@@ -55,7 +55,7 @@ class CacheProvider extends AbstractLegacyRouteProvider
 
     public function __construct(
         LegacyRouteProviderInterface $legacyRouteProvider,
-        AdapterInterface $cache,
+        CacheItemPoolInterface $cache,
         CacheKeyGeneratorInterface $cacheKeyGenerator
     ) {
         $this->legacyRouteProvider = $legacyRouteProvider;
@@ -80,6 +80,32 @@ class CacheProvider extends AbstractLegacyRouteProvider
         }
 
         return $this->legacyRoutes;
+    }
+
+    public function clearCache(): void
+    {
+        $this->cache->deleteItem($this->cacheKeyGenerator->getCacheKey());
+    }
+
+    /**
+     * @param string $serializedLegacyRoutes
+     *
+     * @return LegacyRoute[]
+     */
+    private function unserializeLegacyRoutes($serializedLegacyRoutes)
+    {
+        $flattenRoutes = json_decode($serializedLegacyRoutes, true);
+
+        $legacyRoutes = [];
+        foreach ($flattenRoutes as $flattenRoute) {
+            $legacyRoutes[$flattenRoute['route_name']] = new LegacyRoute(
+                $flattenRoute['route_name'],
+                $flattenRoute['legacy_links'],
+                $flattenRoute['legacy_parameters']
+            );
+        }
+
+        return $legacyRoutes;
     }
 
     /**
@@ -108,26 +134,5 @@ class CacheProvider extends AbstractLegacyRouteProvider
         }
 
         return json_encode($flattenRoutes);
-    }
-
-    /**
-     * @param string $serializedLegacyRoutes
-     *
-     * @return LegacyRoute[]
-     */
-    private function unserializeLegacyRoutes($serializedLegacyRoutes)
-    {
-        $flattenRoutes = json_decode($serializedLegacyRoutes, true);
-
-        $legacyRoutes = [];
-        foreach ($flattenRoutes as $flattenRoute) {
-            $legacyRoutes[$flattenRoute['route_name']] = new LegacyRoute(
-                $flattenRoute['route_name'],
-                $flattenRoute['legacy_links'],
-                $flattenRoute['legacy_parameters']
-            );
-        }
-
-        return $legacyRoutes;
     }
 }

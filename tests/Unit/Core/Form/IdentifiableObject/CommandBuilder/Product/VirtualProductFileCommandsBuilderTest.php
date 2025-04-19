@@ -36,7 +36,7 @@ use PrestaShop\PrestaShop\Core\Form\IdentifiableObject\CommandBuilder\Product\Vi
 use Symfony\Component\HttpFoundation\File\UploadedFile;
 use Tests\Resources\DummyFileUploader;
 
-class VirtualProductFileCommandsBuilderTest extends AbstractProductCommandBuilderTest
+class VirtualProductFileCommandsBuilderTest extends AbstractProductCommandBuilderTestCase
 {
     /**
      * @dataProvider getExpectedCommands
@@ -47,7 +47,7 @@ class VirtualProductFileCommandsBuilderTest extends AbstractProductCommandBuilde
     public function testBuildCommands(array $formData, array $expectedCommands): void
     {
         $builder = new VirtualProductFileCommandsBuilder();
-        $builtCommands = $builder->buildCommands($this->getProductId(), $formData);
+        $builtCommands = $builder->buildCommands($this->getProductId(), $formData, $this->getSingleShopConstraint());
         $this->assertEquals($expectedCommands, $builtCommands);
     }
 

@@ -25,14 +25,14 @@
  */
 class AttachmentControllerCore extends FrontController
 {
-    public function postProcess()
+    public function postProcess(): void
     {
         $attachment = new Attachment(Tools::getValue('id_attachment'), $this->context->language->id);
         if (!$attachment->id) {
             Tools::redirect('index.php');
         }
 
-        Hook::exec('actionDownloadAttachment', ['attachment' => &$a]);
+        Hook::exec('actionDownloadAttachment', ['attachment' => &$attachment]);
 
         if (ob_get_level() && ob_get_length() > 0) {
             ob_end_clean();
@@ -50,7 +50,7 @@ class AttachmentControllerCore extends FrontController
     /**
      * @see   http://ca2.php.net/manual/en/function.readfile.php#54295
      */
-    public function readfileChunked($filename, $retbytes = true)
+    public function readfileChunked(string $filename, bool $retbytes = true)
     {
         // how many bytes per chunk
         $chunksize = 1 * (1024 * 1024);

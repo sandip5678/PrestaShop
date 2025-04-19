@@ -29,54 +29,36 @@ declare(strict_types=1);
 namespace PrestaShop\PrestaShop\Core\Grid\Data\Factory;
 
 use CartRule;
-use Customer;
 use PrestaShop\PrestaShop\Core\Grid\Data\GridData;
 use PrestaShop\PrestaShop\Core\Grid\Record\RecordCollection;
 use PrestaShop\PrestaShop\Core\Grid\Search\SearchCriteriaInterface;
 
 /**
- * Class CustomerDiscountGridDataFactory is responsible of returning grid data for customer's discounts.
+ * Class CustomerDiscountGridDataFactory is responsible for returning grid data for customer's discounts.
  */
 final class CustomerDiscountGridDataFactory implements GridDataFactoryInterface
 {
-    /**
-     * @var int
-     */
-    private $contextLangId;
-    /**
-     * @var Customer
-     */
-    private $customer;
-
-    /**
-     * @param int $contextLangId
-     * @param Customer $customer
-     */
-    public function __construct(
-        int $contextLangId,
-        Customer $customer
-    ) {
-        $this->contextLangId = $contextLangId;
-        $this->customer = $customer;
-    }
-
     /**
      * {@inheritdoc}
      */
     public function getData(SearchCriteriaInterface $searchCriteria)
     {
-        $discounts = CartRule::getCustomerCartRules(
-            $this->contextLangId,
-            $this->customer->id,
-            false,
-            false
+        $customerFilters = $searchCriteria->getFilters();
+        $allDiscounts = CartRule::getAllCustomerCartRules(
+            $customerFilters['id_customer']
         );
 
-        $records = new RecordCollection($discounts);
+        $discountsToDisplay = array_slice(
+            $allDiscounts,
+            (int) $searchCriteria->getOffset(),
+            (int) $searchCriteria->getLimit()
+        );
+
+        $records = new RecordCollection($discountsToDisplay);
 
         return new GridData(
             $records,
-            $records->count()
+            count($allDiscounts)
         );
     }
 }

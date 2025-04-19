@@ -80,17 +80,13 @@
 						</div>
 					{/if}
 				</div>
-				<div class="row">
-					<div class="col-sm-12">
-						{if !$first_message.id_employee}
-							{include file="./message.tpl" message=$first_message initial=true}
-						{/if}
-					</div>
-				</div>
+				{if !$first_message.id_employee}
+					{include file="./message.tpl" message=$first_message initial=true}
+				{/if}
 			</div>
 		</div>
 	</div>
-	<div class="row">
+	<div class="row" data-role="thread-messages">
 		{foreach $messages as $message}
 			{include file="./message.tpl" message=$message initial=false}
 		{/foreach}
@@ -140,8 +136,8 @@
 {/if}
 <script type="text/javascript">
 	var timer;
-		$(document).ready(function(){
-			$('select[name=id_employee_forward]').change(function(){
+		$(function(){
+			$('select[name=id_employee_forward]').on('change', function(){
 				if ($(this).val() >= 0)
 					$('#message_forward').show(400);
 				else
@@ -151,7 +147,7 @@
 				else
 					$('#message_forward_email').hide(200);
 			});
-			$('textarea[name=message_forward]').click(function(){
+			$('textarea[name=message_forward]').on('click', function(){
 				if($(this).val() == '{l s='You can add a comment here.'}')
 				{
 					$(this).val('');
@@ -164,10 +160,11 @@
 	{
 		$.ajax({
 			type: 'POST',
-			url: 'ajax-tab.php',
+			url: 'index.php',
 			async: true,
 			dataType: 'json',
 			data: {
+        ajax: 1,
 				controller: 'AdminCustomerThreads',
 				action: 'markAsRead',
 				token : '{$token|escape:'html':'UTF-8'}',

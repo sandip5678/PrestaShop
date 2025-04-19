@@ -28,6 +28,7 @@ namespace PrestaShop\PrestaShop\Adapter\Notification\QueryHandler;
 
 use Notification;
 use PrestaShop\PrestaShop\Adapter\Admin\NotificationsConfiguration;
+use PrestaShop\PrestaShop\Core\CommandBus\Attributes\AsQueryHandler;
 use PrestaShop\PrestaShop\Core\Domain\Notification\Query\GetNotificationLastElements;
 use PrestaShop\PrestaShop\Core\Domain\Notification\QueryHandler\GetNotificationLastElementsHandlerInterface;
 use PrestaShop\PrestaShop\Core\Domain\Notification\QueryResult\NotificationResult;
@@ -39,6 +40,7 @@ use PrestaShop\PrestaShop\Core\Domain\Notification\QueryResult\NotificationsResu
  *
  * @internal
  */
+#[AsQueryHandler]
 final class GetNotificationLastElementsHandler implements GetNotificationLastElementsHandlerInterface
 {
     /**
@@ -84,7 +86,9 @@ final class GetNotificationLastElementsHandler implements GetNotificationLastEle
                         $notification['iso_code'],
                         $notification['company'],
                         $notification['status'],
-                        $notification['date_add']
+                        $notification['date_add'],
+                        $notification['customer_thread_view_url'],
+                        $notification['order_view_url']
                     );
                 }
             }

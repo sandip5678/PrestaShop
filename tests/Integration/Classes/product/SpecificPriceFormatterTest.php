@@ -35,16 +35,26 @@ use Language;
 use LocalizationPack;
 use PrestaShop\PrestaShop\Adapter\Product\PriceFormatter;
 use PrestaShopBundle\Cache\LocalizationWarmer;
-use Shop;
 use SpecificPriceFormatter;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
-use Symfony\Component\Translation\Translator;
+use Tests\Integration\Utility\ContextMockerTrait;
+use Tests\Resources\Resetter\LocalizationPackResetter;
 
 class SpecificPriceFormatterTest extends KernelTestCase
 {
+    use ContextMockerTrait;
+
+    public static function tearDownAfterClass(): void
+    {
+        parent::tearDownAfterClass();
+        LocalizationPackResetter::resetLocalizationPacks();
+    }
+
     protected function setUp(): void
     {
         parent::setUp();
+
+        self::mockContext();
 
         // Init Symfony
         self::bootKernel();
@@ -52,15 +62,12 @@ class SpecificPriceFormatterTest extends KernelTestCase
         global $kernel;
         $kernel = self::$kernel;
 
-        $this->context = Context::getContext();
-        Context::setInstanceForTesting($this->getMockContext());
-
         foreach (['us', 'fr'] as $country) {
             $localizationWarmer = new LocalizationWarmer(_PS_VERSION_, $country);
             $xmlContent = $localizationWarmer->warmUp(_PS_CACHE_DIR_ . 'sandbox' . DIRECTORY_SEPARATOR);
 
             $localizationPack = new LocalizationPack();
-            $localizationPack->loadLocalisationPack($xmlContent, [], true);
+            $localizationPack->loadLocalisationPack($xmlContent[0], [], true);
         }
     }
 
@@ -68,12 +75,12 @@ class SpecificPriceFormatterTest extends KernelTestCase
      * @dataProvider dataProviderSpecificPriceFormatter
      *
      * @param float $price
-     * @param $taxRate
-     * @param $ecotaxAmount
-     * @param $currencyData
-     * @param $specificPrices
-     * @param $isTaxIncluded
-     * @param $expected
+     * @param float $taxRate
+     * @param float $ecotaxAmount
+     * @param array $currencyData
+     * @param array $specificPrices
+     * @param bool $isTaxIncluded
+     * @param array $expected
      */
     public function testSpecificPriceFormatter(
         float $price,
@@ -83,7 +90,7 @@ class SpecificPriceFormatterTest extends KernelTestCase
         array $specificPrices,
         bool $isTaxIncluded,
         array $expected
-    ) {
+    ): void {
         $context = Context::getContext();
 
         $currency = new Currency();
@@ -107,8 +114,15 @@ class SpecificPriceFormatterTest extends KernelTestCase
         $formattedSpecificPrice = $specificPriceFormatter->formatSpecificPrice($price, $taxRate, $ecotaxAmount);
 
         $priceFormatter = new PriceFormatter();
-        $this->assertEquals($priceFormatter->format($expected[0]['discount']), $formattedSpecificPrice['discount']);
-        $this->assertEquals($priceFormatter->format($expected[0]['save']), $formattedSpecificPrice['save']);
+
+        $checkKeys = ['discount', 'save', 'discounted_unit_price', 'initial_price'];
+        foreach ($checkKeys as $checkKey) {
+            $this->assertEquals(
+                $priceFormatter->format($expected[0][$checkKey]),
+                $formattedSpecificPrice[$checkKey],
+                "checkKey: $checkKey"
+            );
+        }
     }
 
     public function dataProviderSpecificPriceFormatter(): array
@@ -216,6 +230,8 @@ class SpecificPriceFormatterTest extends KernelTestCase
                     [
                         'discount' => 7.80,
                         'save' => 117.00,
+                        'discounted_unit_price' => 23.40,
+                        'initial_price' => 31.2,
                     ],
                 ],
             ],
@@ -230,6 +246,8 @@ class SpecificPriceFormatterTest extends KernelTestCase
                     [
                         'discount' => 6.00,
                         'save' => 90.00,
+                        'discounted_unit_price' => 18,
+                        'initial_price' => 24,
                     ],
                 ],
             ],
@@ -244,6 +262,8 @@ class SpecificPriceFormatterTest extends KernelTestCase
                     [
                         'discount' => 6.63,
                         'save' => 99.45,
+                        'discounted_unit_price' => 24.57,
+                        'initial_price' => 31.2,
                     ],
                 ],
             ],
@@ -258,6 +278,8 @@ class SpecificPriceFormatterTest extends KernelTestCase
                     [
                         'discount' => 5.10,
                         'save' => 76.50,
+                        'discounted_unit_price' => 18.90,
+                        'initial_price' => 24,
                     ],
                 ],
             ],
@@ -272,6 +294,8 @@ class SpecificPriceFormatterTest extends KernelTestCase
                     [
                         'discount' => 11.70,
                         'save' => 175.50,
+                        'discounted_unit_price' => 19.50,
+                        'initial_price' => 31.2,
                     ],
                 ],
             ],
@@ -286,6 +310,8 @@ class SpecificPriceFormatterTest extends KernelTestCase
                     [
                         'discount' => 9.00,
                         'save' => 135.00,
+                        'discounted_unit_price' => 15.00,
+                        'initial_price' => 24,
                     ],
                 ],
             ],
@@ -300,6 +326,8 @@ class SpecificPriceFormatterTest extends KernelTestCase
                     [
                         'discount' => 2.46,
                         'save' => 24.60,
+                        'discounted_unit_price' => 9.84,
+                        'initial_price' => 12.30,
                     ],
                 ],
             ],
@@ -314,40 +342,11 @@ class SpecificPriceFormatterTest extends KernelTestCase
                     [
                         'discount' => 4.26,
                         'save' => 12.78,
+                        'discounted_unit_price' => 11.22,
+                        'initial_price' => 15.48,
                     ],
                 ],
             ],
         ];
-    }
-
-    private function getMockTranslator(): Translator
-    {
-        return $this->getMockBuilder(Translator::class)->disableOriginalConstructor()->getMock();
-    }
-
-    private function getMockLanguage(): Language
-    {
-        $mockLanguage = $this->getMockBuilder(Language::class)->getMock();
-        $mockLanguage->id = 1;
-
-        return $mockLanguage;
-    }
-
-    private function getMockShop(): Shop
-    {
-        return $this->getMockBuilder(Shop::class)->getMock();
-    }
-
-    private function getMockContext(): Context
-    {
-        $mockContext = $this->getMockBuilder(Context::class)->getMock();
-        $mockContext->method('getTranslator')->willReturn(
-            $this->getMockTranslator()
-        );
-
-        $mockContext->language = $this->getMockLanguage();
-        $mockContext->shop = $this->getMockShop();
-
-        return $mockContext;
     }
 }

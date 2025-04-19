@@ -6,7 +6,6 @@
 /* stylelint-enable */
 
 .products-catalog {
-
   .catalog-tools {
     flex: 0 0 2rem;
     max-width: 2rem;
@@ -29,11 +28,6 @@
     .form-control,
     .select2 {
       font-weight: 400;
-    }
-
-    .form-min-max {
-      display: inline-block;
-      width: 48%;
     }
 
     .action-enabled {
@@ -70,3 +64,12 @@
     color: $gray-light;
   }
 }
+
+table tr.column-filters td[data-column-id^="id_"] input {
+  min-width: 5rem;
+}
+
+// Create product modal
+@import "create_product_modal";
+// Multi shop list
+@import "multi_shop_list";

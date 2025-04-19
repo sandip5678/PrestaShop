@@ -29,7 +29,18 @@ use PrestaShop\PrestaShop\Core\Product\Search\SortOrder;
 
 class BestSalesControllerCore extends ProductListingFrontController
 {
+    /** @var string */
     public $php_self = 'best-sales';
+
+    /**
+     * Returns canonical URL for best-sales page
+     *
+     * @return string
+     */
+    public function getCanonicalURL(): string
+    {
+        return $this->buildPaginatedUrl($this->context->link->getPageLink('best-sales'));
+    }
 
     /**
      * Initializes controller.
@@ -38,7 +49,7 @@ class BestSalesControllerCore extends ProductListingFrontController
      *
      * @throws PrestaShopException
      */
-    public function init()
+    public function init(): void
     {
         if (Configuration::get('PS_DISPLAY_BEST_SELLERS')) {
             parent::init();
@@ -48,44 +59,57 @@ class BestSalesControllerCore extends ProductListingFrontController
     }
 
     /**
-     * {@inheritdoc}
+     * Assign template vars related to page content.
+     *
+     * @see FrontController::initContent()
      */
-    public function initContent()
+    public function initContent(): void
     {
         parent::initContent();
 
         $this->doProductSearch('catalog/listing/best-sales', ['entity' => 'best-sales']);
     }
 
-    protected function getProductSearchQuery()
+    /**
+     * Gets the product search query for the controller. This is a set of information that
+     * a filtering module or the default provider will use to fetch our products.
+     *
+     * @return ProductSearchQuery
+     */
+    protected function getProductSearchQuery(): ProductSearchQuery
     {
         $query = new ProductSearchQuery();
         $query
             ->setQueryType('best-sales')
-            ->setSortOrder(new SortOrder('product', 'name', 'asc'));
+            ->setSortOrder(new SortOrder('product', 'sales', 'desc'));
 
         return $query;
     }
 
-    protected function getDefaultProductSearchProvider()
+    /**
+     * Default product search provider used if no filtering module stood up for the job
+     *
+     * @return BestSalesProductSearchProvider
+     */
+    protected function getDefaultProductSearchProvider(): BestSalesProductSearchProvider
     {
         return new BestSalesProductSearchProvider(
             $this->getTranslator()
         );
     }
 
-    public function getListingLabel()
+    public function getListingLabel(): string
     {
         return $this->getTranslator()->trans('Best sellers', [], 'Shop.Theme.Catalog');
     }
 
-    public function getBreadcrumbLinks()
+    public function getBreadcrumbLinks(): array
     {
         $breadcrumb = parent::getBreadcrumbLinks();
 
         $breadcrumb['links'][] = [
             'title' => $this->trans('Best sellers', [], 'Shop.Theme.Catalog'),
-            'url' => $this->context->link->getPageLink('best-sales', true),
+            'url' => $this->context->link->getPageLink('best-sales'),
         ];
 
         return $breadcrumb;

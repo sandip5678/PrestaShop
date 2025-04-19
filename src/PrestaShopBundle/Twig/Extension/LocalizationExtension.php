@@ -28,29 +28,20 @@ namespace PrestaShopBundle\Twig\Extension;
 
 use DateTime;
 use DateTimeInterface;
+use PrestaShop\PrestaShop\Core\Context\CurrencyContext;
+use PrestaShop\PrestaShop\Core\Context\LanguageContext;
+use PrestaShop\PrestaShop\Core\Localization\Locale\Repository;
 use Twig\Extension\AbstractExtension;
 use Twig\TwigFilter;
+use Twig\TwigFunction;
 
 class LocalizationExtension extends AbstractExtension
 {
-    /**
-     * @var string
-     */
-    private $dateFormatFull;
-
-    /**
-     * @var string
-     */
-    private $dateFormatLight;
-
-    /**
-     * @param string $contextDateFormatFull
-     * @param string $contextDateFormatLight
-     */
-    public function __construct(string $contextDateFormatFull, string $contextDateFormatLight)
-    {
-        $this->dateFormatFull = $contextDateFormatFull;
-        $this->dateFormatLight = $contextDateFormatLight;
+    public function __construct(
+        private readonly Repository $localeRepository,
+        private readonly LanguageContext $languageContext,
+        private readonly CurrencyContext $currencyContext,
+    ) {
     }
 
     public function getFilters(): array
@@ -58,7 +49,38 @@ class LocalizationExtension extends AbstractExtension
         return [
             new TwigFilter('date_format_full', [$this, 'dateFormatFull']),
             new TwigFilter('date_format_lite', [$this, 'dateFormatLite']),
+            new TwigFilter('price_format', [$this, 'priceFormat']),
         ];
+    }
+
+    public function getFunctions()
+    {
+        return [
+            new TwigFunction(
+                'format_date',
+                function ($date) {
+                    return (new DateTime($date))->format($this->languageContext->getDateFormat());
+                }
+            ),
+        ];
+    }
+
+    /**
+     * @param float $price
+     * @param string|null $currencyCode
+     * @param string|null $locale
+     *
+     * @return string
+     */
+    public function priceFormat(float $price, ?string $currencyCode = null, ?string $locale = null): string
+    {
+        if (null !== $locale) {
+            $cldrLocale = $this->localeRepository->getLocale($locale);
+
+            return $cldrLocale->formatPrice($price, $currencyCode ?? $this->currencyContext->getIsoCode());
+        } else {
+            return $this->languageContext->formatPrice($price, $currencyCode ?? $this->currencyContext->getIsoCode());
+        }
     }
 
     /**
@@ -72,7 +94,7 @@ class LocalizationExtension extends AbstractExtension
             $date = new DateTime($date);
         }
 
-        return $date->format($this->dateFormatFull);
+        return $date->format($this->languageContext->getDateTimeFormat());
     }
 
     /**
@@ -86,6 +108,6 @@ class LocalizationExtension extends AbstractExtension
             $date = new DateTime($date);
         }
 
-        return $date->format($this->dateFormatLight);
+        return $date->format($this->languageContext->getDateFormat());
     }
 }

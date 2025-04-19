@@ -38,14 +38,9 @@ class ValidateTest extends TestCase
      */
     private $validate;
 
-    /**
-     * @param string $name
-     * @param array $data
-     * @param string $dataName
-     */
-    public function __construct($name = null, array $data = [], $dataName = '')
+    public function __construct(?string $name = null)
     {
-        parent::__construct($name, $data, $dataName);
+        parent::__construct($name);
 
         $this->validate = new Validate();
     }
@@ -67,6 +62,8 @@ class ValidateTest extends TestCase
         yield [1, 'DESC'];
         yield [1, 'asc'];
         yield [1, 'desc'];
+        yield [1, 'random'];
+        yield [1, 'RANDOM'];
     }
 
     /**
@@ -87,10 +84,10 @@ class ValidateTest extends TestCase
             [true, 'john#doe@prestashop.com'],
             [false, ''],
             [false, 'john.doe@prestashop,com'],
-            [true, 'john.doe@prestashop'],
+            [false, 'john.doe@prestashop'],
             [true, 'john.doe@сайт.рф'],
             [true, 'john.doe@xn--80aswg.xn--p1ai'],
-            [false, 'иван@prestashop.com'], // rfc6531 valid but not swift mailer compatible
+            [false, 'иван@prestashop.com'], // rfc6531 valid but not cyrillic mailer compatible
             [true, 'xn--80adrw@prestashop.com'],
             [true, 'xn--80adrw@xn--80aswg.xn--p1ai'],
         ];
@@ -122,6 +119,143 @@ class ValidateTest extends TestCase
             [false, null],
             [false, 'invalid'],
             [false, '666invalid'],
+        ];
+    }
+
+    /**
+     * @param bool $expected
+     * @param string $objectClassName
+     *
+     * @dataProvider isValidObjectClassNameDataProvider
+     */
+    public function testisValidObjectClassName(bool $expected, string $objectClassName): void
+    {
+        $this->assertSame($expected, $this->validate->isValidObjectClassName($objectClassName));
+    }
+
+    /**
+     * @param string $html
+     * @param bool $allowFrame
+     * @param $expectedResult
+     *
+     * @dataProvider isCleanHtmlDataProvider
+     *
+     * @return void
+     */
+    public function testIsCleanHtml(string $html, bool $allowFrame, $expectedResult): void
+    {
+        $this->assertSame($expectedResult, $this->validate->isCleanHtml($html, $allowFrame));
+    }
+
+    public function isValidObjectClassNameDataProvider(): array
+    {
+        return [
+            [true, 'MyClassName'],
+            [true, '_MyClassName'],
+            [true, '_My_Class_Name_'],
+            [true, '_MyClassName_'],
+            [true, '__My__Class__Name__'],
+            [false, ''],
+            [false, '666'],
+            [true, '_666'],
+            [true, '_6_6_6_'],
+            [true, '__'],
+        ];
+    }
+
+    public function isCleanHtmlDataProvider()
+    {
+        return [
+            [
+                '<div randomattribute="randomvalue">test</div>', // nominal case
+                false,
+                true,
+            ],
+            [
+                '<div
+
+randomattribute="anything"   attributewithoutvalue
+
+        randomattr="random value">
+
+</div>', // nominal case with added spaces and line jumps
+                false,
+                true,
+            ],
+            [
+                '/form input > embed onerror iframe object', // test plain words with forbidden tag / attributes: should pass
+                false,
+                true,
+            ],
+            [
+                '<a href="#" onchange="evilJavascriptIsCalled()"></a>', // event attributes are forbidden, should not pass
+                false,
+                false,
+            ],
+            [
+                '<a href="#" onanything="evilJavascriptIsCalled()"></a>', // random attribute starting with on should not pass
+                false,
+                false,
+            ],
+            [
+                '<a href="#" oNnotexi="evilJavascriptIsCalled()"></a>', // random attribute starting with on but case insensitive: should not pass
+                false,
+                false,
+            ],
+            [
+                '<iframe src="catvideo.html" /></iframe>', // iframe forbidden
+                false,
+                false,
+            ],
+            [
+                '<iframe src="catvideo.html" /></iframe>', // iframe parameter is set to true, should pass
+                true,
+                true,
+            ],
+            [
+                '<form></form>', // form should not pass,
+                false,
+                false,
+            ],
+            [
+                '<embed></embed>', // embed should not pass
+                false,
+                false,
+            ],
+            [
+                '<input>', // input should not pass
+                false,
+                false,
+            ],
+            [
+                '<script>
+
+    </script>', // script tags are forbidden, should not pass (added a random tabulation and line break
+                false,
+                false,
+            ],
+            [
+                '<object></object>', // objects are forbidden, should not pass
+                false,
+                false,
+            ],
+            [
+                '<div
+randomattribute="anything"
+
+    onbidule="test" attributewithoutvalue
+
+        randomattr="random value">test
+
+        </div>', // puting an attribute starting with "on" in the middle of other attributes, with spaces and line breaks: shouldn't pass
+                false,
+                false,
+            ],
+            [
+                '‮<img src=x onerror="alert(\'img\')">', // test RLO xss attack
+                false,
+                false,
+            ],
         ];
     }
 }

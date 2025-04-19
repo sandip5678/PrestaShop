@@ -43,7 +43,13 @@ class GuestCore extends ObjectModel
     public $real_player;
     public $windows_media;
     public $accept_language;
-    public $mobile_theme;
+
+    /**
+     * @deprecated since 9.0.0 - This functionality was disabled. Attribute will be completely removed
+     * in the next major. There is no replacement, all clients should have the same experience.
+     *
+     * @var bool Mobile Theme */
+    public $mobile_theme = false;
 
     /**
      * @see ObjectModel::$definition
@@ -86,13 +92,12 @@ class GuestCore extends ObjectModel
         $this->accept_language = $this->getLanguage($acceptLanguage);
         $this->id_operating_system = $this->getOs($userAgent);
         $this->id_web_browser = $this->getBrowser($userAgent);
-        $this->mobile_theme = Context::getContext()->getMobileDevice();
     }
 
     /**
      * Get Guest Language.
      *
-     * @param $acceptLanguage
+     * @param string $acceptLanguage
      *
      * @return mixed|string
      */
@@ -142,7 +147,7 @@ class GuestCore extends ObjectModel
 				FROM `' . _DB_PREFIX_ . 'web_browser` wb
 				WHERE wb.`name` = \'' . pSQL($k) . '\'');
 
-                return $result['id_web_browser'];
+                return $result['id_web_browser'] ?? null;
             }
         }
 
@@ -175,7 +180,7 @@ class GuestCore extends ObjectModel
 				FROM `' . _DB_PREFIX_ . 'operating_system` os
 				WHERE os.`name` = \'' . pSQL($k) . '\'');
 
-                return $result['id_operating_system'];
+                return $result['id_operating_system'] ?? null;
             }
         }
 
@@ -187,7 +192,7 @@ class GuestCore extends ObjectModel
      *
      * @param int $idCustomer Customer ID
      *
-     * @return bool
+     * @return bool|int
      */
     public static function getFromCustomer($idCustomer)
     {
@@ -197,9 +202,9 @@ class GuestCore extends ObjectModel
         $result = Db::getInstance()->getRow('
 		SELECT `id_guest`
 		FROM `' . _DB_PREFIX_ . 'guest`
-		WHERE `id_customer` = ' . (int) ($idCustomer));
+		WHERE `id_customer` = ' . (int) $idCustomer);
 
-        return $result['id_guest'];
+        return $result['id_guest'] ?? false;
     }
 
     /**
@@ -214,6 +219,11 @@ class GuestCore extends ObjectModel
     {
         // Since the guests are merged, the guest id in the connections table must be changed too
         Db::getInstance()->update('connections', [
+            'id_guest' => (int) $idGuest,
+        ], 'id_guest = ' . (int) $this->id);
+
+        // Since the guests are merged, the guest id in the cart table must be changed too
+        Db::getInstance()->update('cart', [
             'id_guest' => (int) $idGuest,
         ], 'id_guest = ' . (int) $this->id);
 
@@ -237,13 +247,13 @@ class GuestCore extends ObjectModel
     /**
      * Set new guest.
      *
-     * @param Cookie $cookie
+     * @param CookieCore $cookie
      */
     public static function setNewGuest($cookie)
     {
-        $guest = new Guest(isset($cookie->id_customer) ? Guest::getFromCustomer((int) ($cookie->id_customer)) : null);
+        $guest = new Guest(isset($cookie->id_customer) ? (int) Guest::getFromCustomer((int) $cookie->id_customer) : null);
         $guest->userAgent();
         $guest->save();
-        $cookie->id_guest = (int) ($guest->id);
+        $cookie->id_guest = (int) $guest->id;
     }
 }

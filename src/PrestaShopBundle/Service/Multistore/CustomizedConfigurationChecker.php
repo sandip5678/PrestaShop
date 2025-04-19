@@ -39,11 +39,6 @@ class CustomizedConfigurationChecker
      */
     private $configuration;
 
-    /**
-     * @var Shop
-     */
-    private $shop;
-
     public function __construct(ShopConfigurationInterface $configuration)
     {
         $this->configuration = $configuration;
@@ -65,11 +60,8 @@ class CustomizedConfigurationChecker
         // we don't check group shop customization if we are already in group shop context
         if (!$isGroupShopContext) {
             // check if given configuration is overridden for the parent group shop
-            $shopGroupConstraint = new ShopConstraint(
-                null,
-                $shop->getShopGroup()->getId(),
-                true // it must be strict, otherwise the method will also check for configuration settings in "all shop" context
-            );
+            // isStrict must be true, otherwise the method will also check for configuration settings in "all shop" context
+            $shopGroupConstraint = ShopConstraint::shopGroup($shop->getShopGroup()->getId(), true);
 
             if ($this->configuration->has($configurationKey, $shopGroupConstraint)) {
                 return true;
@@ -77,11 +69,7 @@ class CustomizedConfigurationChecker
         }
 
         // check if given configuration is overridden for the shop
-        $shopConstraint = new ShopConstraint(
-            $shop->getId(),
-            $shop->getShopGroup()->getId(),
-            true
-        );
+        $shopConstraint = ShopConstraint::shop($shop->getId(), true);
 
         return $this->configuration->has($configurationKey, $shopConstraint);
     }

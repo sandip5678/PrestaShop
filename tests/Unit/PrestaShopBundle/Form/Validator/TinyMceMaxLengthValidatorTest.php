@@ -34,9 +34,9 @@ use PrestaShop\PrestaShop\Adapter\Validate;
 use PrestaShopBundle\Form\Validator\Constraints\TinyMceMaxLength;
 use PrestaShopBundle\Form\Validator\Constraints\TinyMceMaxLengthValidator;
 use stdClass;
-use Symfony\Component\Translation\TranslatorInterface;
 use Symfony\Component\Validator\Exception\MissingOptionsException;
 use Symfony\Component\Validator\Test\ConstraintValidatorTestCase;
+use Symfony\Contracts\Translation\TranslatorInterface;
 
 class TinyMceMaxLengthValidatorTest extends ConstraintValidatorTestCase
 {
@@ -44,9 +44,10 @@ class TinyMceMaxLengthValidatorTest extends ConstraintValidatorTestCase
 
     protected function createValidator(): TinyMceMaxLengthValidator
     {
-        $this->translator = $this->createMock(TranslatorInterface::class);
-
-        return new TinyMceMaxLengthValidator(new Validate(), $this->translator);
+        return new TinyMceMaxLengthValidator(
+            new Validate(),
+            $this->createMock(TranslatorInterface::class)
+        );
     }
 
     /**

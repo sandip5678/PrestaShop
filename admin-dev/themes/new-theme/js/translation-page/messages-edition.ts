@@ -25,14 +25,14 @@
 // @ts-ignore-next-line
 import Jets from 'jets/jets';
 
-export default function (search: Jets): void {
+export default function (search: typeof Jets): void {
   $('.reset-translation-value').each((buttonIndex, button) => {
     const $editTranslationForm = $(button).parents('form');
     const defaultTranslationValue = $editTranslationForm
       .find('*[name=default]')
       .val();
 
-    $(button).click(() => {
+    $(button).on('click', () => {
       $editTranslationForm
         .find('*[name=translation_value]')
         .val(<string>defaultTranslationValue);
@@ -41,7 +41,7 @@ export default function (search: Jets): void {
   });
 
   const showFlashMessageOnEdit = (form: HTMLElement) => {
-    $(form).submit((event) => {
+    $(form).on('submit', (event) => {
       event.preventDefault();
 
       const $editTranslationForm = $(event.target);

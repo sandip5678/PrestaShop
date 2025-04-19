@@ -29,13 +29,14 @@ declare(strict_types=1);
 namespace Tests\Unit\Adapter\Module\Configuration;
 
 use Doctrine\DBAL\Connection;
-use Doctrine\DBAL\Driver\PDOMySql\Driver;
+use Doctrine\DBAL\Driver\PDO\MySQL\Driver;
+use Doctrine\DBAL\Result;
 use Doctrine\DBAL\Statement;
 use PHPUnit\Framework\TestCase;
 use PrestaShop\PrestaShop\Adapter\Configuration;
 use PrestaShop\PrestaShop\Adapter\Module\Configuration\ModuleSelfConfigurator;
-use PrestaShop\PrestaShop\Core\Addon\Module\ModuleRepository;
 use PrestaShop\PrestaShop\Core\Domain\Shop\ValueObject\ShopConstraint;
+use PrestaShop\PrestaShop\Core\Module\ModuleRepository;
 use Symfony\Component\Filesystem\Filesystem;
 
 class ModuleSelfConfiguratorTest extends TestCase
@@ -73,10 +74,10 @@ class ModuleSelfConfiguratorTest extends TestCase
     }
 
     private function getModuleSelfConfigurator(
-        ModuleRepository $moduleRepository = null,
-        Configuration $configuration = null,
-        Connection $connection = null,
-        Filesystem $filesystem = null
+        ?ModuleRepository $moduleRepository = null,
+        ?Configuration $configuration = null,
+        ?Connection $connection = null,
+        ?Filesystem $filesystem = null
     ): ModuleSelfConfigurator {
         return new ModuleSelfConfigurator(
             $moduleRepository ?: $this->moduleRepository,
@@ -186,18 +187,20 @@ class ModuleSelfConfiguratorTest extends TestCase
         $mockFilesystem = $this->getMockBuilder('\Symfony\Component\Filesystem\Filesystem')
             ->getMock();
 
-        $mockFilesystem->expects($this->exactly(2))
+        $invokedCount = $this->exactly(2);
+        $mockFilesystem->expects($invokedCount)
             ->method('copy')
-            ->withConsecutive(
-                [
-                    $this->equalTo($basePath . '/modules/ganalytics/ganalytics.php'),
-                    $this->equalTo($basePath . '/modules/ganalytics/ganalytics_copy.php'),
-                ],
-                [
-                    $this->equalTo('http://localhost/img/logo.png'),
-                    $this->equalTo($basePath . '/modules/ganalytics/another-logo.png'),
-                ]
-            );
+            ->willReturnCallback(function (string $originFile, string $targetFile) use ($invokedCount, $basePath) {
+                if ($invokedCount->numberOfInvocations() === 1) {
+                    $this->assertEquals($basePath . '/modules/ganalytics/ganalytics.php', $originFile);
+                    $this->assertEquals($basePath . '/modules/ganalytics/ganalytics_copy.php', $targetFile);
+                }
+
+                if ($invokedCount->numberOfInvocations() === 2) {
+                    $this->assertEquals('http://localhost/img/logo.png', $originFile);
+                    $this->assertEquals($basePath . '/modules/ganalytics/another-logo.png', $targetFile);
+                }
+            });
 
         $moduleSelfConfigurator = $this->getModuleSelfConfigurator(
             null,
@@ -248,7 +251,7 @@ class ModuleSelfConfiguratorTest extends TestCase
         // Test context with mocks
         require_once $php_filepath;
         $mock = $this->getMockBuilder('\MyComplexModuleConfiguration')
-            ->setMethods(['run'])
+            ->onlyMethods(['run'])
             ->getMock();
         $mock->expects($this->exactly(2))
             ->method('run');
@@ -259,7 +262,7 @@ class ModuleSelfConfiguratorTest extends TestCase
                 '\PrestaShop\PrestaShop\Adapter\Module\Configuration\ModuleSelfConfigurator'
             )
             ->setConstructorArgs([$this->moduleRepository, $this->configuration, $this->connection, new Filesystem()])
-            ->setMethods(['loadPhpFile'])
+            ->onlyMethods(['loadPhpFile'])
             ->getMock();
 
         $moduleSelfConfigurator
@@ -294,16 +297,10 @@ class ModuleSelfConfiguratorTest extends TestCase
             ->method('onReset')
             ->willReturn(true);
         $moduleS
-            ->method('onMobileDisable')
-            ->willReturn(true);
-        $moduleS
-            ->method('onMobileEnable')
-            ->willReturn(true);
-        $moduleS
             ->method('hasValidInstance')
             ->willReturn(true);
 
-        $this->moduleRepository = $this->getMockBuilder('PrestaShop\PrestaShop\Core\Addon\Module\ModuleRepository')
+        $this->moduleRepository = $this->getMockBuilder(ModuleRepository::class)
             ->disableOriginalConstructor()
             ->getMock();
 
@@ -317,14 +314,14 @@ class ConfigurationMock extends Configuration
 {
     private $configurationData = [];
 
-    public function set($key, $value, ShopConstraint $shopConstraint = null, array $options = [])
+    public function set($key, $value, ?ShopConstraint $shopConstraint = null, array $options = [])
     {
         $this->configurationData[$key] = $value;
 
         return $this;
     }
 
-    public function get($key, $default = null, ShopConstraint $shopConstraint = null)
+    public function get($key, $default = null, ?ShopConstraint $shopConstraint = null): mixed
     {
         return isset($this->configurationData[$key]) ? $this->configurationData[$key] : $default;
     }
@@ -349,20 +346,25 @@ class ConnectionMock extends Connection
 
     public function beginTransaction()
     {
+        return true;
     }
 
     public function commit()
     {
         $this->executedSql = array_merge($this->executedSql, $this->sql);
         $this->sql = [];
+
+        return true;
     }
 
     public function rollBack()
     {
         $this->sql = [];
+
+        return true;
     }
 
-    public function prepare($statement)
+    public function prepare($statement): Statement
     {
         $this->sql[] = $statement;
 
@@ -372,11 +374,20 @@ class ConnectionMock extends Connection
 
 class StatementMock extends Statement
 {
+    /** @phpstan-ignore-next-line */
     public function __construct($sql, Connection $conn)
     {
     }
 
-    public function execute($params = null)
+    public function execute($params = null): Result
+    {
+        return new ResultMock();
+    }
+}
+
+class ResultMock extends Result
+{
+    public function __construct()
     {
     }
 }

@@ -57,32 +57,37 @@ class MailTemplateTwigRenderer implements MailTemplateRendererInterface
     /** @var TransformationCollection */
     private $transformations;
 
+    /** @var bool */
+    private $hasGiftWrapping;
+
     /**
      * @param Environment $twig
      * @param LayoutVariablesBuilderInterface $variablesBuilder
      * @param HookDispatcherInterface $hookDispatcher
+     * @param bool $hasGiftWrapping
      *
      * @throws TypeException
      */
     public function __construct(
         Environment $twig,
         LayoutVariablesBuilderInterface $variablesBuilder,
-        HookDispatcherInterface $hookDispatcher
+        HookDispatcherInterface $hookDispatcher,
+        bool $hasGiftWrapping
     ) {
         $this->twig = $twig;
         $this->variablesBuilder = $variablesBuilder;
         $this->hookDispatcher = $hookDispatcher;
         $this->transformations = new TransformationCollection();
+        $this->hasGiftWrapping = $hasGiftWrapping;
     }
 
     /**
      * @param LayoutInterface $layout
      * @param LanguageInterface $language
      *
-     * @throws TypeException
-     *
      * @return string
      *
+     * @throws TypeException
      * @throws FileNotFoundException
      * @throws TypeException
      */
@@ -95,10 +100,10 @@ class MailTemplateTwigRenderer implements MailTemplateRendererInterface
      * @param LayoutInterface $layout
      * @param LanguageInterface $language
      *
+     * @return string
+     *
      * @throws FileNotFoundException
      * @throws TypeException
-     *
-     * @return string
      */
     public function renderTxt(LayoutInterface $layout, LanguageInterface $language)
     {
@@ -122,6 +127,7 @@ class MailTemplateTwigRenderer implements MailTemplateRendererInterface
     ) {
         $layoutVariables = $this->variablesBuilder->buildVariables($layout, $language);
         $layoutVariables['templateType'] = $templateType;
+        $layoutVariables['giftWrapping'] = $this->hasGiftWrapping;
         if (MailTemplateInterface::HTML_TYPE === $templateType) {
             $layoutPath = !empty($layout->getHtmlPath()) ? $layout->getHtmlPath() : $layout->getTxtPath();
         } else {
@@ -130,7 +136,7 @@ class MailTemplateTwigRenderer implements MailTemplateRendererInterface
 
         try {
             $renderedTemplate = $this->twig->render($layoutPath, $layoutVariables);
-        } catch (LoaderError $e) {
+        } catch (LoaderError) {
             throw new FileNotFoundException(sprintf('Could not find layout file: %s', $layoutPath));
         }
 
@@ -156,9 +162,17 @@ class MailTemplateTwigRenderer implements MailTemplateRendererInterface
      */
     private function getMailLayoutTransformations(LayoutInterface $mailLayout, $templateType)
     {
+        $themeName = '';
+        $htmlPath = $mailLayout->getHtmlPath();
+        if ($htmlPath !== null && preg_match('#mails/themes/([^/]+)/#', $htmlPath, $matches)) {
+            $themeName = $matches[1];
+        }
         $templateTransformations = new TransformationCollection();
         /** @var TransformationInterface $transformation */
         foreach ($this->transformations as $transformation) {
+            if ($transformation::class == 'PrestaShop\PrestaShop\Core\MailTemplate\Transformation\CSSInlineTransformation' && $themeName == 'modern') {
+                continue;
+            }
             if ($templateType !== $transformation->getType()) {
                 continue;
             }
@@ -166,7 +180,7 @@ class MailTemplateTwigRenderer implements MailTemplateRendererInterface
             $templateTransformations->add($transformation);
         }
 
-        //This hook allows to add/remove transformations during a layout rendering
+        // This hook allows to add/remove transformations during a layout rendering
         $this->hookDispatcher->dispatchWithParameters(
             MailTemplateRendererInterface::GET_MAIL_LAYOUT_TRANSFORMATIONS,
             [

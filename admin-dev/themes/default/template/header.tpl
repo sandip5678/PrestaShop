@@ -32,7 +32,7 @@
   <meta charset="utf-8">
 
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
   <link rel="icon" type="image/x-icon" href="{$img_dir}favicon.ico" />
   <link rel="apple-touch-icon" href="{$img_dir}app_icon.png" />
 
@@ -59,14 +59,14 @@
 {else}
     var youEditFieldFor = '';
 {/if}
-		var new_order_msg = '{l|escape s='A new order has been placed on your shop.' js=1 d='Admin.Navigation.Header'}';
+		var new_order_msg = '{l|escape s='A new order has been placed on your store.' js=1 d='Admin.Navigation.Header'}';
 		var order_number_msg = '{l|escape s='Order number:' js=1 d='Admin.Navigation.Header'} ';
 		var total_msg = '{l|escape s='Total' js=1 d='Admin.Global'} ';
 		var from_msg = '{l|escape s='From:' js=1 d='Admin.Global'} ';
 		var see_order_msg = '{l|escape s='View this order' js=1 d='Admin.Orderscustomers.Feature'}';
-		var new_customer_msg = '{l|escape s='A new customer registered on your shop.' js=1 d='Admin.Navigation.Header'}';
+		var new_customer_msg = '{l|escape s='A new customer registered on your store.' js=1 d='Admin.Navigation.Header'}';
         var customer_name_msg = '{l|escape s='registered' js=1 d='Admin.Navigation.Notification'} ';
-		var new_msg = '{l|escape s='A new message was posted on your shop.' js=1 d='Admin.Navigation.Header'}';
+		var new_msg = '{l|escape s='A new message was posted on your store.' js=1 d='Admin.Navigation.Header'}';
 		var see_msg = '{l|escape s='Read this message' js=1 d='Admin.Navigation.Header'}';
 		var token = '{$token|addslashes}';
 		var token_admin_orders = tokenAdminOrders = '{getAdminToken tab='AdminOrders'}';
@@ -76,15 +76,18 @@
 		var employee_token = '{getAdminToken tab='AdminEmployees'}';
 		var choose_language_translate = '{l|escape s='Choose language:' js=1 d='Admin.Actions'}';
 		var default_language = '{$default_language|intval}';
-		var admin_modules_link = '{$link->getAdminLink("AdminModulesCatalog", true, ['route' => "admin_module_catalog_post"])|addslashes}';
 		var admin_notification_get_link = adminNotificationGetLink = '{$link->getAdminLink("AdminCommon")|addslashes}';
 		var admin_notification_push_link = adminNotificationPushLink ='{$link->getAdminLink("AdminCommon", true, ['route' => 'admin_common_notifications_ack'])|addslashes}';
-		var tab_modules_list = '{if isset($tab_modules_list) && $tab_modules_list}{$tab_modules_list|addslashes}{/if}';
-		var update_success_msg = '{l|escape s='Successful update.' js=1 d='Admin.Notifications.Success'}';
-		var errorLogin = '{l|escape s='PrestaShop was unable to log in to Addons. Please check your credentials and your Internet connection.' js=1 d='Admin.Notifications.Warning'}';
+		var update_success_msg = '{l|escape s='Successful update' js=1 d='Admin.Notifications.Success'}';
 		var search_product_msg = '{l|escape s='Search for a product' js=1 d='Admin.Orderscustomers.Feature'}';
 	</script>
 {/if}
+{$admin_path = "{__PS_BASE_URI__}{basename(_PS_ADMIN_DIR_)}/themes/default/public/"}
+
+{$preloadFilePath = "../public/preload.tpl"}
+
+{include file=$preloadFilePath admin_dir=$admin_path}
+
 {if isset($css_files)}
 {foreach from=$css_files key=css_uri item=media}
   <link href="{$css_uri|escape:'html':'UTF-8'}" rel="stylesheet" type="text/css"/>
@@ -108,7 +111,9 @@
 </head>
 
 {if $display_header}
-  <body class="lang-{$iso_user}{if $lang_is_rtl} lang-rtl{/if} ps_back-office{if $employee->bo_menu} page-sidebar{if $collapse_menu} page-sidebar-closed{/if}{else} page-topbar{/if} {$smarty.get.controller|escape|strtolower}">
+<body class="lang-{$iso_user}{if $lang_is_rtl} lang-rtl{/if} ps_back-office{if $employee->bo_menu} page-sidebar{if $collapse_menu} page-sidebar-closed{/if}{else} page-topbar{/if} {$controller_name|escape|strtolower}{if !empty($debug_mode)} developer-mode{/if}"
+      {if isset($js_router_metadata.base_url)}data-base-url="{$js_router_metadata.base_url}"{/if}
+      {if isset($js_router_metadata.token)}data-token="{$js_router_metadata.token}"{/if}>
   {* begin  HEADER *}
   <header id="header" class="bootstrap">
     <nav id="header_infos" role="navigation">
@@ -120,7 +125,7 @@
 
       {* Quick access *}
       <div id="header_quick" class="component">
-        <div class="dropdown">
+        <div class="dropdown" id="quick-access-container">
           <button
             id="quick_select"
             class="btn btn-link dropdown-toggle"
@@ -130,9 +135,10 @@
             {if !empty($quick_access)}
               {foreach $quick_access as $quick}
                 <li class="quick-row-link{if $link->matchQuickLink({$quick.link})}{assign "matchQuickLink" $quick.id_quick_access} active{/if}">
-                  <a href="{$quick.link|escape:'html':'UTF-8'}" {if $quick.new_window}target="_blank"{/if}>
-                    {$quick.name}
-                  </a>
+                  <a {if isset($quick.class)}class="{$quick.class}"{/if}
+                     href="{$quick.link|escape:'html':'UTF-8'}" {if $quick.new_window}target="_blank"{/if}
+                     data-item="{$quick.name}"
+                  >{$quick.name}</a>
                 </li>
               {/foreach}
             {/if}
@@ -222,7 +228,7 @@
            data-toggle="tooltip"
            data-placement="bottom"
            data-html="true"
-           title="<p class=&quot;text-left&quot;><strong>{l|escape s='Your shop is in debug mode.' d='Admin.Navigation.Notification'}</strong></p><p class=&quot;text-left&quot;>{l|escape s='All the PHP errors and messages are displayed. When you no longer need it, [1]turn off[/1] this mode.' html=true sprintf=['[1]' => '<strong>', '[/1]' => '</strong>'] d='Admin.Navigation.Notification'}</p>"
+           title="<p class=&quot;text-left&quot;><strong>{l|escape s='Your store is in debug mode.' d='Admin.Navigation.Notification'}</strong></p><p class=&quot;text-left&quot;>{l|escape s='All the PHP errors and messages are displayed. When you no longer need it, [1]turn off[/1] this mode.' html=true sprintf=['[1]' => '<strong>', '[/1]' => '</strong>'] d='Admin.Navigation.Notification'}</p>"
              href="{$link->getAdminLink('AdminPerformance')|escape:'html':'UTF-8'}"
           >
           <i class="material-icons">bug_report</i>
@@ -232,18 +238,34 @@
       {/if}
 
       {if isset($maintenance_mode) && $maintenance_mode == true}
-      <div class="component hide-mobile-sm">
-        <a class="shop-state label-tooltip" id="maintenance-mode"
-           href="{$link->getAdminLink('AdminMaintenance')|escape:'html':'UTF-8'}"
-           data-toggle="tooltip"
-           data-placement="bottom"
-           data-html="true"
-           title="<p class=&quot;text-left text-nowrap&quot;><strong>{l|escape s='Your shop is in maintenance.' d='Admin.Navigation.Notification'}</strong></p><p class=&quot;text-left&quot;>{l|escape s='Your visitors and customers cannot access your shop while in maintenance mode.%s To manage the maintenance settings, go to Shop Parameters > Maintenance tab.' sprintf=['<br />'] d='Admin.Navigation.Notification'}</p>"
-        >
-          <i class="material-icons">build</i>
-          <span>{l|escape s='Maintenance mode' d='Admin.Navigation.Header'}</span>
-        </a>
-      </div>
+        {capture name="title"}
+          <p class="text-left">
+            <strong>{l s='Your store is in maintenance mode.' d='Admin.Navigation.Notification'}</strong>
+          </p>
+          <p class="text-left">
+              {l s='Your visitors and customers cannot access your store while in maintenance mode.' d='Admin.Navigation.Notification'}
+          </p>
+          <p class="text-left">
+            {l s='To manage the maintenance settings, go to Shop Parameters > General > Maintenance tab.' d='Admin.Navigation.Notification'}
+          </p>
+          {if isset($maintenance_allow_admins) && $maintenance_allow_admins}
+            <p class="text-left">
+                {l s='Admins can access the store front office without storing their IP.' d='Admin.Navigation.Notification'}
+            </p>
+          {/if}
+        {/capture}
+        <div class="component hide-mobile-sm">
+          <a class="shop-state label-tooltip" id="maintenance-mode"
+             href="{$link->getAdminLink('AdminMaintenance')|escape:'html':'UTF-8'}"
+             data-toggle="tooltip"
+             data-placement="bottom"
+             data-html="true"
+             title="{$smarty.capture.title|htmlspecialchars}"
+          >
+            <i class="material-icons">build</i>
+            <span>{l|escape s='Maintenance mode' d='Admin.Navigation.Header'}</span>
+          </a>
+        </div>
       {/if}
 
       {* Shop name *}
@@ -258,14 +280,13 @@
             )}
               <ul id="header_shop" class="shop-state">
                 <li class="dropdown">
-                  <i class="material-icons">visibility</i>
                   <span>{$shop_list}</span>
                 </li>
               </ul>
             {else}
               <a id="header_shopname" class="shop-state" href="{$base_url|escape:'html':'UTF-8'}" target="_blank">
                 <i class="material-icons">visibility</i>
-                <span>{l|escape s='View my shop' d='Admin.Navigation.Header'}</span>
+                <span>{l|escape s='View my store' d='Admin.Navigation.Header'}</span>
               </a>
             {/if}
           </li>
@@ -364,16 +385,19 @@
             <li class="text-left text-nowrap username" data-mobile="true" data-from="employee_links" data-target="menu">{l|escape s='Welcome back %name%' sprintf=['%name%' => $employee->firstname] d='Admin.Navigation.Header'}</li>
             <li class="employee-wrapper-profile"><a class="admin-link" href="{$link->getAdminLink('AdminEmployees', true, [], ['id_employee' => $employee->id|intval, 'updateemployee' => 1])|escape:'html':'UTF-8'}"><i class="material-icons">edit</i> {l|escape s='Your profile' d='Admin.Navigation.Header'}</a></li>
             <li class="divider"></li>
-            <li><a href="{l|escape s='https://www.prestashop.com/en/resources/documentations?utm_source=back-office&utm_medium=profile&utm_campaign=resources-en&utm_content=download17
-' d='Admin.Navigation.Header'}" target="_blank"><i class="material-icons">book</i> {l|escape s='Resources' d='Admin.Navigation.Header'}</a></li>
-            <li><a href="{l|escape s='https://www.prestashop.com/en/training?utm_source=back-office&utm_medium=profile&utm_campaign=training-en&utm_content=download17' d='Admin.Navigation.Header'}" target="_blank"><i class="material-icons">school</i> {l|escape s='Training' d='Admin.Navigation.Header'}</a></li>
-            <li><a href="{l|escape s='https://www.prestashop.com/en/experts?utm_source=back-office&utm_medium=profile&utm_campaign=expert-en&utm_content=download17' d='Admin.Navigation.Header'}" target="_blank"><i class="material-icons">person_pin_circle</i> {l|escape s='Find an Expert' d='Admin.Navigation.Header'}</a></li>
-            <li><a href="{l|escape s='https://addons.prestashop.com?utm_source=back-office&utm_medium=profile&utm_campaign=addons-en&utm_content=download17' d='Admin.Navigation.Header'}" target="_blank"><i class="material-icons">extension</i> {l|escape s='PrestaShop Marketplace' d='Admin.Navigation.Header'}</a></li>
-            <li><a href="{l|escape s='https://www.prestashop.com/en/contact?utm_source=back-office&utm_medium=profile&utm_campaign=help-center-en&utm_content=download17' d='Admin.Navigation.Header'}" target="_blank"><i class="material-icons">help</i> {l|escape s='Help Center' d='Admin.Global'}</a></li>
-            {if $host_mode}
-              <li><a href="https://www.prestashop.com/cloud/" target="_blank" rel="noopener noreferrer nofollow"><i class="material-icons">settings_applications</i> {l|escape s='My PrestaShop account' d='Admin.Navigation.Header'}</a></li>
-            {/if}
-            <li class="divider"></li>
+
+            {foreach from=$displayBackOfficeEmployeeMenu item=$menuItem}
+              {assign var=menuItemProperties value=$menuItem->getProperties()}
+              <li class="{$menuItem->getClass()}">
+                <a class="dropdown-item" href="{$menuItemProperties.link}" {if !isset($menuItemProperties.isExternalLink) || true === $menuItemProperties.isExternalLink} target="_blank"{/if} rel="noopener noreferrer nofollow">
+                  {if isset($menuItemProperties.icon)}<i class="material-icons">{$menuItemProperties.icon}</i> {/if}{$menuItem->getContent()}
+                </a>
+              </li>
+              {if $menuItem@last}
+                <p class="divider"></p>
+              {/if}
+            {/foreach}
+
             <li class="signout text-center" data-mobile="true" data-from="employee_links" data-target="menu" data-after="true"><a id="header_logout" href="{$logout_link|escape:'html':'UTF-8'}"><i class="material-icons visible-xs">power_settings_new</i> {l|escape s='Sign out' d='Admin.Navigation.Header'}</a></li>
           </ul>
         </li>

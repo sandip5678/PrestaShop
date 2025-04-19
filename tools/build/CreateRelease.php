@@ -58,6 +58,10 @@ $releaseOptions = [
         'description' => 'Do not put the installer in the release. Interesting if release will be upload remotely by FTP or for public release. Default: false.',
         'longopt' => 'no-installer',
     ],
+    'keep-tests' => [
+        'description' => 'Keep tests folder in the release. Default: false.',
+        'longopt' => 'keep-tests',
+    ],
     'help' => [
         'description' => 'Show help',
         'opt' => 'h',
@@ -69,7 +73,7 @@ $helpMessage = "Usage: php {prestashop_root_path}/tools/build/CreateRelease.php 
 
 foreach ($releaseOptions as $optionName => $option) {
     $required = isset($option['required']) ? var_export($option['required'], true) : 'false';
-    $description = isset($releaseOptions[$optionName]['description']) ? $releaseOptions[$optionName]['description'] : '';
+    $description = $releaseOptions[$optionName]['description'];
     $padding = str_pad('', 24, ' ', STR_PAD_LEFT);
     $requiredLabel = str_pad('required:', 13);
     $descriptionLabel = str_pad('description:', 13);
@@ -90,6 +94,7 @@ if (isset($userOptions['h'])
 
 $destinationDir = '';
 $useZip = $useInstaller = true;
+$keepTests = false;
 
 if (isset($userOptions['version'])) {
     $version = $userOptions['version'];
@@ -109,8 +114,12 @@ if (isset($userOptions['no-installer'])) {
     $useInstaller = false;
 }
 
+if (isset($userOptions['keep-tests'])) {
+    $keepTests = true;
+}
+
 try {
-    $releaseCreator = new ReleaseCreator($version, $useInstaller, $useZip, $destinationDir);
+    $releaseCreator = new ReleaseCreator($version, $useInstaller, $useZip, $destinationDir, $keepTests);
     $releaseCreator->createRelease();
 } catch (Exception $e) {
     $consoleWrite->displayText(

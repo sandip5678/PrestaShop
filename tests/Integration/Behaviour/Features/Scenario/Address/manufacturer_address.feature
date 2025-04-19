@@ -1,5 +1,5 @@
 # ./vendor/bin/behat -c tests/Integration/Behaviour/behat.yml -s address --tags manufacturer-address
-@reset-database-before-feature
+@restore-all-tables-before-feature
 @manufacturer-address
 Feature: Address
   PrestaShop allows BO users to manage manufacturer addresses
@@ -14,7 +14,6 @@ Feature: Address
       | description      | Lorem ipsum dolor sit amets ornare |
       | meta_title       | Perfect quality shoes              |
       | meta_description |                                    |
-      | meta_keywords    | Boots, shoes, slippers             |
       | enabled          | true                               |
 
   Scenario: add brand address

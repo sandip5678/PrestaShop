@@ -28,10 +28,10 @@ namespace PrestaShop\PrestaShop\Adapter\Supplier\CommandHandler;
 
 use Address;
 use Db;
+use PrestaShop\PrestaShop\Adapter\Product\Update\ProductSupplierUpdater;
 use PrestaShop\PrestaShop\Adapter\Supplier\SupplierAddressProvider;
-use PrestaShop\PrestaShop\Adapter\Supplier\SupplierOrderValidator;
+use PrestaShop\PrestaShop\Core\Domain\Product\ValueObject\ProductId;
 use PrestaShop\PrestaShop\Core\Domain\Supplier\Exception\CannotDeleteSupplierAddressException;
-use PrestaShop\PrestaShop\Core\Domain\Supplier\Exception\CannotDeleteSupplierException;
 use PrestaShop\PrestaShop\Core\Domain\Supplier\Exception\CannotDeleteSupplierProductRelationException;
 use PrestaShop\PrestaShop\Core\Domain\Supplier\Exception\SupplierException;
 use PrestaShop\PrestaShop\Core\Domain\Supplier\Exception\SupplierNotFoundException;
@@ -46,11 +46,6 @@ use Supplier;
 abstract class AbstractDeleteSupplierHandler
 {
     /**
-     * @var SupplierOrderValidator
-     */
-    private $supplierOrderValidator;
-
-    /**
      * @var string
      */
     private $dbPrefix;
@@ -61,18 +56,23 @@ abstract class AbstractDeleteSupplierHandler
     private $supplierAddressProvider;
 
     /**
-     * @param SupplierOrderValidator $supplierOrderValidator
+     * @var ProductSupplierUpdater
+     */
+    private $productSupplierUpdater;
+
+    /**
      * @param SupplierAddressProvider $supplierAddressProvider
+     * @param ProductSupplierUpdater $productSupplierUpdater
      * @param string $dbPrefix
      */
     public function __construct(
-        SupplierOrderValidator $supplierOrderValidator,
         SupplierAddressProvider $supplierAddressProvider,
-        $dbPrefix
+        ProductSupplierUpdater $productSupplierUpdater,
+        string $dbPrefix
     ) {
-        $this->supplierOrderValidator = $supplierOrderValidator;
         $this->dbPrefix = $dbPrefix;
         $this->supplierAddressProvider = $supplierAddressProvider;
+        $this->productSupplierUpdater = $productSupplierUpdater;
     }
 
     /**
@@ -90,16 +90,6 @@ abstract class AbstractDeleteSupplierHandler
 
             if (0 >= $entity->id) {
                 throw new SupplierNotFoundException(sprintf('Supplier object with id "%s" was not found for deletion.', $supplierId->getValue()));
-            }
-
-            if ($this->hasPendingOrders($supplierId)) {
-                throw new CannotDeleteSupplierException(
-                    sprintf(
-                        'Supplier with id %d cannot be deleted due to it has pending orders',
-                        $supplierId->getValue()
-                    ),
-                    CannotDeleteSupplierException::HAS_PENDING_ORDERS
-                );
             }
 
             if (false === $this->deleteProductSupplierRelation($supplierId)) {
@@ -138,8 +128,21 @@ abstract class AbstractDeleteSupplierHandler
     private function deleteProductSupplierRelation(SupplierId $supplierId)
     {
         $sql = 'DELETE FROM `' . $this->dbPrefix . 'product_supplier` WHERE `id_supplier`=' . $supplierId->getValue();
+        $removedRelations = Db::getInstance()->execute($sql);
 
-        return Db::getInstance()->execute($sql);
+        // Fetch all products which had this supplier as default
+        $sql = 'SELECT id_product FROM `' . $this->dbPrefix . 'product` WHERE `id_supplier` = ' . $supplierId->getValue();
+        $result = Db::getInstance()->executeS($sql);
+        if (!empty($result)) {
+            $orphanProductIds = [];
+            foreach ($result as $product) {
+                $orphanProductIds[] = new ProductId((int) $product['id_product']);
+            }
+
+            $this->productSupplierUpdater->resetSupplierAssociations($orphanProductIds);
+        }
+
+        return $removedRelations;
     }
 
     /**
@@ -162,17 +165,5 @@ abstract class AbstractDeleteSupplierHandler
         }
 
         return true;
-    }
-
-    /**
-     * Checks if the given supplier has pending orders.
-     *
-     * @param SupplierId $supplierId
-     *
-     * @return bool
-     */
-    private function hasPendingOrders(SupplierId $supplierId)
-    {
-        return $this->supplierOrderValidator->hasPendingOrders($supplierId->getValue());
     }
 }

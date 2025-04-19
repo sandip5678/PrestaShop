@@ -71,7 +71,6 @@ final class WebserviceKeyQueryBuilder extends AbstractDoctrineQueryBuilder
         parent::__construct($connection, $dbPrefix);
         $this->searchCriteriaApplicator = $searchCriteriaApplicator;
         $this->contextShopIds = $contextShopIds;
-        $this->connection = $connection;
         $this->doctrineFilterApplicator = $doctrineFilterApplicator;
     }
 
@@ -81,12 +80,17 @@ final class WebserviceKeyQueryBuilder extends AbstractDoctrineQueryBuilder
     public function getSearchQueryBuilder(SearchCriteriaInterface $searchCriteria)
     {
         $qb = $this->getQueryBuilder($searchCriteria->getFilters());
-        $qb->select('wa.`id_webservice_account`, wa.`key`, wa.`description`, wa.`active`')
-            ->orderBy(
-                $this->getModifiedOrderBy($searchCriteria->getOrderBy()),
+        $qb->select('wa.`id_webservice_account`, wa.`key`, wa.`description`, wa.`active`');
+
+        $orderBy = $searchCriteria->getOrderBy();
+        if (!empty($orderBy)) {
+            $qb->orderBy(
+                $this->getModifiedOrderBy($orderBy),
                 $searchCriteria->getOrderWay()
-            )
-            ->groupBy('wa.`id_webservice_account`');
+            );
+        }
+
+        $qb->groupBy('wa.`id_webservice_account`');
 
         $this->searchCriteriaApplicator->applyPagination($searchCriteria, $qb);
 
@@ -146,6 +150,6 @@ final class WebserviceKeyQueryBuilder extends AbstractDoctrineQueryBuilder
      */
     private function getModifiedOrderBy($orderBy)
     {
-        return 'wa.`' . $orderBy . '`';
+        return 'wa.' . $orderBy;
     }
 }

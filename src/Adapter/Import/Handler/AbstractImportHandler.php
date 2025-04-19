@@ -41,7 +41,7 @@ use PrestaShop\PrestaShop\Core\Import\Handler\ImportHandlerInterface;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\PropertyAccess\PropertyAccess;
 use Symfony\Component\PropertyAccess\PropertyAccessor;
-use Symfony\Component\Translation\TranslatorInterface;
+use Symfony\Contracts\Translation\TranslatorInterface;
 
 /**
  * Class AbstractImportHandler is an abstract handler for import.
@@ -136,7 +136,6 @@ abstract class AbstractImportHandler implements ImportHandlerInterface
         'description',
         'description_short',
         'meta_title',
-        'meta_keywords',
         'meta_description',
         'link_rewrite',
         'available_now',
@@ -265,7 +264,6 @@ abstract class AbstractImportHandler implements ImportHandlerInterface
             'description' => $createMultilangField,
             'description_short' => $createMultilangField,
             'meta_title' => $createMultilangField,
-            'meta_keywords' => $createMultilangField,
             'meta_description' => $createMultilangField,
             'link_rewrite' => $createMultilangField,
             'available_now' => $createMultilangField,

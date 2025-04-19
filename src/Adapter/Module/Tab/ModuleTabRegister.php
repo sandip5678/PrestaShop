@@ -27,7 +27,7 @@
 namespace PrestaShop\PrestaShop\Adapter\Module\Tab;
 
 use Exception;
-use PrestaShop\PrestaShop\Adapter\Module\Module;
+use PrestaShop\PrestaShop\Core\Module\ModuleInterface;
 use PrestaShopBundle\Entity\Repository\LangRepository;
 use PrestaShopBundle\Entity\Repository\TabRepository;
 use Psr\Log\LoggerInterface;
@@ -36,7 +36,7 @@ use Symfony\Component\Filesystem\Filesystem;
 use Symfony\Component\Finder\Finder;
 use Symfony\Component\Finder\SplFileInfo;
 use Symfony\Component\HttpFoundation\ParameterBag;
-use Symfony\Component\Translation\TranslatorInterface;
+use Symfony\Contracts\Translation\TranslatorInterface;
 use TabCore as Tab;
 
 /**
@@ -62,12 +62,12 @@ class ModuleTabRegister
     protected $tabRepository;
 
     /**
-     * @var \Psr\Log\LoggerInterface
+     * @var LoggerInterface
      */
     private $logger;
 
     /**
-     * @var \Symfony\Component\Translation\TranslatorInterface
+     * @var TranslatorInterface
      */
     private $translator;
 
@@ -118,9 +118,9 @@ class ModuleTabRegister
      *
      * This is done automatically as part of the module installation.
      *
-     * @param Module $module
+     * @param ModuleInterface $module
      */
-    public function registerTabs(Module $module)
+    public function registerTabs(ModuleInterface $module)
     {
         if (!$module->getInstance()) {
             return;
@@ -137,9 +137,9 @@ class ModuleTabRegister
     }
 
     /**
-     * @param Module $module
+     * @param ModuleInterface $module
      */
-    public function enableTabs(Module $module)
+    public function enableTabs(ModuleInterface $module)
     {
         $this->tabRepository->changeEnabledByModuleName($module->get('name'), true);
     }
@@ -197,10 +197,8 @@ class ModuleTabRegister
         $legacyControllers = array_map(function ($legacyControllersFilename) {
             return str_replace('Controller.php', '', $legacyControllersFilename);
         }, $legacyControllersFilenames);
-        $legacyControllers = $legacyControllers ?? [];
 
         $routingControllers = $this->getModuleControllersFromRouting($moduleName);
-        $routingControllers = $routingControllers ?? [];
 
         return array_merge($legacyControllers, $routingControllers);
     }
@@ -232,7 +230,7 @@ class ModuleTabRegister
         if ($data->has('ParentClassName') && !$data->has('parent_class_name')) {
             $this->logger->warning('Tab attribute "ParentClassName" is deprecated. You must use "parent_class_name" instead.');
         }
-        //Check if the tab was already added manually
+        // Check if the tab was already added manually
         if (!empty($this->tabRepository->findOneIdByClassName($className))) {
             throw new Exception(sprintf('Cannot register tab "%s" because it already exists', $className));
         }
@@ -343,12 +341,12 @@ class ModuleTabRegister
     /**
      * Install a tab according to its defined structure.
      *
-     * @param Module $module
+     * @param ModuleInterface $module
      * @param ParameterBag $tabDetails the structure of the tab
      *
      * @throws Exception in case of error from validation or save
      */
-    protected function registerTab(Module $module, ParameterBag $tabDetails)
+    protected function registerTab(ModuleInterface $module, ParameterBag $tabDetails)
     {
         $this->checkIsValid($module->get('name'), $tabDetails);
 

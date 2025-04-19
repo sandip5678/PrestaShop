@@ -25,13 +25,18 @@
  */
 class FileLoggerCore extends AbstractLogger
 {
+    /**
+     * @var string
+     */
     protected $filename = '';
 
     /**
      * Write the message in the log file.
      *
-     * @param string message
-     * @param level
+     * @param string $message
+     * @param int $level
+     *
+     * @return bool
      */
     protected function logMessage($message, $level)
     {
@@ -47,6 +52,8 @@ class FileLoggerCore extends AbstractLogger
      * Check if the specified filename is writable and set the filename.
      *
      * @param string $filename
+     *
+     * @return void
      */
     public function setFilename($filename)
     {
@@ -60,13 +67,12 @@ class FileLoggerCore extends AbstractLogger
     /**
      * Log the message.
      *
-     * @param string message
-     * @param level
+     * @return string
      */
     public function getFilename()
     {
         if (empty($this->filename)) {
-            die(Tools::displayError('Filename is empty.'));
+            throw new PrestaShopException('Filename is empty.');
         }
 
         return $this->filename;

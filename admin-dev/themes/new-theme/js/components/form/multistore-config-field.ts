@@ -24,16 +24,18 @@
  */
 
 import ComponentsMap from '@components/components-map';
+import initContextualNotification from '@components/contextual-notification';
 
 const {$} = window;
 
 export default class MultistoreConfigField {
   constructor() {
     this.updateMultistoreFieldOnChange();
+    initContextualNotification('checkbox');
   }
 
   updateMultistoreFieldOnChange(): void {
-    $(document).on('change', ComponentsMap.multistoreCheckbox, () => {
+    $(document).on('change', ComponentsMap.multistoreCheckbox, function () {
       const input = $(this)
         .closest(ComponentsMap.formGroup)
         .find(ComponentsMap.inputNotCheckbox);

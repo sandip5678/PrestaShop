@@ -23,35 +23,41 @@
  * @license   https://opensource.org/licenses/OSL-3.0 Open Software License (OSL 3.0)
  */
 
-import AutoCompleteSearch from '@components/auto-complete-search';
+import AutoCompleteSearch, {InputAutoCompleteSearchConfig} from '@components/auto-complete-search';
 import ComponentsMap from '@components/components-map';
 import ConfirmModal from '@components/modal';
 // @ts-ignore-next-line
 import Bloodhound from 'typeahead.js';
+import {isUndefined} from '@components/typeguard';
 
 const EntitySearchInputMap = ComponentsMap.entitySearchInput;
 
 type RemoveFunction = (item: any) => void;
 type SelectFunction = ($node: JQuery, item: any) => void;
+type SuggestionFunction = (entity: any) => string;
 export interface EntitySearchInputOptions extends OptionsObject {
   prototypeTemplate: string,
   prototypeIndex: string,
   prototypeMapping: OptionsObject,
-
+  identifierField: string;
   allowDelete: boolean,
   dataLimit: number,
+  minLength: number,
   remoteUrl: string,
-
+  filterSelected: boolean,
+  filteredIdentities: Array<string>,
   removeModal: ModalOptions,
-
   searchInputSelector: string,
-  listSelector: string,
+  entitiesContainerSelector: string,
+  listContainerSelector: string,
   entityItemSelector: string,
   entityDeleteSelector: string,
+  emptyStateSelector: string,
   queryWildcard: string,
-
   onRemovedContent: RemoveFunction | undefined,
   onSelectedContent: SelectFunction | undefined,
+  suggestionTemplate: SuggestionFunction | undefined,
+  extraQueryParams?: () => Record<string, string>,
 }
 export interface ModalOptions extends OptionsObject {
   id: string;
@@ -74,15 +80,19 @@ export interface ModalOptions extends OptionsObject {
  * either override it in a theme or create your own entity type if you need to customize the behaviour.
  */
 export default class EntitySearchInput {
-  private $entitySearchInputContainer: JQuery;
+  private readonly $entitySearchInputContainer: JQuery;
 
-  private $entitySearchInput: JQuery;
+  private readonly $entitySearchInput: JQuery;
 
-  private $selectionContainer: JQuery;
+  private readonly $entitiesContainer: JQuery;
 
-  private options!: EntitySearchInputOptions;
+  private $listContainer: JQuery;
 
-  private entityRemoteSource: Bloodhound;
+  private $emptyState: JQuery;
+
+  private readonly options!: EntitySearchInputOptions;
+
+  private entityRemoteSource!: Bloodhound;
 
   private autoSearch!: AutoCompleteSearch;
 
@@ -92,11 +102,14 @@ export default class EntitySearchInput {
     this.buildOptions(options);
 
     this.$entitySearchInput = $(this.options.searchInputSelector, this.$entitySearchInputContainer);
-    this.$selectionContainer = $(this.options.listSelector, this.$entitySearchInputContainer);
+    this.$entitiesContainer = $(this.options.entitiesContainerSelector, this.$entitySearchInputContainer);
+    this.$listContainer = $(this.options.listContainerSelector, this.$entitySearchInputContainer);
+    this.$emptyState = $(this.options.emptyStateSelector, this.$entitySearchInputContainer);
 
     this.buildRemoteSource();
     this.buildAutoCompleteSearch();
     this.buildActions();
+    this.updateEmptyState();
   }
 
   /**
@@ -117,6 +130,18 @@ export default class EntitySearchInput {
   }
 
   /**
+   * Append the item to the selection, respecting the configured limit so if limit is already reached the item is not
+   * added.
+   *
+   * @param newItem
+   *
+   * @return boolean
+   */
+  addItem(newItem: any): boolean {
+    return this.appendSelectedItem(newItem);
+  }
+
+  /**
    * @param optionName
    */
   getOption(optionName: string): any {
@@ -131,8 +156,8 @@ export default class EntitySearchInput {
     this.options[optionName] = value;
 
     // Apply special options to components when needed
-    if (optionName === 'remoteUrl') {
-      this.entityRemoteSource.remote.url = this.options.remoteUrl;
+    if (optionName === 'remoteUrl' && this.entityRemoteSource) {
+      (<Record<string, any>> this.entityRemoteSource).remote.url = this.options.remoteUrl;
     }
   }
 
@@ -142,6 +167,7 @@ export default class EntitySearchInput {
   private buildOptions(options: OptionsObject): void {
     const inputOptions = options || {};
     const defaultOptions: OptionsObject = {
+      suggestionField: 'name',
       prototypeTemplate: undefined,
       prototypeIndex: '__index__',
       prototypeMapping: {
@@ -149,10 +175,13 @@ export default class EntitySearchInput {
         name: '__name__',
         image: '__image__',
       },
-
+      identifierField: 'id',
       allowDelete: true,
       dataLimit: 0,
+      minLength: 2,
       remoteUrl: undefined,
+      filterSelected: true,
+      filteredIdentities: [],
 
       removeModal: {
         id: 'modal-confirm-remove-entity',
@@ -166,20 +195,30 @@ export default class EntitySearchInput {
       // Most of the previous config are configurable via the EntitySearchInputForm options, the following ones are only
       // overridable via js config (as long as you use the default template)
       searchInputSelector: EntitySearchInputMap.searchInputSelector,
-      listSelector: EntitySearchInputMap.listSelector,
+      entitiesContainerSelector: EntitySearchInputMap.entitiesContainerSelector,
+      listContainerSelector: EntitySearchInputMap.listContainerSelector,
       entityItemSelector: EntitySearchInputMap.entityItemSelector,
       entityDeleteSelector: EntitySearchInputMap.entityDeleteSelector,
+      emptyStateSelector: EntitySearchInputMap.emptyStateSelector,
       queryWildcard: '__QUERY__',
 
       // These are configurable callbacks
       onRemovedContent: undefined,
       onSelectedContent: undefined,
+      responseTransformer: (response: any) => response || [],
+
+      // Template function
+      suggestionTemplate: undefined,
+      extraQueryParams: undefined,
     };
 
     Object.keys(defaultOptions).forEach((optionName) => {
       // This gets the proper value for each option, respecting the priority: input > data-attribute > default
       this.initOption(optionName, inputOptions, defaultOptions[optionName]);
     });
+
+    // Cast all IDs into string to avoid not matching because of different types
+    this.options.filteredIdentities = this.options.filteredIdentities.map(String);
   }
 
   /**
@@ -202,7 +241,7 @@ export default class EntitySearchInput {
 
   private buildActions(): void {
     // Always check for click even if it is useless when allowDelete options is false, it can be changed dynamically
-    $(this.$selectionContainer).on('click', this.options.entityDeleteSelector, (event) => {
+    $(this.$entitiesContainer).on('click', this.options.entityDeleteSelector, (event) => {
       if (!this.options.allowDelete) {
         return;
       }
@@ -221,6 +260,7 @@ export default class EntitySearchInput {
         },
         () => {
           $entity.remove();
+          this.updateEmptyState();
           if (typeof this.options.onRemovedContent !== 'undefined') {
             this.options.onRemovedContent($entity);
           }
@@ -230,7 +270,8 @@ export default class EntitySearchInput {
     });
 
     // For now adapt the display based on the allowDelete option
-    const $entityDelete = $(this.options.entityDeleteSelector, this.$selectionContainer);
+    const $entityDelete = $(this.options.entityDeleteSelector, this.$entitiesContainer);
+    //'!!' converts option to bool (because if its 1 or 0, jquery toggle works differently than with true/false)
     $entityDelete.toggle(!!this.options.allowDelete);
   }
 
@@ -238,20 +279,13 @@ export default class EntitySearchInput {
    * Build the AutoCompleteSearch component
    */
   private buildAutoCompleteSearch(): void {
-    const autoSearchConfig = {
+    const autoSearchConfig: InputAutoCompleteSearchConfig = {
       source: this.entityRemoteSource,
       dataLimit: this.options.dataLimit,
-      value: '',
+      value: this.options.identifierField,
+      minLength: this.options.minLength,
       templates: {
-        suggestion: (entity: any) => {
-          let entityImage;
-
-          if (Object.prototype.hasOwnProperty.call(entity, 'image')) {
-            entityImage = `<img src="${entity.image}" /> `;
-          }
-
-          return `<div class="search-suggestion">${entityImage}${entity.name}</div>`;
-        },
+        suggestion: (entity: any) => this.showSuggestion(entity),
       },
       onSelect: (selectedItem: any) => {
         // When limit is one we cannot select additional elements so we replace them instead
@@ -262,14 +296,27 @@ export default class EntitySearchInput {
       },
     };
 
-    // Can be used to format value depending on selected item
-    if (this.options.mappingValue !== undefined) {
-      autoSearchConfig.value = <string> this.options.mappingValue;
+    // The search feature may be disabled so the search input won't be present
+    if (this.$entitySearchInput.length) {
+      this.autoSearch = new AutoCompleteSearch(
+        this.$entitySearchInput,
+        autoSearchConfig,
+      );
     }
-    this.autoSearch = new AutoCompleteSearch(
-      this.$entitySearchInput,
-      autoSearchConfig,
-    );
+  }
+
+  private showSuggestion(entity: any): string {
+    if (!isUndefined(this.options.suggestionTemplate)) {
+      return this.options.suggestionTemplate(entity);
+    }
+
+    let entityImage = '';
+
+    if (Object.prototype.hasOwnProperty.call(entity, 'image')) {
+      entityImage = `<img src="${entity.image}" /> `;
+    }
+
+    return `<div class="search-suggestion">${entityImage}${entity[this.options.suggestionField]}</div>`;
   }
 
   /**
@@ -279,26 +326,51 @@ export default class EntitySearchInput {
    * @returns {Bloodhound}
    */
   private buildRemoteSource(): void {
-    const sourceConfig = {
-      mappingValue: this.options.mappingValue,
-      remoteUrl: this.options.remoteUrl,
-    };
-
     this.entityRemoteSource = new Bloodhound({
       datumTokenizer: Bloodhound.tokenizers.whitespace,
       queryTokenizer: Bloodhound.tokenizers.whitespace,
       identify(obj: any) {
-        return obj[sourceConfig.mappingValue];
+        return obj[this.options.identifierField];
       },
       remote: {
-        url: sourceConfig.remoteUrl,
+        url: this.options.remoteUrl,
+        replace: (query: string, searchPhrase: string) => {
+          // need to replace wildcard manually, because here we are overriding the default replace function
+          const url = query.replace(this.options.queryWildcard, searchPhrase);
+
+          if (!isUndefined(this.options.extraQueryParams)) {
+            // this allows appending extra parameters to the query, such as shopId
+            const extraParams = this.options.extraQueryParams();
+            const encodedExtraParams = Object
+              .keys(extraParams)
+              .map((key: string) => `${key}=${encodeURIComponent(extraParams[key])}`)
+              .join('&');
+
+            return `${url}&${encodedExtraParams}`;
+          }
+
+          return url;
+        },
         cache: false,
-        wildcard: this.options.queryWildcard,
-        transform(response: any) {
+        transform: (response: any) => {
           if (!response) {
             return [];
           }
-          return response;
+          const transformedResponse = this.options.responseTransformer(response);
+          const selectedIds: string[] = this.getSelectedIds();
+          const suggestedItems: any[] = [];
+          transformedResponse.forEach((responseItem: any) => {
+            // Force casting to string to avoid inequality with number IDs because of type
+            const responseIdentifier: string = String(responseItem[this.options.identifierField]);
+            const isIdContained = this.options.filterSelected && selectedIds.includes(responseIdentifier);
+            const isFiltered = this.options.filteredIdentities.includes(responseIdentifier);
+
+            if (!isIdContained && !isFiltered) {
+              suggestedItems.push(responseItem);
+            }
+          });
+
+          return suggestedItems;
         },
       },
     });
@@ -308,7 +380,8 @@ export default class EntitySearchInput {
    * Removes selected items.
    */
   private clearSelectedItems(): void {
-    this.$selectionContainer.empty();
+    this.$entitiesContainer.empty();
+    this.updateEmptyState();
   }
 
   /**
@@ -334,7 +407,7 @@ export default class EntitySearchInput {
    */
   private appendSelectedItem(selectedItem: any): boolean {
     // If collection length is up to limit, return
-    const $entityItems = $(this.options.entityItemSelector, this.$selectionContainer);
+    const $entityItems = $(this.options.entityItemSelector, this.$entitiesContainer);
 
     if (this.options.dataLimit !== 0 && $entityItems.length >= this.options.dataLimit) {
       return false;
@@ -345,6 +418,12 @@ export default class EntitySearchInput {
     return true;
   }
 
+  private updateEmptyState(): void {
+    const $entityItems = $(this.options.entityItemSelector, this.$entitiesContainer);
+    this.$emptyState.toggle($entityItems.length === 0);
+    this.$listContainer.toggle($entityItems.length !== 0);
+  }
+
   /**
    * Add the selected content to the selection container, the HTML is generated based on the render that relies on the
    * prototype template and mapping, and finally the rendered selection is added to the list.
@@ -352,18 +431,59 @@ export default class EntitySearchInput {
    * @param {Object} selectedItem
    */
   private addSelectedContentToContainer(selectedItem: any): void {
-    const newIndex = this.$selectionContainer.children().length;
+    const $entityItems = $(this.options.entityItemSelector, this.$entitiesContainer);
+    const newIndex = $entityItems.length ? this.getIndexFromItem($entityItems.last()) + 1 : 0;
     const selectedHtml = this.renderSelected(selectedItem, newIndex);
 
     const $selectedNode = $(selectedHtml);
     const $entityDelete = $(this.options.entityDeleteSelector, $selectedNode);
     $entityDelete.toggle(!!this.options.allowDelete);
 
-    this.$selectionContainer.append($selectedNode);
+    this.$entitiesContainer.append($selectedNode);
 
     if (typeof this.options.onSelectedContent !== 'undefined') {
       this.options.onSelectedContent($selectedNode, selectedItem);
     }
+    this.updateEmptyState();
+  }
+
+  /**
+   * Try and find the index of an element in the collection by parsing its inputs names which should look like:
+   *
+   * form[collection][0][name], form[collection][1][id] => we aim to extract the 1
+   *
+   * We search for the name matching the configured identifier, and extract its index. This is important because
+   * when you edit a collection, you can add then remove then add an element again, the indexes are not gonna follow
+   * so you cannot rely on just the index from element order. Which is why it is more accurate to parse the index that
+   * was used when the element has been rendered for the first time.
+   *
+   * If we can't find anything we use the order index as fallback though.
+   *
+   * @param {JQuery} $item
+   *
+   * @return number
+   */
+  private getIndexFromItem($item: JQuery): number {
+    // By default use the position index
+    let index = $item.index();
+
+    // Try to find an input which names contains [1][id] (where 1 is the index, and id the identifier)
+    const identifierNameRegexp: string = `\\[(\\d+)\\]\\[${this.options.identifierField}\\]`;
+    const inputs = $item.find('input');
+    inputs.each((inputIndex: number, input: HTMLInputElement): void => {
+      const matches = input.name.match(identifierNameRegexp);
+
+      // Extract the index from the input name, if it is found and is a number use it as the index
+      if (matches && matches.length > 0) {
+        const foundIndex = parseInt(matches[1], 10);
+
+        if (!Number.isNaN(foundIndex)) {
+          index = foundIndex;
+        }
+      }
+    });
+
+    return index;
   }
 
   /**
@@ -385,5 +505,26 @@ export default class EntitySearchInput {
     });
 
     return template;
+  }
+
+  /**
+   * Parses the selection container and extract the IDs this allows to filter the already selected items.
+   *
+   * @private
+   */
+  private getSelectedIds(): string[] {
+    const selectedIds: string[] = [];
+    const selectedChildren = $(this.options.entityItemSelector, this.$entitiesContainer);
+    selectedChildren.each((index: number, selectedChild: HTMLElement) => {
+      const identifierNameRegexp: string = `\\[${this.options.identifierField}\\]`;
+      const inputs = $(selectedChild).find('input');
+      inputs.each((inputIndex: number, input: HTMLInputElement): void => {
+        if (input.name.match(identifierNameRegexp)) {
+          selectedIds.push(input.value);
+        }
+      });
+    });
+
+    return selectedIds;
   }
 }

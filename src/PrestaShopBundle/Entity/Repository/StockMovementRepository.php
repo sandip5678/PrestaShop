@@ -26,7 +26,7 @@
 
 namespace PrestaShopBundle\Entity\Repository;
 
-use Doctrine\DBAL\Driver\Connection;
+use Doctrine\DBAL\Connection;
 use Doctrine\ORM\EntityManager;
 use PDO;
 use PrestaShop\PrestaShop\Adapter\ImageManager;
@@ -37,6 +37,11 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
 class StockMovementRepository extends StockManagementRepository
 {
     /**
+     * @var string
+     */
+    protected $dateFormatFull;
+
+    /**
      * StockMovementRepository constructor.
      *
      * @param ContainerInterface $container
@@ -45,6 +50,7 @@ class StockMovementRepository extends StockManagementRepository
      * @param ContextAdapter $contextAdapter
      * @param ImageManager $imageManager
      * @param string $tablePrefix
+     * @param string $dateFormatFull
      */
     public function __construct(
         ContainerInterface $container,
@@ -52,7 +58,8 @@ class StockMovementRepository extends StockManagementRepository
         EntityManager $entityManager,
         ContextAdapter $contextAdapter,
         ImageManager $imageManager,
-        $tablePrefix
+        $tablePrefix,
+        string $dateFormatFull
     ) {
         parent::__construct(
             $container,
@@ -62,6 +69,8 @@ class StockMovementRepository extends StockManagementRepository
             $imageManager,
             $tablePrefix
         );
+
+        $this->dateFormatFull = $dateFormatFull;
     }
 
     /**
@@ -186,9 +195,9 @@ class StockMovementRepository extends StockManagementRepository
      */
     protected function addAdditionalData(array $rows)
     {
-        $rows = $this->addCombinationsAndFeatures($rows);
-        $rows = $this->addImageThumbnailPaths($rows);
+        $rows = parent::addAdditionalData($rows);
         $rows = $this->addOrderLink($rows);
+        $rows = $this->addFormattedDate($rows);
 
         return $rows;
     }
@@ -202,7 +211,7 @@ class StockMovementRepository extends StockManagementRepository
     {
         foreach ($rows as &$row) {
             if ($row['id_order']) {
-                $row['order_link'] = $this->contextAdapter->getContext()->link->getAdminLink(
+                $row['order_link'] = $this->getCurrentContext()->link->getAdminLink(
                     'AdminOrders',
                     true,
                     [],
@@ -235,11 +244,11 @@ class StockMovementRepository extends StockManagementRepository
         );
 
         $statement = $this->connection->prepare($query);
-        $statement->bindValue('shop_id', $this->shopId, PDO::PARAM_INT);
-        $statement->execute();
+        $statement->bindValue('shop_id', $this->getContextualShopId(), PDO::PARAM_INT);
+        $result = $statement->executeQuery();
 
-        $rows = $statement->fetchAll();
-        $statement->closeCursor();
+        $rows = $result->fetchAllAssociative();
+        $result->free();
         $employees = $this->castNumericToInt($rows);
 
         return $employees;
@@ -278,12 +287,12 @@ class StockMovementRepository extends StockManagementRepository
         );
 
         $statement = $this->connection->prepare($query);
-        $statement->bindValue('language_id', $this->languageId, PDO::PARAM_INT);
-        $statement->bindValue('shop_id', $this->shopId, PDO::PARAM_INT);
-        $statement->execute();
+        $statement->bindValue('language_id', $this->getCurrentLanguageId(), PDO::PARAM_INT);
+        $statement->bindValue('shop_id', $this->getContextualShopId(), PDO::PARAM_INT);
+        $result = $statement->executeQuery();
 
-        $rows = $statement->fetchAll();
-        $statement->closeCursor();
+        $rows = $result->fetchAllAssociative();
+        $result->free();
 
         if ($grouped) {
             $types = $this->castIdsToArray($rows);
@@ -305,5 +314,17 @@ class StockMovementRepository extends StockManagementRepository
         $this->em->flush();
 
         return $stockMvt->getIdStockMvt();
+    }
+
+    protected function addFormattedDate(array $rows): array
+    {
+        foreach ($rows as &$row) {
+            $row['date_add_formatted'] = date(
+                $this->dateFormatFull,
+                strtotime($row['date_add'])
+            );
+        }
+
+        return $rows;
     }
 }

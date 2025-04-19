@@ -23,18 +23,39 @@
  * @copyright Since 2007 PrestaShop SA and Contributors
  * @license   https://opensource.org/licenses/OSL-3.0 Open Software License (OSL 3.0)
  */
+use PrestaShopBundle\Security\Admin\LegacyAdminTokenValidator;
+
 class PdfOrderReturnControllerCore extends FrontController
 {
+    /** @var string */
     public $php_self = 'pdf-order-return';
+    /** @var bool */
     protected $display_header = false;
+    /** @var bool */
     protected $display_footer = false;
 
-    public function postProcess()
+    /**
+     * @var OrderReturn|null
+     */
+    public $orderReturn;
+
+    public function postProcess(): void
     {
-        $from_admin = (Tools::getValue('adtoken') == Tools::getAdminToken('AdminReturn' . (int) Tab::getIdFromClassName('AdminReturn') . (int) Tools::getValue('id_employee')));
+        $adminToken = Tools::getValue('adtoken');
+        if (!empty($adminToken)) {
+            $adminTokenValidator = $this->getContainer()->get(LegacyAdminTokenValidator::class);
+            $from_admin = $adminTokenValidator->isTokenValid((int) Tools::getValue('id_employee'), $adminToken);
+        } else {
+            $from_admin = false;
+        }
 
         if (!$from_admin && !$this->context->customer->isLogged()) {
-            Tools::redirect('index.php?controller=authentication&back=order-follow');
+            Tools::redirect($this->context->link->getPageLink(
+                'authentication',
+                null,
+                null,
+                ['back' => 'order-follow']
+            ));
         }
 
         if (Tools::getValue('id_order_return') && Validate::isUnsignedId(Tools::getValue('id_order_return'))) {
@@ -50,7 +71,12 @@ class PdfOrderReturnControllerCore extends FrontController
         }
     }
 
-    public function display()
+    /**
+     * @return void
+     *
+     * @throws PrestaShopException
+     */
+    public function display(): void
     {
         $pdf = new PDF($this->orderReturn, PDF::TEMPLATE_ORDER_RETURN, $this->context->smarty);
         $pdf->render();

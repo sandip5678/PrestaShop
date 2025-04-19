@@ -33,7 +33,7 @@ use PrestaShop\PrestaShop\Core\Domain\Product\Customization\Command\SetProductCu
 use PrestaShop\PrestaShop\Core\Domain\Product\Customization\ValueObject\CustomizationFieldType;
 use PrestaShop\PrestaShop\Core\Form\IdentifiableObject\CommandBuilder\Product\CustomizationFieldsCommandsBuilder;
 
-class CustomizationFieldsCommandsBuilderTest extends AbstractProductCommandBuilderTest
+class CustomizationFieldsCommandsBuilderTest extends AbstractProductCommandBuilderTestCase
 {
     /**
      * @var CustomizationFieldsCommandsBuilder
@@ -53,7 +53,7 @@ class CustomizationFieldsCommandsBuilderTest extends AbstractProductCommandBuild
      */
     public function testBuildCommand(array $formData, array $expectedCommands): void
     {
-        $builtCommands = $this->customizationFieldsCommandBuilder->buildCommands($this->getProductId(), $formData);
+        $builtCommands = $this->customizationFieldsCommandBuilder->buildCommands($this->getProductId(), $formData, $this->getSingleShopConstraint());
         $this->assertEquals($expectedCommands, $builtCommands);
     }
 
@@ -75,7 +75,7 @@ class CustomizationFieldsCommandsBuilderTest extends AbstractProductCommandBuild
 
         yield [
             [
-                'specifications' => [
+                'details' => [
                     'customizations' => null,
                 ],
             ],
@@ -84,7 +84,7 @@ class CustomizationFieldsCommandsBuilderTest extends AbstractProductCommandBuild
 
         yield [
             [
-                'specifications' => [
+                'details' => [
                     'customizations' => [],
                 ],
             ],
@@ -120,12 +120,13 @@ class CustomizationFieldsCommandsBuilderTest extends AbstractProductCommandBuild
                     'id' => null,
                     'added_by_module' => false,
                 ],
-            ]
+            ],
+            $this->getSingleShopConstraint()
         );
 
         yield [
             [
-                'specifications' => [
+                'details' => [
                     'customizations' => [
                         'customization_fields' => [
                             [

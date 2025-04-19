@@ -26,6 +26,8 @@
 
 namespace PrestaShopBundle\Component;
 
+use InvalidArgumentException;
+use LogicException;
 use Symfony\Component\HttpFoundation\ResponseHeaderBag;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
@@ -68,6 +70,11 @@ class CsvResponse extends StreamedResponse
     private $limit = 1000;
 
     /**
+     * @var bool includeHeaderRow
+     */
+    private $includeHeaderRow = true;
+
+    /**
      * Constructor.
      *
      * @param callable|null $callback A valid PHP callback or null to set it later
@@ -84,6 +91,16 @@ class CsvResponse extends StreamedResponse
 
         $this->setFileName('export_' . date('Y-m-d_His') . '.csv');
         $this->headers->set('Content-Type', 'text/csv; charset=utf-8');
+    }
+
+    /**
+     * Returns true, if the header line should be exported.
+     *
+     * @return bool
+     */
+    public function isHeaderRowIncluded(): bool
+    {
+        return $this->includeHeaderRow;
     }
 
     /**
@@ -151,7 +168,7 @@ class CsvResponse extends StreamedResponse
      *
      * @return $this
      *
-     * @throws \InvalidArgumentException
+     * @throws InvalidArgumentException
      */
     public function setFileName($fileName)
     {
@@ -167,9 +184,21 @@ class CsvResponse extends StreamedResponse
     }
 
     /**
+     * @param bool $includeHeaderRow
+     *
+     * @return $this
+     */
+    public function setIncludeHeaderRow(bool $includeHeaderRow): self
+    {
+        $this->includeHeaderRow = $includeHeaderRow;
+
+        return $this;
+    }
+
+    /**
      * Callback function for StreamedResponse.
      *
-     * @throws \LogicException
+     * @throws LogicException
      */
     public function processData()
     {
@@ -187,7 +216,7 @@ class CsvResponse extends StreamedResponse
             return;
         }
 
-        throw new \LogicException('The data must be an array or a valid PHP callable function.');
+        throw new LogicException('The data must be an array or a valid PHP callable function.');
     }
 
     /**
@@ -196,10 +225,13 @@ class CsvResponse extends StreamedResponse
     private function processDataArray()
     {
         $handle = tmpfile();
-        fputcsv($handle, $this->headersData, ';');
+
+        if ($this->includeHeaderRow) {
+            fputcsv($handle, $this->headersData, ';', '"', '');
+        }
 
         foreach ($this->data as $line) {
-            fputcsv($handle, $line, ';');
+            fputcsv($handle, $line, ';', '"', '');
         }
 
         $this->dumpFile($handle);
@@ -211,7 +243,10 @@ class CsvResponse extends StreamedResponse
     private function processDataCallback()
     {
         $handle = tmpfile();
-        fputcsv($handle, $this->headersData, ';');
+
+        if ($this->includeHeaderRow) {
+            fputcsv($handle, $this->headersData, ';', '"', '');
+        }
 
         do {
             $data = call_user_func_array($this->data, [$this->start, $this->limit]);
@@ -230,7 +265,7 @@ class CsvResponse extends StreamedResponse
                     }
                 }
 
-                fputcsv($handle, $lineData, ';');
+                fputcsv($handle, $lineData, ';', '"', '');
             }
 
             $this->incrementData();
@@ -260,7 +295,7 @@ class CsvResponse extends StreamedResponse
     /**
      * Increment the start data for the process.
      *
-     * @throws \LogicException
+     * @throws LogicException
      */
     private function incrementData()
     {
@@ -276,7 +311,7 @@ class CsvResponse extends StreamedResponse
             return;
         }
 
-        throw new \LogicException('The modeType is not a valid value.');
+        throw new LogicException('The modeType is not a valid value.');
     }
 
     /**

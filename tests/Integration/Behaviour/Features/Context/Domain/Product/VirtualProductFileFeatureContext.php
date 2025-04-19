@@ -31,6 +31,7 @@ namespace Tests\Integration\Behaviour\Features\Context\Domain\Product;
 use Behat\Gherkin\Node\TableNode;
 use DateTime;
 use DateTimeImmutable;
+use Exception;
 use PHPUnit\Framework\Assert;
 use PrestaShop\PrestaShop\Core\Domain\Product\Exception\InvalidProductTypeException;
 use PrestaShop\PrestaShop\Core\Domain\Product\VirtualProductFile\Command\AddVirtualProductFileCommand;
@@ -61,7 +62,6 @@ class VirtualProductFileFeatureContext extends AbstractProductFeatureContext
      *
      * @param string $fileReference
      * @param string $productReference
-     * @param string $filePathReference
      * @param TableNode $dataTable
      */
     public function addFile(string $fileReference, string $productReference, TableNode $dataTable): void
@@ -77,7 +77,6 @@ class VirtualProductFileFeatureContext extends AbstractProductFeatureContext
             isset($dataRows['expiration date']) ? new DateTime($dataRows['expiration date']) : null
         );
 
-        $this->cleanLastException();
         try {
             $virtualProductId = $this->getCommandBus()->handle($command);
             $this->getSharedStorage()->set($fileReference, $virtualProductId->getValue());
@@ -88,9 +87,7 @@ class VirtualProductFileFeatureContext extends AbstractProductFeatureContext
                 $this->buildSystemFileReference($productReference, $fileReference),
                 _PS_DOWNLOAD_DIR_ . $filename
             );
-        } catch (VirtualProductFileException $e) {
-            $this->setLastException($e);
-        } catch (InvalidProductTypeException $e) {
+        } catch (VirtualProductFileException|InvalidProductTypeException $e) {
             $this->setLastException($e);
         }
     }
@@ -173,8 +170,37 @@ class VirtualProductFileFeatureContext extends AbstractProductFeatureContext
     }
 
     /**
-     * @Given file ":fileReference" for product ":productReference" exists in system
-     * @Given file ":fileReference" for product ":productReference" should exist in system
+     * @Then file :fileReference for product :productReference should have same file as :dummyFileName
+     *
+     * @param string $productReference
+     * @param string $fileReference
+     * @param string $dummyFileName
+     */
+    public function assertFileIsSameAsDummyFile(string $productReference, string $fileReference, string $dummyFileName): void
+    {
+        $reference = $this->buildSystemFileReference($productReference, $fileReference);
+        if (!$this->getSharedStorage()->exists($reference)) {
+            throw new RuntimeException('No file reference stored in shared storage');
+        }
+
+        $virtualDownloadFilePath = $this->getSharedStorage()->get($reference);
+
+        // This was previously saved during image upload
+        $dummyFilePath = DummyFileUploader::getDummyFilePath($dummyFileName);
+        $dummyMD5 = md5_file($dummyFilePath);
+
+        if ($dummyMD5 !== md5_file($virtualDownloadFilePath)) {
+            throw new RuntimeException(sprintf(
+                'Expected files dummy %s and file %s to be identical',
+                $dummyFileName,
+                $fileReference
+            ));
+        }
+    }
+
+    /**
+     * @Given file :fileReference for product :productReference exists in system
+     * @Given file :fileReference for product :productReference should exist in system
      *
      * @param string $productReference
      * @param string $fileReference
@@ -225,19 +251,43 @@ class VirtualProductFileFeatureContext extends AbstractProductFeatureContext
      * @param string $fileReference
      * @param TableNode $dataTable
      */
-    public function assertFile(string $productReference, string $fileReference, TableNode $dataTable): void
+    public function assertFileAndReference(string $productReference, string $fileReference, TableNode $dataTable): void
     {
         $actualFile = $this->getProductForEditing($productReference)->getVirtualProductFile();
         if (!$actualFile) {
             throw new RuntimeException('Expected virtual product to have a file');
         }
-
         Assert::assertEquals(
             $this->getSharedStorage()->get($fileReference),
             $actualFile->getId(),
             'Unexpected virtual product file (ids do not match)'
         );
+        $this->assertVirtualFile($actualFile, $dataTable);
+    }
 
+    /**
+     * @Then product :productReference should have a virtual product file which reference is :fileReference and has following details:
+     *
+     * @param string $productReference
+     * @param string $fileReference
+     * @param TableNode $dataTable
+     */
+    public function assertNewFile(string $productReference, string $fileReference, TableNode $dataTable): void
+    {
+        $actualFile = $this->getProductForEditing($productReference)->getVirtualProductFile();
+        if (!$actualFile) {
+            throw new RuntimeException('Expected virtual product to have a file');
+        }
+        $this->getSharedStorage()->set($fileReference, $actualFile->getId());
+        $this->assertVirtualFile($actualFile, $dataTable);
+
+        // Set path for new reference used in other assertions
+        $reference = $this->buildSystemFileReference($productReference, $fileReference);
+        $this->getSharedStorage()->set($reference, _PS_DOWNLOAD_DIR_ . $actualFile->getFileName());
+    }
+
+    private function assertVirtualFile(VirtualProductFileForEditing $actualFile, TableNode $dataTable): void
+    {
         $dataRows = $dataTable->getRowsHash();
         Assert::assertEquals($dataRows['display name'], $actualFile->getDisplayName(), 'Unexpected display file name');
         unset($dataRows['display name']);
@@ -322,7 +372,7 @@ class VirtualProductFileFeatureContext extends AbstractProductFeatureContext
      *
      * @return UpdateVirtualProductFileCommand
      *
-     * @throws \Exception
+     * @throws Exception
      */
     private function buildUpdateVirtualProductFileCommand(int $virtualProductFileId, array $data, ?string $newFileName): UpdateVirtualProductFileCommand
     {

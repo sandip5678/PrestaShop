@@ -30,6 +30,10 @@ const {VueLoaderPlugin} = require('vue-loader');
 const MiniCssExtractPlugin = require('mini-css-extract-plugin');
 const RemoveEmptyScriptsPlugin = require('webpack-remove-empty-scripts');
 const bourbon = require('bourbon');
+const ForkTsCheckerWebpackPlugin = require('fork-ts-checker-webpack-plugin');
+const HtmlWebpackPlugin = require('html-webpack-plugin');
+const FontPreloadPlugin = require('webpack-font-preload-plugin');
+const CssoWebpackPlugin = require('csso-webpack-plugin').default;
 
 module.exports = {
   externals: {
@@ -37,48 +41,74 @@ module.exports = {
   },
   entry: {
     address: './js/pages/address',
+    alias_form: './js/pages/alias/form',
+    api_client: './js/pages/api-client',
+    api_client_form: './js/pages/api-client/form',
     attachment: './js/pages/attachment',
     attribute: './js/pages/attribute',
+    attribute_form: './js/pages/attribute/form',
     attribute_group: './js/pages/attribute-group',
+    attribute_group_form: './js/pages/attribute-group/form',
     backup: './js/pages/backup',
     carrier: './js/pages/carrier',
+    carrier_form: './js/pages/carrier/form',
+    cart: './js/pages/cart',
     cart_rule: './js/pages/cart-rule',
+    cart_rule_form: './js/pages/cart-rule/form',
     catalog: './js/app/pages/catalog',
     catalog_price_rule: './js/pages/catalog-price-rule',
     catalog_price_rule_form: './js/pages/catalog-price-rule/form',
     catalog_product: './js/pages/catalog/product',
     category: './js/pages/category',
+    category_edit: './js/pages/category/edit',
     cldr: './js/app/cldr',
+    discount: './js/pages/discount',
     cms_page: './js/pages/cms-page',
     cms_page_form: './js/pages/cms-page/form',
-    combination_edit: './js/pages/product/combination/edit',
+    combination_bulk: './js/pages/product/combination/bulk',
+    combination_form: './js/pages/product/combination/form',
     contacts: './js/pages/contacts',
+    country: './js/pages/country',
+    country_form: './js/pages/country/form',
+    create_product: './js/pages/product/create/create-product',
+    create_product_default_theme: './scss/pages/product/create_product_default_theme.scss',
     credit_slip: './js/pages/credit-slip',
     currency: './js/pages/currency',
     currency_form: './js/pages/currency/form',
-    customer: './js/pages/customer',
+    customer: './js/pages/customer/index',
     customer_address_form: './js/pages/address/form',
+    customer_form: './js/pages/customer/form',
+    customer_groups: './js/pages/customer-groups',
     customer_outstanding: './js/pages/outstanding',
+    customer_preferences: './js/pages/customer-preferences',
+    customer_thread: './js/pages/customer-thread/index',
     customer_thread_view: './js/pages/customer-thread/view',
+    customer_threads: './scss/pages/customer_thread/customer_thread.scss',
     email: './js/pages/email',
     employee: './js/pages/employee/index',
     employee_form: './js/pages/employee/form',
     error: './js/pages/error',
+    feature: './js/pages/feature',
     feature_flag: './js/pages/feature-flag/index',
     feature_form: './js/pages/feature/form',
+    feature_value: './js/pages/feature/feature-value',
+    feature_value_form: './js/pages/feature/feature-value/form',
     form_popover_error: './js/components/form/form-popover-error',
     geolocation: './js/pages/geolocation',
+    image_settings: './js/pages/image-settings',
     imports: './js/pages/import',
     improve_design_positions: './js/pages/improve/design_positions',
     invoices: './js/pages/invoices',
     language: './js/pages/language',
+    light_theme: './scss/light_theme.scss',
     localization: './js/pages/localization',
+    login: './scss/pages/login/login.scss',
+    login_form: './js/pages/login',
     logs: './js/pages/logs',
     main: './js/theme',
     maintenance: './js/pages/maintenance',
     manufacturer: './js/pages/manufacturer',
-    manufacturer_address_form:
-      './js/pages/manufacturer/manufacturer_address_form',
+    manufacturer_address_form: './js/pages/manufacturer/manufacturer_address_form',
     merchandise_return: './js/pages/merchandise-return',
     meta: './js/pages/meta',
     module: './js/pages/module',
@@ -98,29 +128,47 @@ module.exports = {
     order_view: './js/pages/order/view',
     orders: './scss/pages/orders/orders.scss',
     payment_preferences: './js/pages/payment-preferences',
+    performance_preferences: './js/pages/performance-preferences',
+    permission: './js/pages/permission',
+    permissions: './scss/pages/permissions/permissions.scss',
+    pre_select_product_shop: './js/pages/product/shop/pre-select-product-shop',
     product: './scss/pages/product/product_page.scss',
     product_catalog: './scss/pages/product/products_catalog.scss',
+    product_create: './js/pages/product/create',
     product_edit: './js/pages/product/edit',
-    product_index: './js/pages/product/index',
+    product_index: './js/pages/product/grid/index',
     product_page: './js/product-page/index',
     product_preferences: './js/pages/product-preferences',
+    product_shops: './js/pages/product/shop',
     profiles: './js/pages/profiles',
+    reset_password: './js/pages/login/reset-password',
+    rtl: './scss/rtl.scss',
+    search: './js/pages/search',
     search_engine: './js/pages/search-engine',
+    security: './js/pages/security',
+    shipping_preferences: './js/pages/shipping-preferences',
+    specific_price_form: './js/pages/product/specific-price/form',
     sql_manager: './js/pages/sql-manager',
+    state: './js/pages/state',
     stock: './js/app/pages/stock',
     stock_page: './scss/pages/stock/stock_page.scss',
+    store: './js/pages/store',
     supplier: './js/pages/supplier',
     supplier_form: './js/pages/supplier/supplier-form',
     tax: './js/pages/tax',
+    tax_rules: './js/pages/tax-rules',
     tax_rules_group: './js/pages/tax-rules-group',
     theme: './scss/theme.scss',
     themes: './js/pages/themes',
+    title: './js/pages/title',
+    title_form: './js/pages/title/form',
     translation_settings: './js/pages/translation-settings',
     translations: './js/app/pages/translations',
     webservice: './js/pages/webservice',
     zone: './js/pages/zone',
   },
   output: {
+    publicPath: '',
     path: path.resolve(__dirname, '../public'),
     filename: '[name].bundle.js',
     libraryTarget: 'window',
@@ -132,37 +180,40 @@ module.exports = {
   resolve: {
     extensions: ['.ts', '.js', '.vue', '.json'],
     alias: {
-      vue$: 'vue/dist/vue.common.js',
+      vue: 'vue/dist/vue.esm-bundler.js',
       '@app': path.resolve(__dirname, '../js/app'),
       '@js': path.resolve(__dirname, '../js'),
       '@pages': path.resolve(__dirname, '../js/pages'),
       '@components': path.resolve(__dirname, '../js/components'),
       '@scss': path.resolve(__dirname, '../scss'),
       '@node_modules': path.resolve(__dirname, '../node_modules'),
-      '@vue': path.resolve(__dirname, '../js/vue'),
+      '@PSVue': path.resolve(__dirname, '../js/vue'),
       '@PSTypes': path.resolve(__dirname, '../js/types'),
+      '@images': path.resolve(__dirname, '../img'),
     },
   },
   module: {
     rules: [
       {
+        test: /\.vue$/,
+        loader: 'vue-loader',
+      },
+      {
         test: /\.js$/,
         include: path.resolve(__dirname, '../js'),
         use: [
           {
-            loader: 'babel-loader',
-            options: {
-              presets: [['env', {useBuiltIns: 'usage', modules: false}]],
-              plugins: ['transform-object-rest-spread', 'transform-runtime'],
-            },
+            loader: 'esbuild-loader',
           },
         ],
       },
       {
         test: /\.ts?$/,
-        loader: 'ts-loader',
+        include: path.resolve(__dirname, '../js'),
+        loader: 'esbuild-loader',
         options: {
-          appendTsSuffixTo: [/\.vue$/],
+          loader: 'ts',
+          target: 'es2015',
         },
         exclude: /node_modules/,
       },
@@ -203,13 +254,13 @@ module.exports = {
         ],
       },
       {
-        test: /dropzone\/dist\/dropzone\.js/,
+        test: require.resolve('dropzone'),
         loader: 'imports-loader',
         options: {
           wrapper: {
             thisArg: 'window',
             args: {
-              module: null,
+              module: false,
             },
           },
         },
@@ -291,10 +342,6 @@ module.exports = {
         },
       },
       {
-        test: /\.vue$/,
-        loader: 'vue-loader',
-      },
-      {
         test: /\.css$/,
         use: [
           {
@@ -306,7 +353,6 @@ module.exports = {
       {
         test: /\.scss$/,
         include: /scss/,
-        exclude: /js/,
         use: [
           MiniCssExtractPlugin.loader,
           {
@@ -340,9 +386,17 @@ module.exports = {
       // FILES
       {
         test: /.(jpg|png|woff2?|eot|otf|ttf|svg|gif)$/,
-        loader: 'file-loader',
-        options: {
-          name: '[hash].[ext]',
+        type: 'asset/resource',
+        generator: {
+          filename: '[hash][ext]',
+        },
+        exclude: /MaterialIcons-Regular\.(woff2?|ttf)$/,
+      },
+      {
+        test: /MaterialIcons-Regular\.(woff2?|ttf)$/,
+        type: 'asset/resource',
+        generator: {
+          filename: '[hash].preload.[ext]',
         },
       },
     ],
@@ -362,5 +416,50 @@ module.exports = {
       patterns: [{from: 'static'}],
     }),
     new VueLoaderPlugin(),
+    new ForkTsCheckerWebpackPlugin({
+      typescript: {
+        extensions: {
+          vue: {
+            enabled: true,
+            compiler: '@vue/compiler-sfc',
+          },
+        },
+        diagnosticOptions: {
+          semantic: true,
+          syntactic: true,
+        },
+      },
+    }),
+    new HtmlWebpackPlugin({
+      filename: 'preload.tpl',
+      templateContent: '{{{preloadLinks}}}',
+      inject: false,
+    }),
+    new HtmlWebpackPlugin({
+      filename: 'preload.html.twig',
+      templateContent: '{{{preloadLinks}}}',
+      inject: false,
+    }),
+    new webpack.DefinePlugin({
+      __VUE_OPTIONS_API__: true,
+      __VUE_PROD_DEVTOOLS__: false,
+    }),
+    new FontPreloadPlugin({
+      index: 'preload.tpl',
+      extensions: ['woff2'],
+      filter: /preload/,
+      // eslint-disable-next-line
+      replaceCallback: ({indexSource, linksAsString}) => indexSource.replace('{{{preloadLinks}}}', linksAsString.replace(/href="/g, 'href="{$admin_dir}')),
+    }),
+    new FontPreloadPlugin({
+      index: 'preload.html.twig',
+      extensions: ['woff2'],
+      filter: /preload/,
+      // eslint-disable-next-line
+      replaceCallback: ({indexSource, linksAsString}) => indexSource.replace('{{{preloadLinks}}}', linksAsString.replace(/href="([^"]+)"/g, 'href="{{ asset(\'themes/new-theme/public/$1\') }}"')),
+    }),
+    new CssoWebpackPlugin({
+      forceMediaMerge: true,
+    }),
   ],
 };

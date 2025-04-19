@@ -47,7 +47,7 @@ class StylesheetManagerCore extends AbstractAssetManager
     }
 
     /**
-     * @param $id
+     * @param string $id
      * @param string $relativePath
      * @param string $media
      * @param int $priority
@@ -102,7 +102,7 @@ class StylesheetManagerCore extends AbstractAssetManager
     }
 
     /**
-     * @param $id
+     * @param string $id
      * @param string $fullPath
      * @param string $media
      * @param int $priority
@@ -112,9 +112,9 @@ class StylesheetManagerCore extends AbstractAssetManager
      */
     protected function add($id, $fullPath, $media, $priority, $inline, $server, ?string $version)
     {
-        $priority = is_int($priority) ? $priority : self::DEFAULT_PRIORITY;
         $media = $this->getSanitizedMedia($media);
 
+        $srcPath = $fullPath;
         $fullPath = $version ? $fullPath . '?' . $version : $fullPath;
 
         if ('remote' === $server) {
@@ -128,7 +128,7 @@ class StylesheetManagerCore extends AbstractAssetManager
         $this->list[$type][$id] = [
             'id' => $id,
             'type' => $type,
-            'path' => $fullPath,
+            'path' => $srcPath,
             'uri' => $uri,
             'media' => $media,
             'priority' => $priority,

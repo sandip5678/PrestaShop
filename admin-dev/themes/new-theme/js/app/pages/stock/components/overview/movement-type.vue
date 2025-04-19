@@ -41,22 +41,25 @@
 </template>
 
 <script lang="ts">
-  import Vue from 'vue';
-  import PSButton from '@app/widgets/ps-button';
+  import PSButton from '@app/widgets/ps-button.vue';
+  import {defineComponent} from 'vue';
+  import TranslationMixin from '@app/pages/stock/mixins/translate';
 
-  export default Vue.extend({
+  export default defineComponent({
     computed: {
       disabled(): boolean {
         return !this.$store.state.hasQty;
       },
-      classObject(): Record<string, any> {
+      classObject(): {'btn-primary': boolean} {
         return {
           'btn-primary': !this.disabled,
         };
       },
     },
+    mixins: [TranslationMixin],
     methods: {
       sendQty(): void {
+        this.$store.state.hasQty = false;
         this.$store.dispatch('updateQtyByProductsId');
       },
     },

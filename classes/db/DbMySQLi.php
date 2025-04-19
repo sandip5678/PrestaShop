@@ -48,8 +48,8 @@ class DbMySQLiCore extends Db
      */
     public function connect()
     {
-        $socket = false;
-        $port = false;
+        $socket = $port = false;
+        $server = '';
         if (Tools::strpos($this->server, ':') !== false) {
             list($server, $port) = explode(':', $this->server);
             if (is_numeric($port) === false) {
@@ -61,21 +61,33 @@ class DbMySQLiCore extends Db
         }
 
         if ($socket) {
-            $this->link = @new mysqli(null, $this->user, $this->password, $this->database, null, $socket);
+            /* @phpstan-ignore-next-line */
+            $this->link = @new mysqli(null, $this->user, $this->password, $this->database, 0, $socket);
         } elseif ($port) {
-            $this->link = @new mysqli($server, $this->user, $this->password, $this->database, $port);
+            $this->link = @new mysqli($server, $this->user, $this->password, $this->database, (int) $port);
         } else {
             $this->link = @new mysqli($this->server, $this->user, $this->password, $this->database);
         }
 
         // Do not use object way for error because this work bad before PHP 5.2.9
         if (mysqli_connect_error()) {
-            throw new PrestaShopDatabaseException(sprintf(Tools::displayError('Link to database cannot be established: %s'), mysqli_connect_error()));
+            throw new PrestaShopDatabaseException(sprintf(
+                Context::getContext()->getTranslator()->trans(
+                    'Link to database cannot be established: %s',
+                    [],
+                    'Admin.Notifications.Error'
+                ),
+                mysqli_connect_error()
+            ));
         }
 
         // UTF-8 support
         if (!$this->link->query('SET NAMES utf8mb4')) {
-            throw new PrestaShopDatabaseException(Tools::displayError('PrestaShop Fatal error: no utf-8 support. Please check your server configuration.'));
+            throw new PrestaShopDatabaseException(Context::getContext()->getTranslator()->trans(
+                'PrestaShop Fatal error: no utf-8 support. Please check your server configuration.',
+                [],
+                'Admin.Notifications.Error'
+            ));
         }
 
         $this->link->query('SET SESSION sql_mode = \'\'');
@@ -98,7 +110,7 @@ class DbMySQLiCore extends Db
     {
         if (strpos($host, ':') !== false) {
             list($host, $port) = explode(':', $host);
-            $link = @new mysqli($host, $user, $password, null, $port);
+            $link = @new mysqli($host, $user, $password, '', (int) $port);
         } else {
             $link = @new mysqli($host, $user, $password);
         }
@@ -327,7 +339,7 @@ class DbMySQLiCore extends Db
      * @param string $user Login for database connection
      * @param string $pwd Password for database connection
      * @param string $db Database name
-     * @param bool $newDbLink
+     * @param bool $new_db_link
      * @param string|bool $engine
      * @param int $timeout
      *
@@ -448,27 +460,26 @@ class DbMySQLiCore extends Db
             return false;
         }
 
-        if ($engine === null) {
-            $engine = 'MyISAM';
+        $enginesToTest = ['InnoDB', 'MyISAM'];
+        if ($engine !== null) {
+            $enginesToTest = [$engine];
         }
 
-        // Create a table
-        $link->query('
-		CREATE TABLE `' . $prefix . 'test` (
-			`test` tinyint(1) unsigned NOT NULL
-		) ENGINE=' . $engine);
+        foreach ($enginesToTest as $engineToTest) {
+            $link->query('CREATE TABLE `' . $prefix . 'test` (
+                `test` tinyint(1) unsigned NOT NULL
+            ) ENGINE=' . $engineToTest);
 
-        // Select content
-        $result = $link->query('SELECT * FROM `' . $prefix . 'test`');
+            $result = $link->query('SELECT * FROM `' . $prefix . 'test`');
 
-        // Drop the table
-        $link->query('DROP TABLE `' . $prefix . 'test`');
+            $link->query('DROP TABLE `' . $prefix . 'test`');
 
-        if (!$result) {
-            return $link->error;
+            if ($result) {
+                return true;
+            }
         }
 
-        return true;
+        return $link->error;
     }
 
     /**

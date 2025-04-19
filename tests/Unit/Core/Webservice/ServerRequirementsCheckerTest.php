@@ -26,12 +26,13 @@
 
 namespace tests\Unit\Core\Webservice;
 
+use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 use PrestaShop\PrestaShop\Adapter\Configuration;
 use PrestaShop\PrestaShop\Adapter\Hosting\HostingInformation;
 use PrestaShop\PrestaShop\Core\Configuration\PhpExtensionCheckerInterface;
 use PrestaShop\PrestaShop\Core\Webservice\ServerRequirementsChecker;
-use Symfony\Component\Translation\TranslatorInterface;
+use Symfony\Contracts\Translation\TranslatorInterface;
 
 class ServerRequirementsCheckerTest extends TestCase
 {
@@ -41,7 +42,7 @@ class ServerRequirementsCheckerTest extends TestCase
     private $mockedTranslator;
 
     /**
-     * @var Configuration
+     * @var Configuration|MockObject
      */
     private $mockedConfiguration;
 
@@ -64,7 +65,6 @@ class ServerRequirementsCheckerTest extends TestCase
 
         $this->mockedConfiguration = $this->createMock(Configuration::class);
         $this->mockedHostingInformation = $this->getMockBuilder(HostingInformation::class)
-            ->setMethods(null)
             ->getMock();
 
         $this->mockedPhpExtensionChecker = $this->createMock(PhpExtensionCheckerInterface::class);

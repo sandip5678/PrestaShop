@@ -73,11 +73,11 @@
 </template>
 
 <script lang="ts">
-  import Vue from 'vue';
-  import PSButton from '@app/widgets/ps-button';
-  import {EventBus} from '@app/utils/event-bus';
+  import PSButton from '@app/widgets/ps-button.vue';
+  import {EventEmitter} from '@components/event-emitter';
+  import {defineComponent} from 'vue';
 
-  export default Vue.extend({
+  export default defineComponent({
     props: {
       translations: {
         type: Object,
@@ -86,10 +86,10 @@
       },
     },
     mounted() {
-      EventBus.$on('showModal', () => {
+      EventEmitter.on('showModal', () => {
         this.showModal();
       });
-      EventBus.$on('hideModal', () => {
+      EventEmitter.on('hideModal', () => {
         this.hideModal();
       });
     },
@@ -111,15 +111,13 @@
       PSButton,
     },
   });
-
 </script>
 
 <style lang="scss" scoped>
   @import '~@scss/config/_settings.scss';
 
   .modal-header .close {
-    font-size: 1.2rem;
-    color: $gray-medium;
+    font-size: var(--#{$cdk}size-20);
     opacity: 1;
   }
   .modal-content {

@@ -30,19 +30,19 @@ namespace Tests\Integration\Core\Product;
 
 use Language;
 use Link;
-use PHPUnit\Framework\TestCase;
 use PrestaShop\PrestaShop\Adapter\Image\ImageRetriever;
 use PrestaShop\PrestaShop\Adapter\Presenter\Product\ProductListingPresenter;
 use PrestaShop\PrestaShop\Adapter\Presenter\Product\ProductPresenter;
 use PrestaShop\PrestaShop\Adapter\Product\PriceFormatter;
 use PrestaShop\PrestaShop\Adapter\Product\ProductColorsRetriever;
 use PrestaShop\PrestaShop\Core\Product\ProductPresentationSettings;
-use Symfony\Component\Translation\TranslatorInterface;
+use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
+use Symfony\Contracts\Translation\TranslatorInterface;
 
 /**
  * @todo Move to Unit Tests when HookManager will be instanciated in ProductPresenter
  */
-class ProductPresenterTest extends TestCase
+class ProductPresenterTest extends KernelTestCase
 {
     /**
      * @var ProductPresentationSettings
@@ -82,6 +82,7 @@ class ProductPresenterTest extends TestCase
             'new' => false,
             'pack' => false,
             'show_price' => true,
+            'active' => true,
         ];
     }
 
@@ -125,12 +126,12 @@ class ProductPresenterTest extends TestCase
         }
     }
 
-    private function getPresentedProduct(string $field = null)
+    private function getPresentedProduct(?string $field = null)
     {
         return $this->_presentProduct(ProductPresenter::class, $field);
     }
 
-    private function getPresentedProductForListing(string $field = null)
+    private function getPresentedProductForListing(?string $field = null)
     {
         return $this->_presentProduct(ProductListingPresenter::class, $field);
     }

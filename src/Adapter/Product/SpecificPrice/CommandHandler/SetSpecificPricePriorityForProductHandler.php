@@ -29,13 +29,15 @@ declare(strict_types=1);
 namespace PrestaShop\PrestaShop\Adapter\Product\SpecificPrice\CommandHandler;
 
 use PrestaShop\PrestaShop\Adapter\Product\SpecificPrice\Update\SpecificPricePriorityUpdater;
+use PrestaShop\PrestaShop\Core\CommandBus\Attributes\AsCommandHandler;
 use PrestaShop\PrestaShop\Core\Domain\Product\SpecificPrice\Command\SetSpecificPricePriorityForProductCommand;
 use PrestaShop\PrestaShop\Core\Domain\Product\SpecificPrice\CommandHandler\SetSpecificPricePriorityForProductHandlerInterface;
 
 /**
  * Handles @see SetSpecificPricePriorityForProductCommand using legacy obj model
  */
-final class SetSpecificPricePriorityForProductHandler implements SetSpecificPricePriorityForProductHandlerInterface
+#[AsCommandHandler]
+class SetSpecificPricePriorityForProductHandler implements SetSpecificPricePriorityForProductHandlerInterface
 {
     /**
      * @var SpecificPricePriorityUpdater

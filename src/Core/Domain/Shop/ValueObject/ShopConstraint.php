@@ -33,58 +33,63 @@ use PrestaShop\PrestaShop\Core\Domain\Shop\Exception\ShopException;
 class ShopConstraint
 {
     /**
-     * @var ShopId|null
+     * These are the legacy values used to define the shop context, kept here for backward compatibility
      */
-    private $shopId;
+    public const SHOP = 1;
+    public const SHOP_GROUP = 2;
+    public const ALL_SHOPS = 4;
 
-    /**
-     * @var ShopGroupId|null
-     */
-    private $shopGroupId;
+    protected ?ShopId $shopId = null;
+
+    protected ?ShopGroupId $shopGroupId = null;
 
     /**
      * Indicate if the value returned matches the constraints strictly, else it fallbacks to Shop > Group > Global value
      *
      * @var bool
      */
-    private $strict;
+    protected $strict;
 
     /**
-     * Constraint to get configuration for a specific shop
+     * Constraint to target a specific shop
      *
      * @param int $shopId
+     * @param bool $isStrict
      *
      * @return static
      *
      * @throws ShopException
      */
-    public static function shop(int $shopId): self
+    public static function shop(int $shopId, bool $isStrict = false): self
     {
-        return new static($shopId, null, false);
+        return new static($shopId, null, $isStrict);
     }
 
     /**
-     * Constraint to get configuration for a specific shop group
+     * Constraint to target a specific shop group
      *
      * @param int $shopGroupId
+     * @param bool $isStrict
      *
      * @return static
      *
      * @throws ShopException
      */
-    public static function shopGroup(int $shopGroupId): self
+    public static function shopGroup(int $shopGroupId, bool $isStrict = false): self
     {
-        return new static(null, $shopGroupId, false);
+        return new static(null, $shopGroupId, $isStrict);
     }
 
     /**
-     * Constraint to get configuration for all shops (the global value)
+     * Constraint to target all shops
+     *
+     * @param bool $isStrict
      *
      * @return static
      */
-    public static function allShops(): self
+    public static function allShops(bool $isStrict = false): self
     {
-        return new static(null, null, false);
+        return new static(null, null, $isStrict);
     }
 
     /**
@@ -94,11 +99,25 @@ class ShopConstraint
      *
      * @throws ShopException
      */
-    public function __construct(?int $shopId, ?int $shopGroupId, bool $strict = false)
+    protected function __construct(?int $shopId, ?int $shopGroupId, bool $strict = false)
     {
         $this->shopId = null !== $shopId ? new ShopId($shopId) : null;
         $this->shopGroupId = null !== $shopGroupId ? new ShopGroupId($shopGroupId) : null;
         $this->strict = $strict;
+    }
+
+    /**
+     * Clone the constraint, you can specify a force $strict value, if not set the same value is kept.
+     *
+     * @param bool|null $strict
+     *
+     * @return static
+     *
+     * @throws ShopException
+     */
+    public function clone(?bool $strict = null): self
+    {
+        return new static($this->shopId?->getValue(), $this->shopGroupId?->getValue(), $strict !== null ? $strict : $this->strict);
     }
 
     /**
@@ -120,8 +139,52 @@ class ShopConstraint
     /**
      * @return bool
      */
+    public function forAllShops(): bool
+    {
+        return null === $this->shopId && null === $this->shopGroupId;
+    }
+
+    /**
+     * @return bool
+     */
     public function isStrict(): bool
     {
         return $this->strict;
+    }
+
+    public function isEqual(self $constraint): bool
+    {
+        if ($this->isStrict() !== $constraint->isStrict()) {
+            return false;
+        }
+
+        if ($this->getShopId() !== null && $constraint->getShopId() !== null && $this->getShopId()->getValue() === $constraint->getShopId()->getValue()) {
+            return true;
+        }
+
+        if ($this->getShopGroupId() !== null && $constraint->getShopGroupId() !== null && $this->getShopGroupId()->getValue() === $constraint->getShopGroupId()->getValue()) {
+            return true;
+        }
+
+        if ($this->forAllShops() && $constraint->forAllShops()) {
+            return true;
+        }
+
+        return false;
+    }
+
+    public function isSingleShopContext(): bool
+    {
+        return null !== $this->shopId;
+    }
+
+    public function isShopGroupContext(): bool
+    {
+        return null !== $this->shopGroupId;
+    }
+
+    public function isAllShopContext(): bool
+    {
+        return $this->forAllShops();
     }
 }

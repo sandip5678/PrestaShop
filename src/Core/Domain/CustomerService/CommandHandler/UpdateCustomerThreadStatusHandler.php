@@ -26,14 +26,16 @@
 
 namespace PrestaShop\PrestaShop\Core\Domain\CustomerService\CommandHandler;
 
-use Doctrine\DBAL\Driver\Connection;
+use Doctrine\DBAL\Connection;
+use PrestaShop\PrestaShop\Core\CommandBus\Attributes\AsCommandHandler;
 use PrestaShop\PrestaShop\Core\Domain\CustomerService\Command\UpdateCustomerThreadStatusCommand;
 use PrestaShop\PrestaShop\Core\Domain\CustomerService\Exception\CustomerServiceException;
 
 /**
  * @internal
  */
-final class UpdateCustomerThreadStatusHandler implements UpdateCustomerThreadStatusHandlerInterface
+#[AsCommandHandler]
+class UpdateCustomerThreadStatusHandler implements UpdateCustomerThreadStatusHandlerInterface
 {
     /**
      * @var Connection
@@ -70,8 +72,8 @@ final class UpdateCustomerThreadStatusHandler implements UpdateCustomerThreadSta
         $statement->bindValue(':status', $command->getCustomerThreadStatus()->getValue());
         $statement->bindValue(':id_customer_thread', $command->getCustomerThreadId()->getValue());
 
-        if (false === $statement->execute()) {
-            throw new CustomerServiceException('Failed to update customer thread status');
+        if (0 === $statement->executeStatement()) {
+            throw new CustomerServiceException('Failed to update customer thread status.', CustomerServiceException::FAILED_TO_UPDATE_STATUS);
         }
     }
 }

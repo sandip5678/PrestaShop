@@ -26,6 +26,7 @@
 
 namespace PrestaShop\PrestaShop\Adapter;
 
+use Exception;
 use Hook;
 use PrestaShop\PrestaShop\Core\Exception\CoreException;
 use Symfony\Component\DependencyInjection\ContainerInterface;
@@ -46,9 +47,9 @@ class HookManager
      * @param bool $use_push Force change to be refreshed on Dashboard widgets
      * @param int $id_shop If specified, hook will be execute the shop with this ID
      *
-     * @throws CoreException
+     * @return string|array|void|null modules output
      *
-     * @return string|array|void modules output
+     * @throws CoreException
      */
     public function exec(
         $hook_name,
@@ -78,14 +79,31 @@ class HookManager
         } else {
             try {
                 return Hook::exec($hook_name, $hook_args, $id_module, $array_return, $check_exceptions, $use_push, $id_shop);
-            } catch (\Exception $e) {
-                $logger = ServiceLocator::get('\\PrestaShop\\PrestaShop\\Adapter\\LegacyLogger');
-                $environment = ServiceLocator::get('\\PrestaShop\\PrestaShop\\Adapter\\Environment');
-                $logger->error(sprintf('Exception on hook %s for module %s. %s', $hook_name, $id_module, $e->getMessage()), ['object_type' => 'Module', 'object_id' => $id_module, 'allow_duplicate' => true]);
+            } catch (Exception $e) {
+                $logger = ServiceLocator::get(LegacyLogger::class);
+                $environment = ServiceLocator::get(Environment::class);
+                $logger->error(
+                    sprintf(
+                        'Exception on hook %s for module %s. %s',
+                        $hook_name,
+                        $id_module,
+                        $e->getMessage()
+                    ),
+                    [
+                        'object_type' => 'Module',
+                        'object_id' => $id_module,
+                        'allow_duplicate' => true,
+                    ]
+                );
                 if ($environment->isDebug()) {
                     throw new CoreException($e->getMessage(), $e->getCode(), $e);
                 }
             }
         }
+    }
+
+    public function disableHooksForModule(int $moduleId): void
+    {
+        Hook::disableHooksForModule($moduleId);
     }
 }

@@ -30,7 +30,7 @@ use Symfony\Component\OptionsResolver\Exception\NoSuchOptionException;
 use Symfony\Component\OptionsResolver\OptionsResolver;
 
 /**
- * Class AbtractColumn implements reusable column methods.
+ * Class AbstractColumn implements reusable column methods.
  */
 abstract class AbstractColumn implements ColumnInterface
 {
@@ -55,6 +55,7 @@ abstract class AbstractColumn implements ColumnInterface
     public function __construct($id)
     {
         $this->id = $id;
+        $this->name = '';
     }
 
     /**
@@ -114,7 +115,7 @@ abstract class AbstractColumn implements ColumnInterface
             return $this->options[$name];
         }
 
-        throw new NoSuchOptionException(sprintf('Option "%s" does not exist in "%s"', $name, get_class($this)));
+        throw new NoSuchOptionException(sprintf('Option "%s" does not exist in "%s"', $name, static::class));
     }
 
     /**
@@ -129,11 +130,14 @@ abstract class AbstractColumn implements ColumnInterface
                 'sortable' => true,
                 'clickable' => false,
                 'alignment' => 'left',
+                'attr' => [],
             ])
             ->setAllowedTypes('sortable', 'bool')
             ->setAllowedTypes('clickable', 'bool')
             ->setAllowedTypes('alignment', 'string')
-            ->setAllowedValues('alignment', ['center', 'left', 'right', 'justify']);
+            ->setAllowedValues('alignment', ['center', 'left', 'right', 'justify'])
+            ->setAllowedTypes('attr', 'array')
+        ;
     }
 
     /**

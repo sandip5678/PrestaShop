@@ -40,16 +40,6 @@ class CategoryFeatureContext extends AbstractPrestaShopFeatureContext
     protected $categories = [];
 
     /**
-     * @var int
-     */
-    private $defaultLanguageId;
-
-    public function __construct()
-    {
-        $this->defaultLanguageId = (int) \Configuration::get('PS_LANG_DEFAULT');
-    }
-
-    /**
      * @Given /^there is a category named "(.+)"$/
      */
     public function createCategory($categoryName)
@@ -57,25 +47,25 @@ class CategoryFeatureContext extends AbstractPrestaShopFeatureContext
         $idLang = (int) Context::getContext()->language->id;
         $category = new Category();
         $category->name = [$idLang => $categoryName];
-        $category->link_rewrite = [$idLang => Tools::link_rewrite($categoryName)];
+        $category->link_rewrite = [$idLang => Tools::str2url($categoryName)];
         $category->add();
         $this->categories[$categoryName] = $category;
     }
 
     /**
-     * @param $categoryName
+     * @param string $categoryName
      */
-    public function checkCategoryWithNameExists($categoryName)
+    public function checkCategoryWithNameExists(string $categoryName): void
     {
         $this->checkFixtureExists($this->categories, 'Category', $categoryName);
     }
 
     /**
-     * @param $categoryName
+     * @param string $categoryName
      *
      * @return Category
      */
-    public function getCategoryWithName($categoryName)
+    public function getCategoryWithName($categoryName): Category
     {
         return $this->categories[$categoryName];
     }

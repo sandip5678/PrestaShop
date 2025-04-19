@@ -26,17 +26,19 @@
 
 namespace Tests\Unit\Adapter\Module\Tab;
 
+use Exception;
 use PHPUnit\Framework\TestCase;
 use PrestaShop\PrestaShop\Adapter\Module\Tab\ModuleTabRegister;
 use PrestaShopBundle\Entity\Repository\LangRepository;
 use PrestaShopBundle\Entity\Repository\TabRepository;
 use Psr\Log\LoggerInterface;
+use ReflectionClass;
 use Symfony\Component\Config\Loader\Loader;
 use Symfony\Component\Filesystem\Filesystem;
 use Symfony\Component\HttpFoundation\ParameterBag;
 use Symfony\Component\Routing\Route;
 use Symfony\Component\Routing\RouteCollection;
-use Symfony\Component\Translation\TranslatorInterface;
+use Symfony\Contracts\Translation\TranslatorInterface;
 
 class ModuleTabRegisterTest extends TestCase
 {
@@ -121,7 +123,7 @@ class ModuleTabRegisterTest extends TestCase
         ];
 
         $this->tabRegister = $this->getMockBuilder(ModuleTabRegister::class)
-            ->setMethods(['getModuleAdminControllersFilename'])
+            ->onlyMethods(['getModuleAdminControllersFilename'])
             ->setConstructorArgs([
                 $this->createMock(TabRepository::class),
                 $this->createMock(LangRepository::class),
@@ -140,7 +142,7 @@ class ModuleTabRegisterTest extends TestCase
     protected function buildFilesystemMock(): Filesystem
     {
         $filesystemMock = $this->getMockBuilder(Filesystem::class)
-            ->setMethods(['exists'])
+            ->onlyMethods(['exists'])
             ->disableOriginalConstructor()
             ->getMock()
         ;
@@ -164,7 +166,7 @@ class ModuleTabRegisterTest extends TestCase
     protected function buildRoutingConfigLoaderMock(): Loader
     {
         $moduleRoutingLoader = $this->getMockBuilder(Loader::class)
-            ->setMethods(['import', 'load', 'supports', 'getResolver', 'setResolver'])
+            ->onlyMethods(['import', 'load', 'supports', 'getResolver', 'setResolver'])
             ->disableOriginalConstructor()
             ->getMock()
         ;
@@ -225,7 +227,7 @@ class ModuleTabRegisterTest extends TestCase
 
             try {
                 $this->invokeMethod($this->tabRegister, 'checkIsValid', [$moduleName, $data]);
-            } catch (\Exception $e) {
+            } catch (Exception $e) {
                 $this->assertEquals($e->getMessage(), $tab['exception']);
 
                 continue;
@@ -328,7 +330,7 @@ class ModuleTabRegisterTest extends TestCase
     /**
      * Call protected/private method of a class.
      *
-     * @param object &$object Instantiated object that we will run method on
+     * @param object $object Instantiated object that we will run method on
      * @param string $methodName Method name to call
      * @param array $parameters array of parameters to pass into method
      *
@@ -336,9 +338,9 @@ class ModuleTabRegisterTest extends TestCase
      *
      * @see https://jtreminio.com/2013/03/unit-testing-tutorial-part-3-testing-protected-private-methods-coverage-reports-and-crap/
      */
-    protected function invokeMethod(&$object, string $methodName, array $parameters = [])
+    protected function invokeMethod(object $object, string $methodName, array $parameters = [])
     {
-        $reflection = new \ReflectionClass(get_class($object));
+        $reflection = new ReflectionClass(get_class($object));
         $method = $reflection->getMethod($methodName);
         $method->setAccessible(true);
 

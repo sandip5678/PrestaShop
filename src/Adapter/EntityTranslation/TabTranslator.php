@@ -1,5 +1,4 @@
 <?php
-
 /**
  * Copyright since 2007 PrestaShop SA and Contributors
  * PrestaShop is an International Registered Trademark & Property of PrestaShop SA
@@ -24,9 +23,12 @@
  * @copyright Since 2007 PrestaShop SA and Contributors
  * @license   https://opensource.org/licenses/OSL-3.0 Open Software License (OSL 3.0)
  */
+
 declare(strict_types=1);
 
 namespace PrestaShop\PrestaShop\Adapter\EntityTranslation;
+
+use PrestaShopDatabaseException;
 
 /**
  * Translates tabs (menu items) in database using DataLang
@@ -53,7 +55,7 @@ class TabTranslator extends EntityTranslator
      */
     protected function doTranslate(array $data, string $fieldName): string
     {
-        $message = ($this->sourceIndex[$data['id_tab']]) ?? $this->getSourceString($data, $fieldName);
+        $message = $this->sourceIndex[$data['id_tab']] ?? $this->getSourceString($data, $fieldName);
 
         return $this->dataLang->getFieldValue($fieldName, $message);
     }
@@ -63,13 +65,13 @@ class TabTranslator extends EntityTranslator
      *
      * @return array[] Array of [wording, wording_domain], indexed by id_tab
      *
-     * @throws \PrestaShopDatabaseException
+     * @throws PrestaShopDatabaseException
      */
     private function buildIndex(): array
     {
         $tableName = $this->dbPrefix . 'tab';
 
-        $sql = "SELECT id_tab, wording, wording_domain FROM $tableName";
+        $sql = "SELECT id_tab, wording, wording_domain FROM $tableName WHERE wording > '' and wording_domain > ''";
         $results = $this->db->executeS($sql);
 
         $souceIndex = [];

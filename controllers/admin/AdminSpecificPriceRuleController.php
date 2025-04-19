@@ -31,6 +31,11 @@ class AdminSpecificPriceRuleControllerCore extends AdminController
 {
     public $list_reduction_type;
 
+    /**
+     * @var int
+     */
+    public $id_shop;
+
     public function __construct()
     {
         $this->bootstrap = true;
@@ -41,7 +46,7 @@ class AdminSpecificPriceRuleControllerCore extends AdminController
 
         parent::__construct();
 
-        /* if $_GET['id_shop'] is transmitted, virtual url can be loaded in config.php, so we wether transmit shop_id in herfs */
+        /* if $_GET['id_shop'] is transmitted, virtual url can be loaded in config.php, so we wether transmit shop_id in hrefs */
         if ($this->id_shop = (int) Tools::getValue('shop_id')) {
             $_GET['id_shop'] = $this->id_shop;
             $_POST['id_shop'] = $this->id_shop;
@@ -80,10 +85,6 @@ class AdminSpecificPriceRuleControllerCore extends AdminController
                 'title' => $this->trans('Name', [], 'Admin.Global'),
                 'filter_key' => 'a!name',
                 'width' => 'auto',
-            ],
-            'shop_name' => [
-                'title' => $this->trans('Shop', [], 'Admin.Global'),
-                'filter_key' => 's!name',
             ],
             'id_currency' => [
                 'title' => $this->trans('Currency', [], 'Admin.Global'),
@@ -133,6 +134,18 @@ class AdminSpecificPriceRuleControllerCore extends AdminController
                 'order_key' => 'a!to',
             ],
         ];
+
+        if (Shop::isFeatureActive()) {
+            $this->fields_list = Tools::arrayInsertElementAfterKey(
+                $this->fields_list,
+                'name',
+                'shop_name',
+                [
+                    'title' => $this->trans('Store', [], 'Admin.Global'),
+                    'filter_key' => 's!name',
+                ]
+            );
+        }
     }
 
     public function initPageHeaderToolbar()
@@ -191,7 +204,7 @@ class AdminSpecificPriceRuleControllerCore extends AdminController
                 ],
                 [
                     'type' => 'select',
-                    'label' => $this->trans('Shop', [], 'Admin.Global'),
+                    'label' => $this->trans('Store', [], 'Admin.Global'),
                     'name' => 'shop_id',
                     'options' => [
                         'query' => Shop::getShops(),
@@ -307,7 +320,9 @@ class AdminSpecificPriceRuleControllerCore extends AdminController
                 'title' => $this->trans('Save', [], 'Admin.Actions'),
             ],
         ];
-        if (($value = $this->getFieldValue($this->object, 'price')) != -1) {
+
+        $value = $this->getFieldValue($this->object, 'price');
+        if ($value !== '' && $value != -1) {
             $price = number_format($value, 6);
         } else {
             $price = '';
@@ -316,7 +331,7 @@ class AdminSpecificPriceRuleControllerCore extends AdminController
         $this->fields_value = [
             'price' => $price,
             'from_quantity' => (($value = $this->getFieldValue($this->object, 'from_quantity')) ? $value : 1),
-            'reduction' => number_format((($value = $this->getFieldValue($this->object, 'reduction')) ? $value : 0), 6),
+            'reduction' => number_format(($value = $this->getFieldValue($this->object, 'reduction')) ? $value : 0, 6),
             'leave_bprice_on' => $price ? 0 : 1,
             'shop_id' => (($value = $this->getFieldValue($this->object, 'id_shop')) ? $value : 1),
         ];
@@ -356,8 +371,10 @@ class AdminSpecificPriceRuleControllerCore extends AdminController
     public function processSave()
     {
         $_POST['price'] = Tools::getValue('leave_bprice_on') ? '-1' : Tools::getValue('price');
-        if (Validate::isLoadedObject(($object = parent::processSave()))) {
-            /* @var SpecificPriceRule $object */
+
+        /** @var SpecificPriceRule $object */
+        $object = parent::processSave();
+        if (Validate::isLoadedObject($object)) {
             $object->deleteConditions();
             foreach ($_POST as $key => $values) {
                 if (preg_match('/^condition_group_([0-9]+)$/Ui', $key, $condition_group)) {

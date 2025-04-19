@@ -64,6 +64,7 @@ class AddCmsPageCategoryCommandTest extends TestCase
             [
                 1 => 'hashtag',
             ],
+            /* @phpstan-ignore-next-line */
             $incorrectId,
             true
         );
@@ -78,18 +79,6 @@ class AddCmsPageCategoryCommandTest extends TestCase
 
         $command->setLocalisedMetaTitle([
             1 => '{object}',
-        ]);
-    }
-
-    public function testItThrowsAnExceptionWhenMetaKeywordsIsIncorrect()
-    {
-        $this->expectException(CmsPageCategoryConstraintException::class);
-        $this->expectExceptionCode(CmsPageCategoryConstraintException::INVALID_META_KEYWORDS);
-
-        $command = new AddCmsPageCategoryCommand([], [], 1, false);
-
-        $command->setLocalisedMetaKeywords([
-            1 => '<object>',
         ]);
     }
 

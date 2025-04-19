@@ -35,8 +35,9 @@
       :value="value"
       placeholder="0"
       @keyup="onKeyup($event)"
-      @focus="focusIn"
-      @blur.native="focusOut($event)"
+      @keydown="onKeydown($event)"
+      @focus="focusIn($event)"
+      @blur="focusOut($event)"
     >
     <div
       class="ps-number-spinner d-flex"
@@ -44,23 +45,23 @@
     >
       <span
         class="ps-number-up"
-        @click="increment"
+        @click="increment($event)"
       />
       <span
         class="ps-number-down"
-        @click="decrement"
+        @click="decrement($event)"
       />
     </div>
   </div>
 </template>
 
 <script lang="ts">
-  import Vue from 'vue';
+  import {defineComponent} from 'vue';
 
-  export default Vue.extend({
+  export default defineComponent({
     props: {
       value: {
-        type: Number,
+        type: [Number, String],
         default: 0,
       },
       danger: {
@@ -77,23 +78,30 @@
       },
     },
     methods: {
-      onKeyup($event: JQueryEventObject): void {
+      getValue(): number {
+        const value = Number.isNaN(this.value) ? 0 : Number.parseInt(<string> this.value, 10);
+
+        return Number.isNaN(value) ? 0 : value;
+      },
+      onKeyup($event: Event): void {
         this.$emit('keyup', $event);
       },
-      focusIn(): void {
-        this.$emit('focus');
+      onKeydown($event: Event): void {
+        this.$emit('keydown', $event);
       },
-      focusOut($event: JQueryEventObject): void {
+      focusIn($event: Event): void {
+        this.$emit('focus', $event);
+      },
+      focusOut($event: Event): void {
         this.$emit('blur', $event);
       },
-      increment(): void {
-        const value = Math.round(this.value);
-
-        this.$emit('change', Number.isNaN(value) ? 0 : value + 1);
+      increment($event: Event) {
+        (<HTMLInputElement>$event.target).value = `${this.getValue() + 1}`;
+        this.$emit('change', $event);
       },
-      decrement(): void {
-        const value = Math.round(this.value);
-        this.$emit('change', Number.isNaN(value) ? -1 : value - 1);
+      decrement($event: Event): void {
+        (<HTMLInputElement>$event.target).value = `${this.getValue() - 1}`;
+        this.$emit('change', $event);
       },
     },
   });

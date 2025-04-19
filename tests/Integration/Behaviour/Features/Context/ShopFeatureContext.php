@@ -32,19 +32,39 @@ use Configuration;
 use Context;
 use Db;
 use PHPUnit\Framework\Assert;
+use PrestaShop\PrestaShop\Adapter\LegacyContext;
 use PrestaShop\PrestaShop\Core\Domain\Shop\Exception\SearchShopException;
 use PrestaShop\PrestaShop\Core\Domain\Shop\Query\SearchShops;
 use PrestaShop\PrestaShop\Core\Domain\Shop\QueryResult\FoundShop;
 use PrestaShop\PrestaShop\Core\Domain\Shop\QueryResult\FoundShopGroup;
+use PrestaShop\PrestaShop\Core\Feature\FeatureInterface;
+use PrestaShopException;
 use RuntimeException;
 use Shop;
 use ShopGroup;
 use ShopUrl;
 use Tests\Integration\Behaviour\Features\Context\Domain\AbstractDomainFeatureContext;
 use Tests\Integration\Behaviour\Features\Context\Util\PrimitiveUtils;
+use Tests\Resources\Resetter\ShopResetter;
 
 class ShopFeatureContext extends AbstractDomainFeatureContext
 {
+    /**
+     * @BeforeFeature @restore-shops-before-feature
+     */
+    public static function restoreShopTablesBeforeFeature(): void
+    {
+        ShopResetter::resetShops();
+    }
+
+    /**
+     * @AfterFeature @restore-shops-after-feature
+     */
+    public static function restoreShopTablesAfterFeature(): void
+    {
+        ShopResetter::resetShops();
+    }
+
     /**
      * @Given single shop :shopReference context is loaded
      *
@@ -52,10 +72,27 @@ class ShopFeatureContext extends AbstractDomainFeatureContext
      */
     public function loadSingleShopContext(string $shopReference): void
     {
-        /** @var Shop $shop */
-        $shop = SharedStorage::getStorage()->get($shopReference);
+        // If context shop has never been initialized we must do it here otherwise it will be done later automatically
+        // by LegacyContext with a shop context for ALL_SHOPS which will remove this override
+        /** @var LegacyContext $legacyContext */
+        $legacyContext = $this->getContainer()->get('prestashop.adapter.legacy.context');
+        // Just calling the getter initializes the context
+        $legacyContext->getContext();
 
-        Shop::setContext(Shop::CONTEXT_SHOP, $shop->id);
+        Shop::setContext(
+            Shop::CONTEXT_SHOP,
+            SharedStorage::getStorage()->get($shopReference)
+        );
+    }
+
+    /**
+     * @Given /^I (enable|disable) multishop feature/
+     *
+     * @param bool $enable
+     */
+    public function toggleMultiShopFeature(bool $enable): void
+    {
+        self::toggleMultiShop($enable);
     }
 
     /**
@@ -66,13 +103,30 @@ class ShopFeatureContext extends AbstractDomainFeatureContext
      */
     public function shopWithNameExists(string $reference, string $shopName): void
     {
-        $shopId = Shop::getIdByName($shopName);
+        (int) $shopId = Shop::getIdByName($shopName);
 
-        if (false === $shopId) {
+        if (!$shopId) {
             throw new RuntimeException(sprintf('Shop with name "%s" does not exist', $shopName));
         }
 
-        SharedStorage::getStorage()->set($reference, new Shop($shopId));
+        SharedStorage::getStorage()->set($reference, $shopId);
+    }
+
+    /**
+     * @Given shop group :reference with name :shopGroupName exists
+     *
+     * @param string $reference
+     * @param string $shopName
+     */
+    public function shopGroupWithNameExists(string $reference, string $shopName): void
+    {
+        $shopGroupId = ShopGroup::getIdByName($shopName);
+
+        if (empty($shopGroupId)) {
+            throw new RuntimeException(sprintf('Shop with name "%s" does not exist', $shopName));
+        }
+
+        SharedStorage::getStorage()->set($reference, $shopGroupId);
     }
 
     /**
@@ -82,7 +136,7 @@ class ShopFeatureContext extends AbstractDomainFeatureContext
      * @param string $groupName
      * @param string|null $color
      */
-    public function addShopGroup(string $reference, string $groupName, string $color = null): void
+    public function addShopGroup(string $reference, string $groupName, ?string $color = null): void
     {
         $shopGroup = new ShopGroup();
         $shopGroup->name = $groupName;
@@ -96,7 +150,19 @@ class ShopFeatureContext extends AbstractDomainFeatureContext
             throw new RuntimeException(sprintf('Could not create shop group: %s', Db::getInstance()->getMsgError()));
         }
 
-        SharedStorage::getStorage()->set($reference, $shopGroup);
+        SharedStorage::getStorage()->set($reference, (int) $shopGroup->id);
+    }
+
+    /**
+     * @Given Shop group :reference shares its stock
+     *
+     * @param string $reference
+     */
+    public function setStockShareForGroup(string $reference): void
+    {
+        $shopGroup = new ShopGroup((int) $this->getSharedStorage()->get($reference));
+        $shopGroup->share_stock = true;
+        $shopGroup->update();
     }
 
     /**
@@ -123,17 +189,17 @@ class ShopFeatureContext extends AbstractDomainFeatureContext
     }
 
     /**
-     * @Given I add a shop :reference with name :shopName and color :color for the group :shopGroupName
+     * @Given I add a shop :reference with name :shopName and color :color for the group :shopGroupReference
      *
      * @param string $reference
      * @param string $shopName
-     * @param string $shopGroupName
+     * @param string $shopGroupReference
      */
-    public function addShop(string $reference, string $shopName, string $color, string $shopGroupName): void
+    public function addShop(string $reference, string $shopName, string $color, string $shopGroupReference): void
     {
         $shop = new Shop();
         $shop->active = true;
-        $shop->id_shop_group = ShopGroup::getIdByName($shopGroupName);
+        $shop->id_shop_group = (int) SharedStorage::getStorage()->get($shopGroupReference);
         // 2 : ID Category for "Home" in database
         $shop->id_category = 2;
         $shop->theme_name = _THEME_NAME_;
@@ -144,7 +210,20 @@ class ShopFeatureContext extends AbstractDomainFeatureContext
         }
         $shop->setTheme();
 
-        SharedStorage::getStorage()->set($reference, $shop);
+        SharedStorage::getStorage()->set($reference, (int) $shop->id);
+    }
+
+    /**
+     * @When I set :categoryReference as default category for shop :reference
+     *
+     * @param string $categoryReference
+     * @param string $shopReference
+     */
+    public function defineShopDefaultCategory(string $categoryReference, string $shopReference): void
+    {
+        $shop = new Shop($this->referenceToId($shopReference));
+        $shop->id_category = $this->referenceToId($categoryReference);
+        $shop->save();
     }
 
     /**
@@ -202,7 +281,7 @@ class ShopFeatureContext extends AbstractDomainFeatureContext
     public function checkShopCount(int $expectedCount, string $shopGroupName): void
     {
         $shopGroupId = ShopGroup::getIdByName($shopGroupName);
-        if (false === $shopGroupId) {
+        if (empty($shopGroupId)) {
             throw new RuntimeException(sprintf('Shop Group with name "%s" does not exist', $shopGroupName));
         }
 
@@ -223,7 +302,7 @@ class ShopFeatureContext extends AbstractDomainFeatureContext
      * @param int $context
      * @param int $shopId
      *
-     * @throws \PrestaShopException
+     * @throws PrestaShopException
      */
     private function setShopContext(int $context, int $shopId): void
     {
@@ -241,15 +320,14 @@ class ShopFeatureContext extends AbstractDomainFeatureContext
      */
     public function addShopUrl(string $shopReference): void
     {
-        $shop = SharedStorage::getStorage()->get($shopReference);
         $shopUrl = new ShopUrl();
-        $shopUrl->id_shop = $shop->id;
+        $shopUrl->id_shop = SharedStorage::getStorage()->get($shopReference);
         $shopUrl->active = true;
         $shopUrl->main = true;
         $shopUrl->domain = 'localhost';
         $shopUrl->domain_ssl = 'localhost';
-        $shopUrl->physical_uri = '/prestatest/';
-        $shopUrl->virtual_uri = '/prestatest/';
+        $shopUrl->physical_uri = "/prestatest-$shopReference/";
+        $shopUrl->virtual_uri = "/prestatest-$shopReference/";
         if (!$shopUrl->add()) {
             throw new RuntimeException(sprintf('Could not create shop url: %s', Db::getInstance()->getMsgError()));
         }
@@ -258,7 +336,7 @@ class ShopFeatureContext extends AbstractDomainFeatureContext
     /**
      * @Transform table:name,group_name,color,group_color,is_shop_group
      *
-     * @param TableNode $tableNode
+     * @param TableNode $shopsTable
      *
      * @return array
      */
@@ -382,5 +460,21 @@ class ShopFeatureContext extends AbstractDomainFeatureContext
         if (!$exceptionTriggered) {
             throw new RuntimeException('Expected SearchShopException did not happen');
         }
+    }
+
+    /**
+     * @param bool $enable
+     */
+    private static function toggleMultiShop(bool $enable): void
+    {
+        $container = CommonFeatureContext::getContainer();
+        /** @var FeatureInterface $multistoreFeature */
+        $multistoreFeature = $container->get('prestashop.adapter.multistore_feature');
+        if ($enable) {
+            $multistoreFeature->enable();
+        } else {
+            $multistoreFeature->disable();
+        }
+        Shop::resetStaticCache();
     }
 }

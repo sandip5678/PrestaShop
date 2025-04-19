@@ -29,10 +29,10 @@ declare(strict_types=1);
 namespace PrestaShopBundle\Service\Form;
 
 use PrestaShop\PrestaShop\Adapter\Shop\Context;
+use PrestaShop\PrestaShop\Core\Context\ShopContext;
 use PrestaShop\PrestaShop\Core\Domain\Configuration\ShopConfigurationInterface;
-use PrestaShop\PrestaShop\Core\Domain\Shop\ValueObject\ShopConstraint;
-use PrestaShop\PrestaShop\Core\Feature\FeatureInterface;
-use PrestaShopBundle\Controller\Admin\MultistoreController;
+use PrestaShopBundle\Form\Extension\MultistoreConfigurationTypeExtension;
+use PrestaShopBundle\Form\FormCloner;
 use Symfony\Component\Form\Extension\Core\Type\CheckboxType;
 use Symfony\Component\Form\FormInterface;
 
@@ -56,44 +56,12 @@ class MultistoreCheckboxEnabler
 {
     public const MULTISTORE_FIELD_PREFIX = 'multistore_';
 
-    /**
-     * @var FeatureInterface
-     */
-    private $multistoreFeature;
-
-    /**
-     * @var ShopConfigurationInterface
-     */
-    private $configuration;
-
-    /**
-     * @var Context
-     */
-    private $multiStoreContext;
-
-    /**
-     * @var MultistoreController
-     */
-    private $multistoreController;
-
-    /**
-     * MultistoreCheckboxEnabler constructor.
-     *
-     * @param FeatureInterface $multistoreFeature
-     * @param ShopConfigurationInterface $configuration
-     * @param Context $multiStoreContext
-     * @param MultistoreController $multistoreController
-     */
     public function __construct(
-        FeatureInterface $multistoreFeature,
-        ShopConfigurationInterface $configuration,
-        Context $multiStoreContext,
-        MultistoreController $multistoreController
+        private readonly ShopConfigurationInterface $configuration,
+        private readonly ShopContext $shopContext,
+        private readonly FormCloner $formCloner,
+        private readonly MultistoreConfigurationDropdownRenderer $dropdownRenderer,
     ) {
-        $this->multistoreFeature = $multistoreFeature;
-        $this->configuration = $configuration;
-        $this->multiStoreContext = $multiStoreContext;
-        $this->multistoreController = $multistoreController;
     }
 
     /**
@@ -101,7 +69,7 @@ class MultistoreCheckboxEnabler
      */
     public function shouldAddMultistoreElements(): bool
     {
-        if (!$this->multistoreFeature->isUsed()) {
+        if (!$this->shopContext->isMultiShopUsed()) {
             return false;
         }
 
@@ -123,11 +91,11 @@ class MultistoreCheckboxEnabler
 
             $isOverriddenInCurrentContext = $this->isOverriddenInCurrentContext($options['multistore_configuration_key']);
 
-            // update current field with disabled attribute
+            // Update current field with disabled attribute
             $this->updateCurrentField($form, $child, $options, $isOverriddenInCurrentContext);
 
-            // for each field in the configuration form, we add a multistore checkbox (except in all shop context)
-            if (!$this->multiStoreContext->isAllShopContext()) {
+            // For each field in the configuration form, we add a multistore checkbox (except in all shop context)
+            if (!$this->shopContext->isAllShopContext()) {
                 $this->addCheckbox($form, $child->getName(), $isOverriddenInCurrentContext, $options['multistore_configuration_key']);
             }
         }
@@ -143,13 +111,8 @@ class MultistoreCheckboxEnabler
     private function isOverriddenInCurrentContext(string $configurationKey): bool
     {
         // Check if current configuration is overridden by current shop / group shop context
-        $shopConstraint = new ShopConstraint(
-            $this->multiStoreContext->getContextShopId(),
-            $this->multiStoreContext->getContextShopGroup()->id,
-            true // important: will return a value only if it's present, skipping the hierarchical fallback system
-        );
-
-        return $this->configuration->has($configurationKey, $shopConstraint);
+        // The $isStrict parameter is important: it will return a value only if it's present, skipping the hierarchical fallback system
+        return $this->configuration->has($configurationKey, $this->shopContext->getShopConstraint()->clone(true));
     }
 
     /**
@@ -162,22 +125,17 @@ class MultistoreCheckboxEnabler
      */
     private function updateCurrentField(FormInterface $form, FormInterface $childElement, array &$options, bool $isOverriddenInCurrentContext): void
     {
-        $options['attr']['disabled'] = !$this->multiStoreContext->isAllShopContext() && !$isOverriddenInCurrentContext;
+        $options['attr']['disabled'] = !$this->shopContext->isAllShopContext() && !$isOverriddenInCurrentContext;
 
         // add multistore dropdown in field option
-        if ($this->multiStoreContext->isAllShopContext() || $this->multiStoreContext->isGroupShopContext()) {
-            $options['multistore_dropdown'] = $this->multistoreController->configurationDropdown(
-                $this->configuration,
-                $options['multistore_configuration_key']
-            )->getContent();
+        if ($this->shopContext->isAllShopContext() || $this->shopContext->isShopGroupContext()) {
+            $options['multistore_dropdown'] = $this->dropdownRenderer->renderDropdown($options['multistore_configuration_key']);
         }
 
-        // update field
-        $form->add(
-            $childElement->getName(),
-            get_class($childElement->getConfig()->getType()->getInnerType()),
-            $options
-        );
+        // clone the field so that we keep all existing options, model transformers, listeners, etc...
+        $clonedField = $this->formCloner->cloneForm($form->get($childElement->getName()), $options);
+
+        $form->add($clonedField);
     }
 
     /**

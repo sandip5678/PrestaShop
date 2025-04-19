@@ -307,9 +307,12 @@ function setPreviousYear() {
   $('#date-end-compare').val(endDate.format($('#date-start').data('date-format')));
 }
 
-$(document).ready(() => {
+let datepickerStart;
+let datepickerEnd;
+
+$(() => {
   // Instanciate datepickers
-  const datepickerStart = $('.datepicker1').daterangepicker({
+  datepickerStart = $('.datepicker1').daterangepicker({
     dates: window.translated_dates,
     weekStart: 1,
     start: $('#date-start').val(),
@@ -320,7 +323,7 @@ $(document).ready(() => {
     }
   }).data('daterangepicker');
 
-  const datepickerEnd = $('.datepicker2').daterangepicker({
+  datepickerEnd = $('.datepicker2').daterangepicker({
     dates: window.translated_dates,
     weekStart: 1,
     start: $('#date-start').val(),
@@ -343,21 +346,21 @@ $(document).ready(() => {
   }
 
   // Events binding
-  $('#date-start').focus(function () {
+  $('#date-start').on('focus', function () {
     datepickerStart.setCompare(false);
     datepickerEnd.setCompare(false);
     $('.date-input').removeClass('input-selected');
     $(this).addClass('input-selected');
   });
 
-  $('#date-end').focus(function () {
+  $('#date-end').on('focus', function () {
     datepickerStart.setCompare(false);
     datepickerEnd.setCompare(false);
     $('.date-input').removeClass('input-selected');
     $(this).addClass('input-selected');
   });
 
-  $('#date-start-compare').focus(function () {
+  $('#date-start-compare').on('focus', function () {
     datepickerStart.setCompare(true);
     datepickerEnd.setCompare(true);
     $('#compare-options').val(3);
@@ -365,7 +368,7 @@ $(document).ready(() => {
     $(this).addClass('input-selected');
   });
 
-  $('#date-end-compare').focus(function () {
+  $('#date-end-compare').on('focus', function () {
     datepickerStart.setCompare(true);
     datepickerEnd.setCompare(true);
     $('#compare-options').val(3);
@@ -373,16 +376,16 @@ $(document).ready(() => {
     $(this).addClass('input-selected');
   });
 
-  $('#datepicker-cancel').click(() => {
+  $('#datepicker-cancel').on('click', () => {
     $('#datepicker').addClass('hide');
   });
 
-  $('#datepicker').show(() => {
+  $('#datepicker').on('show', () => {
     $('#date-start').focus();
     $('#date-start').trigger('change');
   });
 
-  $('#datepicker-compare').click(function () {
+  $('#datepicker-compare').on('click', function () {
     if ($(this).prop('checked')) {
       $('#compare-options').trigger('change');
       $('#form-date-body-compare').show();
@@ -398,10 +401,10 @@ $(document).ready(() => {
     }
   });
 
-  $('#compare-options').change(function () {
-    if (this.value === 1) setPreviousPeriod();
+  $('#compare-options').on('change', function () {
+    if (this.value === '1') setPreviousPeriod();
 
-    if (this.value === 2) setPreviousYear();
+    if (this.value === '2') setPreviousYear();
 
     datepickerStart.setStartCompare($('#date-start-compare').val());
     datepickerStart.setEndCompare($('#date-end-compare').val());
@@ -410,7 +413,7 @@ $(document).ready(() => {
     datepickerStart.setCompare(true);
     datepickerEnd.setCompare(true);
 
-    if (this.value === 3) $('#date-start-compare').focus();
+    if (this.value === '3') $('#date-start-compare').focus();
   });
 
   if ($('#datepicker-compare').attr('checked')) {

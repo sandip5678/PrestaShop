@@ -29,19 +29,38 @@ use PrestaShop\PrestaShop\Core\Product\Search\SortOrder;
 
 class PricesDropControllerCore extends ProductListingFrontController
 {
+    /** @var string */
     public $php_self = 'prices-drop';
 
     /**
-     * {@inheritdoc}
+     * Returns canonical URL for prices-drop page
+     *
+     * @return string
      */
-    public function initContent()
+    public function getCanonicalURL(): string
+    {
+        return $this->buildPaginatedUrl($this->context->link->getPageLink('prices-drop'));
+    }
+
+    /**
+     * Assign template vars related to page content.
+     *
+     * @see FrontController::initContent()
+     */
+    public function initContent(): void
     {
         parent::initContent();
 
         $this->doProductSearch('catalog/listing/prices-drop', ['entity' => 'prices-drop']);
     }
 
-    protected function getProductSearchQuery()
+    /**
+     * Gets the product search query for the controller. This is a set of information that
+     * a filtering module or the default provider will use to fetch our products.
+     *
+     * @return ProductSearchQuery
+     */
+    protected function getProductSearchQuery(): ProductSearchQuery
     {
         $query = new ProductSearchQuery();
         $query
@@ -51,14 +70,19 @@ class PricesDropControllerCore extends ProductListingFrontController
         return $query;
     }
 
-    protected function getDefaultProductSearchProvider()
+    /**
+     * Default product search provider used if no filtering module stood up for the job
+     *
+     * @return PricesDropProductSearchProvider
+     */
+    protected function getDefaultProductSearchProvider(): PricesDropProductSearchProvider
     {
         return new PricesDropProductSearchProvider(
             $this->getTranslator()
         );
     }
 
-    public function getListingLabel()
+    public function getListingLabel(): string
     {
         return $this->trans(
             'Prices drop',
@@ -67,13 +91,13 @@ class PricesDropControllerCore extends ProductListingFrontController
         );
     }
 
-    public function getBreadcrumbLinks()
+    public function getBreadcrumbLinks(): array
     {
         $breadcrumb = parent::getBreadcrumbLinks();
 
         $breadcrumb['links'][] = [
             'title' => $this->trans('Prices drop', [], 'Shop.Theme.Catalog'),
-            'url' => $this->context->link->getPageLink('prices-drop', true),
+            'url' => $this->context->link->getPageLink('prices-drop'),
         ];
 
         return $breadcrumb;

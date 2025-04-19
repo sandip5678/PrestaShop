@@ -27,6 +27,7 @@
 namespace Tests\Integration\Behaviour\Features\Context\Configuration;
 
 use Configuration;
+use Exception;
 use Order;
 
 class RoundingTypeConfigurationFeatureContext extends AbstractConfigurationFeatureContext
@@ -36,7 +37,6 @@ class RoundingTypeConfigurationFeatureContext extends AbstractConfigurationFeatu
      */
     public function setRoundingMode($value)
     {
-        $this->previousConfiguration['PS_ROUND_TYPE'] = Configuration::get('PS_ROUND_TYPE');
         switch ($value) {
             case 'each article':
                 $this->setConfiguration('PS_ROUND_TYPE', Order::ROUND_ITEM);
@@ -48,8 +48,7 @@ class RoundingTypeConfigurationFeatureContext extends AbstractConfigurationFeatu
                 $this->setConfiguration('PS_ROUND_TYPE', Order::ROUND_TOTAL);
                 break;
             default:
-                throw new \Exception('Unknown config value for specific shop configuration for "rounding type": ' . $value);
-                break;
+                throw new Exception('Unknown config value for specific shop configuration for "rounding type": ' . $value);
         }
     }
 }

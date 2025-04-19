@@ -25,10 +25,15 @@
  */
 class AddressControllerCore extends FrontController
 {
+    /** @var bool */
     public $auth = true;
+    /** @var bool */
     public $guestAllowed = true;
+    /** @var string */
     public $php_self = 'address';
+    /** @var string */
     public $authRedirection = 'addresses';
+    /** @var bool */
     public $ssl = true;
 
     protected $address_form;
@@ -39,7 +44,7 @@ class AddressControllerCore extends FrontController
      *
      * @see FrontController::init()
      */
-    public function init()
+    public function init(): void
     {
         parent::init();
         $this->address_form = $this->makeAddressForm();
@@ -51,7 +56,7 @@ class AddressControllerCore extends FrontController
      *
      * @see FrontController::postProcess()
      */
-    public function postProcess()
+    public function postProcess(): void
     {
         $this->context->smarty->assign('editing', false);
         $id_address = (int) Tools::getValue('id_address');
@@ -69,9 +74,9 @@ class AddressControllerCore extends FrontController
                 $this->errors[] = $this->trans('Please fix the error below.', [], 'Shop.Notifications.Error');
             } else {
                 if ($id_address) {
-                    $this->success[] = $this->trans('Address successfully updated!', [], 'Shop.Notifications.Success');
+                    $this->success[] = $this->trans('Address successfully updated.', [], 'Shop.Notifications.Success');
                 } else {
-                    $this->success[] = $this->trans('Address successfully added!', [], 'Shop.Notifications.Success');
+                    $this->success[] = $this->trans('Address successfully added.', [], 'Shop.Notifications.Success');
                 }
 
                 $this->should_redirect = true;
@@ -103,7 +108,7 @@ class AddressControllerCore extends FrontController
                 Tools::getValue('token')
             );
             if ($ok) {
-                $this->success[] = $this->trans('Address successfully deleted!', [], 'Shop.Notifications.Success');
+                $this->success[] = $this->trans('Address successfully deleted.', [], 'Shop.Notifications.Success');
                 $this->should_redirect = true;
             } else {
                 $this->errors[] = $this->trans('Could not delete address.', [], 'Shop.Notifications.Error');
@@ -118,14 +123,14 @@ class AddressControllerCore extends FrontController
      *
      * @see FrontController::initContent()
      */
-    public function initContent()
+    public function initContent(): void
     {
         if (!$this->ajax && $this->should_redirect) {
             if (($back = Tools::getValue('back')) && Tools::urlBelongsToShop($back)) {
                 $mod = Tools::getValue('mod');
                 $this->redirectWithNotifications('index.php?controller=' . $back . ($mod ? '&back=' . $mod : ''));
             } else {
-                $this->redirectWithNotifications('index.php?controller=addresses');
+                $this->redirectWithNotifications($this->context->link->getPageLink('addresses'));
             }
         }
 
@@ -139,7 +144,7 @@ class AddressControllerCore extends FrontController
         );
     }
 
-    public function getBreadcrumbLinks()
+    public function getBreadcrumbLinks(): array
     {
         $breadcrumb = parent::getBreadcrumbLinks();
 
@@ -163,7 +168,7 @@ class AddressControllerCore extends FrontController
         return $breadcrumb;
     }
 
-    public function displayAjaxAddressForm()
+    public function displayAjaxAddressForm(): void
     {
         $addressForm = $this->makeAddressForm();
 
@@ -177,7 +182,7 @@ class AddressControllerCore extends FrontController
 
         ob_end_clean();
         header('Content-Type: application/json');
-        $this->ajaxRender(Tools::jsonEncode([
+        $this->ajaxRender(json_encode([
             'address_form' => $this->render(
                 'customer/_partials/address-form',
                 $addressForm->getTemplateVariables()

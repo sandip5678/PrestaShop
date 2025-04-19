@@ -45,14 +45,14 @@
 </template>
 
 <script lang="ts">
-  import Vue from 'vue';
+  import {defineComponent} from 'vue';
 
   const ALERT_TYPE_INFO = 'ALERT_TYPE_INFO';
   const ALERT_TYPE_WARNING = 'ALERT_TYPE_WARNING';
   const ALERT_TYPE_DANGER = 'ALERT_TYPE_DANGER';
   const ALERT_TYPE_SUCCESS = 'ALERT_TYPE_SUCCESS';
 
-  export default Vue.extend({
+  export default defineComponent({
     props: {
       duration: {
         type: Boolean,
@@ -69,7 +69,12 @@
       },
     },
     computed: {
-      classObject(): Record<string, any> {
+      classObject(): {
+        'alert-info': boolean,
+        'alert-warning': boolean,
+        'alert-danger': boolean,
+        'alert-success': boolean
+      } {
         return {
           'alert-info': this.alertType === ALERT_TYPE_INFO,
           'alert-warning': this.alertType === ALERT_TYPE_WARNING,

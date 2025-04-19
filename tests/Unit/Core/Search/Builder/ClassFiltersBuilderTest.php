@@ -27,8 +27,11 @@
 namespace Tests\Unit\Core\Search\Builder;
 
 use PHPUnit\Framework\TestCase;
+use PrestaShop\PrestaShop\Core\Domain\Shop\ValueObject\ShopConstraint;
 use PrestaShop\PrestaShop\Core\Search\Builder\ClassFiltersBuilder;
 use PrestaShop\PrestaShop\Core\Search\Filters;
+use Tests\Resources\SampleFilters;
+use Tests\Resources\SampleShopFilters;
 
 class ClassFiltersBuilderTest extends TestCase
 {
@@ -82,21 +85,57 @@ class ClassFiltersBuilderTest extends TestCase
         $this->assertEmpty($builtFilters->getFilterId());
         $this->assertInstanceOf(SampleFilters::class, $builtFilters);
     }
-}
 
-class SampleFilters extends Filters
-{
     /**
-     * {@inheritdoc}
+     * @dataProvider getShopConstraints
+     *
+     * @param $shopConstraint
      */
-    public static function getDefaults()
+    public function testCreateWithShopConstraint($shopConstraint, $expectedShopConstraint): void
     {
-        return [
-            'limit' => 42,
-            'offset' => 0,
-            'orderBy' => 'id_sample',
-            'sortOrder' => 'desc',
-            'filters' => [],
-        ];
+        $builder = new ClassFiltersBuilder();
+        $builder->setConfig(['filters_class' => SampleShopFilters::class, 'shop_constraint' => $shopConstraint]);
+
+        $builtFilters = $builder->buildFilters();
+
+        $this->assertNotNull($builtFilters);
+        $this->assertEquals(SampleShopFilters::getDefaults(), $builtFilters->all());
+        $this->assertInstanceOf(SampleShopFilters::class, $builtFilters);
+        if ($builtFilters instanceof SampleShopFilters) {
+            $this->assertEquals($expectedShopConstraint, $builtFilters->getShopConstraint());
+        }
+    }
+
+    /**
+     * @dataProvider getShopConstraints
+     *
+     * @param $shopConstraint
+     */
+    public function testUpdateWithShopConstraint($shopConstraint, $expectedShopConstraint): void
+    {
+        $builder = new ClassFiltersBuilder();
+        $builder->setConfig(['filters_class' => SampleShopFilters::class, 'shop_constraint' => $shopConstraint]);
+
+        $initialFilters = new SampleShopFilters($shopConstraint, ['limit' => 456], 'shopId');
+        $builtFilters = $builder->buildFilters($initialFilters);
+
+        $this->assertNotNull($builtFilters);
+        $this->assertEquals(SampleShopFilters::getDefaults(), $builtFilters->all());
+        $this->assertInstanceOf(SampleShopFilters::class, $builtFilters);
+        if ($builtFilters instanceof SampleShopFilters) {
+            $this->assertEquals($expectedShopConstraint, $builtFilters->getShopConstraint());
+        }
+    }
+
+    public function getShopConstraints(): iterable
+    {
+        $constraint = ShopConstraint::shop(42);
+        yield 'single shop constraint' => [$constraint, $constraint];
+
+        $constraint = ShopConstraint::shopGroup(42);
+        yield 'group shop constraint' => [$constraint, $constraint];
+
+        $constraint = ShopConstraint::allShops();
+        yield 'all shop constraint' => [$constraint, $constraint];
     }
 }

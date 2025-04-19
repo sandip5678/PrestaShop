@@ -43,7 +43,7 @@
 	{if $input['type'] == 'group_discount_category'}
 	<div {if !$form_id}class="hide"{/if}>
 		<script type="text/javascript">
-		$(document).ready(function() {
+		$(function() {
 			$("#group_discount_category").fancybox({
 				beforeLoad: function () {
 					$('#group_discount_category_fancybox').show();
@@ -81,7 +81,7 @@
 				return;
 			$.ajax({
 				type:"POST",
-				url: "ajax-tab.php",
+				url: "index.php",
 				async: true,
 				dataType: "json",
 				data : {
@@ -127,7 +127,7 @@
 		}
 		</script>
 
-		<div class="col-lg-9">
+		<div class="col-lg-8">
 			<a class="btn btn-default" href="#group_discount_category_fancybox" id="group_discount_category">{l s='Add a category discount' d='Admin.Shopparameters.Feature'}</a>
 			<table class="table" id="group_discount_category_table">
 				{foreach $input['values'] key=key item=category }
@@ -171,12 +171,12 @@
 	{elseif $input['type'] == 'modules'}
 	<div {if !$form_id}class="hide"{/if}>
 		<script type="text/javascript">
-			$(document).ready(function() {
-				$('#authorized-modules').find('[value="0"]').click(function() {
+			$(function() {
+				$('#authorized-modules').find('[value="0"]').on('click', function() {
 					$(this).parent().parent().find('input[type=hidden]').attr('name', 'modulesBoxUnauth[]');
 				});
 
-				$('#authorized-modules').find('[value="1"]').click(function() {
+				$('#authorized-modules').find('[value="1"]').on('click', function() {
 					$(this).parent().parent().find('input[type=hidden]').attr('name', 'modulesBoxAuth[]');
 				});
 			});

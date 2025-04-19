@@ -33,7 +33,7 @@ use Symfony\Component\Form\FormInterface;
 use Symfony\Component\Form\FormView;
 use Symfony\Component\OptionsResolver\Options;
 use Symfony\Component\OptionsResolver\OptionsResolver;
-use Symfony\Component\Translation\TranslatorInterface;
+use Symfony\Contracts\Translation\TranslatorInterface;
 
 /**
  * This form type is used for a OneToMany (or ManyToMany) association, it allows to search a list of entities
@@ -51,6 +51,9 @@ use Symfony\Component\Translation\TranslatorInterface;
  */
 class EntitySearchInputType extends CollectionType
 {
+    public const LIST_LAYOUT = 'list';
+    public const TABLE_LAYOUT = 'table';
+
     /**
      * @var TranslatorInterface
      */
@@ -75,17 +78,19 @@ class EntitySearchInputType extends CollectionType
             // These are parameters from collection type which default values are modified
             'allow_add' => true,
             'allow_delete' => true,
+            'allow_search' => true,
             'prototype_name' => '__entity_index__',
 
             // Default entry type that matches the default template from the prestashop ui kit form theme
             'entry_type' => EntityItemType::class,
-
             // This is an optional entity type that can be useful to identify which type of entity is searched
             'entity_type' => null,
             // The remote url is used internally by a javascript component which performs a request when search input is used
             'remote_url' => null,
             // Max number of selectable entities (0 is unlimited)
             'limit' => 0,
+            // Min length before suggestions start getting rendered
+            'min_length' => 2,
             // Search input attributes (if needed to be customized)
             'search_attr' => [],
             // List container attributes (if needed to be customized)
@@ -95,32 +100,47 @@ class EntitySearchInputType extends CollectionType
 
             // This mapping array indicate which field from the entity must be used and what placeholder use to replace
             // it (the placeholder must be used in the prototype so that the value is in the right place)
-            'prototype_mapping' => [
-                'id' => EntityItemType::ID_PLACEHOLDER,
-                'name' => EntityItemType::NAME_PLACEHOLDER,
-                'image' => EntityItemType::IMAGE_PLACEHOLDER,
-            ],
+            'prototype_mapping' => null,
+            'identifier_field' => 'id',
+
+            // Specify IDs that must be filtered out of suggestions
+            'filtered_identities' => [],
+
+            // Layout
+            'layout' => static::LIST_LAYOUT,
 
             // Remove modal wording
             'remove_modal' => null,
-        ]);
 
+            // Empty state wording
+            'empty_state' => null,
+
+            // field name in record dataset which should be used to show suggestion in search dropdown
+            'suggestion_field' => 'name',
+        ]);
+        $resolver->setAllowedTypes('allow_search', ['bool']);
         $resolver->setAllowedTypes('search_attr', ['array']);
         $resolver->setAllowedTypes('list_attr', ['array']);
         $resolver->setAllowedTypes('placeholder', ['string']);
 
         $resolver->setAllowedTypes('remote_url', ['string', 'null']);
         $resolver->setAllowedTypes('limit', ['int']);
+        $resolver->setAllowedTypes('min_length', ['int']);
         $resolver->setAllowedTypes('entity_type', ['string', 'null']);
 
-        $resolver->setAllowedTypes('prototype_mapping', ['array']);
+        $resolver->setAllowedTypes('prototype_mapping', ['array', 'null']);
+        $resolver->setAllowedTypes('identifier_field', ['string']);
+        $resolver->setAllowedTypes('filtered_identities', ['array']);
 
         $resolver->setAllowedTypes('remove_modal', ['array', 'null']);
         $resolver->setNormalizer('remove_modal', function (Options $options, $value) {
-            $resolver = $this->getRemoveModalResolver();
-
-            return $resolver->resolve($value ?? []);
+            return $this->getRemoveModalResolver()->resolve($value ?? []);
         });
+
+        $resolver->setAllowedTypes('layout', ['string']);
+        $resolver->setAllowedValues('layout', [static::LIST_LAYOUT, static::TABLE_LAYOUT]);
+        $resolver->setAllowedTypes('empty_state', ['string', 'null']);
+        $resolver->setAllowedTypes('suggestion_field', ['string', 'null']);
     }
 
     /**
@@ -128,6 +148,21 @@ class EntitySearchInputType extends CollectionType
      */
     public function buildView(FormView $view, FormInterface $form, array $options)
     {
+        // If no mapping has been defined it is built based on the prototype field names
+        /** @var FormInterface $prototype */
+        $prototype = $form->getConfig()->getAttribute('prototype');
+        if (empty($options['prototype_mapping'])) {
+            $options['prototype_mapping'] = [];
+            foreach ($prototype->all() as $prototypeChild) {
+                $options['prototype_mapping'][$prototypeChild->getName()] = sprintf(
+                    '__%s__',
+                    $prototypeChild->getName()
+                );
+            }
+        }
+
+        // Force the data in prototype so that placeholders are injected in the prototype template then render the view
+        $prototype->setData($options['prototype_mapping']);
         parent::buildView($view, $form, $options);
 
         // Reformat parameter name for javascript (PHP and JS don't have same naming conventions)
@@ -136,13 +171,20 @@ class EntitySearchInputType extends CollectionType
         unset($removeModal['button_class']);
 
         $view->vars = array_replace($view->vars, [
+            'allow_search' => $options['allow_search'],
             'remote_url' => $options['remote_url'],
             'limit' => $options['limit'],
+            'min_length' => $options['min_length'],
             'search_attr' => $options['search_attr'],
             'list_attr' => $options['list_attr'],
             'placeholder' => $options['placeholder'],
             'prototype_mapping' => $options['prototype_mapping'],
             'remove_modal' => $removeModal,
+            'list_layout' => $options['layout'],
+            'empty_state' => $options['empty_state'],
+            'identifier_field' => $options['identifier_field'],
+            'filtered_identities' => $options['filtered_identities'],
+            'suggestion_field' => $options['suggestion_field'],
         ]);
     }
 
@@ -151,7 +193,7 @@ class EntitySearchInputType extends CollectionType
      *
      * @return string The prefix name
      */
-    public function getBlockPrefix()
+    public function getBlockPrefix(): string
     {
         return 'entity_search_input';
     }

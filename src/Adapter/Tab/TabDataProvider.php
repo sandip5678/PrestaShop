@@ -26,6 +26,8 @@
 
 namespace PrestaShop\PrestaShop\Adapter\Tab;
 
+use PrestaShop\PrestaShop\Adapter\LegacyContext;
+use PrestaShop\PrestaShop\Core\ConfigurationInterface;
 use Profile;
 use Tab;
 
@@ -35,23 +37,23 @@ use Tab;
 class TabDataProvider
 {
     /**
-     * @var int
+     * @var ConfigurationInterface
      */
-    private $superAdminProfileId;
+    private $legacyConfiguration;
 
     /**
-     * @var int
+     * @var LegacyContext
      */
-    private $contextEmployeeProfileId;
+    private $legacyContext;
 
     /**
-     * @param int $contextEmployeeProfileId
-     * @param int $superAdminProfileId
+     * @param LegacyContext $legacyContext
+     * @param ConfigurationInterface $legacyConfiguration
      */
-    public function __construct($contextEmployeeProfileId, $superAdminProfileId)
+    public function __construct(LegacyContext $legacyContext, ConfigurationInterface $legacyConfiguration)
     {
-        $this->superAdminProfileId = $superAdminProfileId;
-        $this->contextEmployeeProfileId = $contextEmployeeProfileId;
+        $this->legacyContext = $legacyContext;
+        $this->legacyConfiguration = $legacyConfiguration;
     }
 
     /**
@@ -63,7 +65,14 @@ class TabDataProvider
      */
     public function getViewableTabsForContextEmployee($languageId)
     {
-        return $this->getViewableTabs($this->contextEmployeeProfileId, $languageId);
+        if ($this->legacyContext->getContext()->employee) {
+            return $this->getViewableTabs(
+                $this->legacyContext->getContext()->employee->id_profile,
+                $languageId
+            );
+        }
+
+        return [];
     }
 
     /**
@@ -80,23 +89,38 @@ class TabDataProvider
 
         foreach (Tab::getTabs($languageId, 0) as $tab) {
             if ($this->canAccessTab($profileId, $tab['id_tab'])) {
-                $viewableTabs[$tab['id_tab']] = [
-                    'id_tab' => $tab['id_tab'],
-                    'name' => $tab['name'],
-                    'children' => [],
-                ];
-
-                foreach (Tab::getTabs($languageId, $tab['id_tab']) as $children) {
-                    if ($this->canAccessTab($profileId, $children['id_tab'])) {
-                        foreach (Tab::getTabs($languageId, $children['id_tab']) as $subchild) {
-                            if ($this->canAccessTab($profileId, $subchild['id_tab'])) {
-                                $viewableTabs[$tab['id_tab']]['children'][] = [
-                                    'id_tab' => $subchild['id_tab'],
-                                    'name' => $subchild['name'],
-                                ];
+                $children = Tab::getTabs($languageId, $tab['id_tab']);
+                $viewableChildren = [];
+                foreach ($children as $child) {
+                    if ($this->canAccessTab($profileId, $child['id_tab'])) {
+                        $subChildren = Tab::getTabs($languageId, $child['id_tab']);
+                        // If child has sub children (three level menu) we only add the sub children
+                        if (!empty($subChildren)) {
+                            foreach ($subChildren as $subChild) {
+                                if ($this->canAccessTab($profileId, $subChild['id_tab']) && $subChild['active']) {
+                                    $viewableChildren[] = [
+                                        'id_tab' => $subChild['id_tab'],
+                                        'name' => $subChild['name'],
+                                    ];
+                                }
                             }
+                        } elseif ($child['active']) {
+                            // If child is a direct page without children it can be added in the list
+                            $viewableChildren[] = [
+                                'id_tab' => $child['id_tab'],
+                                'name' => $child['name'],
+                            ];
                         }
                     }
+                }
+
+                // Tab not active are not shown unless they have active children
+                if (!empty($viewableChildren) || $tab['active']) {
+                    $viewableTabs[$tab['id_tab']] = [
+                        'id_tab' => $tab['id_tab'],
+                        'name' => $tab['name'],
+                        'children' => $viewableChildren,
+                    ];
                 }
             }
         }
@@ -119,7 +143,7 @@ class TabDataProvider
             return false;
         }
 
-        if ($profileId == $this->superAdminProfileId) {
+        if ($profileId === (int) $this->legacyConfiguration->get('_PS_ADMIN_PROFILE_')) {
             return true;
         }
 
@@ -130,5 +154,15 @@ class TabDataProvider
         }
 
         return false;
+    }
+
+    /**
+     * Reset static tab cache
+     *
+     * @return void
+     */
+    public function resetTabCache(): void
+    {
+        Tab::resetTabCache();
     }
 }

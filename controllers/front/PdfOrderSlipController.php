@@ -25,16 +25,24 @@
  */
 class PdfOrderSlipControllerCore extends FrontController
 {
+    /** @var string */
     public $php_self = 'pdf-order-slip';
+    /** @var bool */
     protected $display_header = false;
+    /** @var bool */
     protected $display_footer = false;
 
     protected $order_slip;
 
-    public function postProcess()
+    public function postProcess(): void
     {
         if (!$this->context->customer->isLogged()) {
-            Tools::redirect('index.php?controller=authentication&back=order-follow');
+            Tools::redirect($this->context->link->getPageLink(
+                'authentication',
+                null,
+                null,
+                ['back' => 'order-follow']
+            ));
         }
 
         if (isset($_GET['id_order_slip']) && Validate::isUnsignedId($_GET['id_order_slip'])) {
@@ -48,7 +56,12 @@ class PdfOrderSlipControllerCore extends FrontController
         }
     }
 
-    public function display()
+    /**
+     * @return void
+     *
+     * @throws PrestaShopException
+     */
+    public function display(): void
     {
         $pdf = new PDF($this->order_slip, PDF::TEMPLATE_ORDER_SLIP, $this->context->smarty);
         $pdf->render();

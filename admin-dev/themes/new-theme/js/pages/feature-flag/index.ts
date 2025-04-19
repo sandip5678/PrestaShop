@@ -24,19 +24,27 @@
  */
 
 import ConfirmModal from '@components/modal';
+import FeatureFlagMap from '@pages/feature-flag/components-map';
 
 const {$} = window;
 
 $(() => {
-  const $submitButton = $('#submit-btn-feature-flag');
-  $submitButton.prop('disabled', true);
-  const $form = $('#feature-flag-form');
-  const $formInputs = $('#feature-flag-form input');
+  const $submitButton = $(FeatureFlagMap.betaSubmitButton);
+  const $stableFormSubmitButton = $(FeatureFlagMap.stableSubmitButton);
+  const $form = $(FeatureFlagMap.betaForm);
+  const $betaFormInputs = $(FeatureFlagMap.betaFormInputFields);
+  const $stableForm = $(FeatureFlagMap.stableForm);
+  const $stableFormInputs = $(FeatureFlagMap.stableFormInputs);
+  const $stableFormInitialState = $stableForm.serialize();
   const initialState = $form.serialize();
   const initialFormData = $form.serializeArray();
 
-  $formInputs.change(() => {
+  $betaFormInputs.on('change', () => {
     $submitButton.prop('disabled', initialState === $form.serialize());
+  });
+
+  $stableFormInputs.on('change', () => {
+    $stableFormSubmitButton.prop('disabled', $stableFormInitialState === $stableForm.serialize());
   });
 
   $submitButton.on('click', (event) => {
@@ -57,21 +65,19 @@ $(() => {
       }
     }
 
-    const modal = new (ConfirmModal as any)(
-      {
-        id: 'modal-confirm-submit-feature-flag',
-        confirmTitle: $submitButton.data('modal-title'),
-        confirmMessage: $submitButton.data('modal-message'),
-        confirmButtonLabel: $submitButton.data('modal-apply'),
-        closeButtonLabel: $submitButton.data('modal-cancel'),
-      },
-      () => {
-        $form.submit();
-      },
-    );
-
     if (oneFlagIsEnabled) {
-      modal.show();
+      new ConfirmModal(
+        {
+          id: 'modal-confirm-submit-feature-flag',
+          confirmTitle: $submitButton.data('modal-title'),
+          confirmMessage: $submitButton.data('modal-message'),
+          confirmButtonLabel: $submitButton.data('modal-apply'),
+          closeButtonLabel: $submitButton.data('modal-cancel'),
+        },
+        () => {
+          $form.submit();
+        },
+      );
     } else {
       $form.submit();
     }

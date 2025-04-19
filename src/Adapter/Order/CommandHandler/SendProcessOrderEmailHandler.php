@@ -31,6 +31,7 @@ use Customer;
 use Language;
 use Link;
 use Mail;
+use PrestaShop\PrestaShop\Core\CommandBus\Attributes\AsCommandHandler;
 use PrestaShop\PrestaShop\Core\Domain\Cart\Exception\CartNotFoundException;
 use PrestaShop\PrestaShop\Core\Domain\Cart\ValueObject\CartId;
 use PrestaShop\PrestaShop\Core\Domain\Customer\Exception\CustomerNotFoundException;
@@ -40,11 +41,12 @@ use PrestaShop\PrestaShop\Core\Domain\Order\CommandHandler\SendProcessOrderEmail
 use PrestaShop\PrestaShop\Core\Domain\Order\Exception\OrderEmailSendException;
 use PrestaShop\PrestaShop\Core\Domain\Order\Exception\OrderException;
 use PrestaShopException;
-use Symfony\Component\Translation\TranslatorInterface;
+use Symfony\Contracts\Translation\TranslatorInterface;
 
 /**
  * Handles SendProcessOrderEmail command using legacy object model
  */
+#[AsCommandHandler]
 class SendProcessOrderEmailHandler implements SendProcessOrderEmailHandlerInterface
 {
     /**
@@ -95,7 +97,7 @@ class SendProcessOrderEmailHandler implements SendProcessOrderEmailHandlerInterf
             )) {
                 throw new OrderEmailSendException('Failed to send order process email to customer', OrderEmailSendException::FAILED_SEND_PROCESS_ORDER);
             }
-        } catch (PrestaShopException $e) {
+        } catch (PrestaShopException) {
             throw new OrderException('An error occurred when trying to get info for order processing');
         }
     }
@@ -136,7 +138,7 @@ class SendProcessOrderEmailHandler implements SendProcessOrderEmailHandlerInterf
         $customer = new Customer($customerIdValue);
 
         if ($customer->id !== $customerIdValue) {
-            throw new CustomerNotFoundException(new CustomerId($customerIdValue), sprintf('Customer #%s not found', $customerIdValue));
+            throw new CustomerNotFoundException(sprintf('Customer #%d not found', $customerIdValue));
         }
 
         return $customer;

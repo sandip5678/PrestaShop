@@ -31,7 +31,6 @@ namespace Tests\Unit\Core\Localization;
 use PHPUnit\Framework\TestCase;
 use PrestaShop\PrestaShop\Core\Localization\CLDR\DataLayer\LocaleCache;
 use PrestaShop\PrestaShop\Core\Localization\CLDR\LocaleData;
-use PrestaShop\PrestaShop\Core\Localization\DataLayer\LocaleCacheDataLayer;
 use Symfony\Component\Cache\Adapter\AdapterInterface;
 use Symfony\Component\Cache\Adapter\ArrayAdapter;
 
@@ -40,7 +39,7 @@ class LocaleCacheDataLayerTest extends TestCase
     /**
      * The tested data layer
      *
-     * @var LocaleCacheDataLayer
+     * @var LocaleCache
      */
     protected $layer;
 
@@ -59,16 +58,12 @@ class LocaleCacheDataLayerTest extends TestCase
     public function testReadWrite()
     {
         $data = new LocaleData();
-        $data->foo = ['bar', 'baz'];
+        $data->setLocaleCode('fr');
 
-        /* @noinspection PhpUnhandledExceptionInspection */
         $this->layer->write('fooBar', $data);
-        /** @noinspection end */
 
         // Get value back from cache
-        /** @noinspection PhpUnhandledExceptionInspection */
         $cachedData = $this->layer->read('fooBar');
-        /* @noinspection end */
 
         $this->assertInstanceOf(
             LocaleData::class,
@@ -76,14 +71,12 @@ class LocaleCacheDataLayerTest extends TestCase
         );
 
         $this->assertSame(
-            ['bar', 'baz'],
-            $cachedData->foo
+            'fr',
+            $cachedData->getLocaleCode()
         );
 
         // Same test with unknown cache key
-        /** @noinspection PhpUnhandledExceptionInspection */
         $cachedData = $this->layer->read('unknown');
-        /* @noinspection end */
 
         $this->assertNull($cachedData);
     }

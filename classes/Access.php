@@ -24,6 +24,8 @@
  * @license   https://opensource.org/licenses/OSL-3.0 Open Software License (OSL 3.0)
  */
 
+use PrestaShop\PrestaShop\Core\Security\Permission;
+
 /**
  * Class AccessCore.
  */
@@ -50,7 +52,7 @@ class AccessCore extends ObjectModel
     /**
      * Is access granted to this Role?
      *
-     * @param string $role Role name ("Superadministrator", "sales", "translator", etc.)
+     * @param string|array<string> $role Role name ("Superadministrator", "sales", "translator", etc.)
      * @param int $idProfile Profile ID
      *
      * @return bool Whether access is granted
@@ -133,6 +135,7 @@ class AccessCore extends ObjectModel
      * @param string $authSlug Slug
      *
      * @return string Tab ID
+     *
      * @todo: Find out if we should return an int instead. (breaking change)
      */
     public static function findIdTabByAuthSlug($authSlug)
@@ -175,7 +178,7 @@ class AccessCore extends ObjectModel
      *
      * @param int $idParentTab Tab ID
      *
-     * @return string Full module slug
+     * @return array<int, array<string, string>> Full module slug
      */
     public static function findSlugByIdParentTab($idParentTab)
     {
@@ -207,27 +210,27 @@ class AccessCore extends ObjectModel
     /**
      * Sluggify tab.
      *
-     * @param string $tab Tab class name
+     * @param array $tab Tab class name
      * @param string $authorization 'CREATE'|'READ'|'UPDATE'|'DELETE'
      *
      * @return string Full slug for tab
      */
     public static function sluggifyTab($tab, $authorization = '')
     {
-        return sprintf('ROLE_MOD_TAB_%s_%s', strtoupper($tab['class_name']), $authorization);
+        return sprintf('%s%s_%s', Permission::PREFIX_TAB, strtoupper($tab['class_name'] ?? ''), $authorization);
     }
 
     /**
      * Sluggify module.
      *
-     * @param string $module Module name
+     * @param array $module Module name
      * @param string $authorization 'CREATE'|'READ'|'UPDATE'|'DELETE'
      *
      * @return string Full slug for module
      */
     public static function sluggifyModule($module, $authorization = '')
     {
-        return sprintf('ROLE_MOD_MODULE_%s_%s', strtoupper($module['name']), $authorization);
+        return sprintf('%s%s_%s', Permission::PREFIX_MODULE, strtoupper($module['name'] ?? ''), $authorization);
     }
 
     /**
@@ -331,20 +334,20 @@ class AccessCore extends ObjectModel
      * @param int $idProfile Profile ID
      * @param int $idTab Tab ID
      * @param string $lgcAuth Legacy authorization
-     * @param int $enabled Whether access should be granted
-     * @param int $addFromParent Child from parents
+     * @param bool $enabled Whether access should be granted
+     * @param bool $addFromParent Child from parents
      *
      * @return string Whether legacy access has been successfully updated ("ok", "error")
      *
      * @throws Exception
      */
-    public function updateLgcAccess($idProfile, $idTab, $lgcAuth, $enabled, $addFromParent = 0)
+    public function updateLgcAccess($idProfile, $idTab, $lgcAuth, $enabled, $addFromParent = true)
     {
         $idProfile = (int) $idProfile;
         $idTab = (int) $idTab;
 
         if ($idTab == -1) {
-            $slug = 'ROLE_MOD_TAB_%_';
+            $slug = Permission::PREFIX_TAB . '%_';
         } else {
             $slug = self::findSlugByIdTab($idTab);
         }
@@ -356,7 +359,7 @@ class AccessCore extends ObjectModel
             $whereClauses[] = ' `slug` LIKE "' . $slugLike . '"';
         }
 
-        if ($addFromParent == 1) {
+        if ($addFromParent) {
             foreach (self::findSlugByIdParentTab($idTab) as $child) {
                 $child = self::sluggifyTab($child);
                 foreach ((array) self::getAuthorizationFromLegacy($lgcAuth) as $auth) {
@@ -373,7 +376,7 @@ class AccessCore extends ObjectModel
         ');
 
         if (empty($roles)) {
-            throw new \Exception('Cannot find role slug');
+            throw new Exception('Cannot find role slug');
         }
 
         $res = [];
@@ -394,7 +397,7 @@ class AccessCore extends ObjectModel
      * @param int $idProfile Profile ID
      * @param int $idModule Module ID
      * @param string $lgcAuth Legacy authorization
-     * @param int $enabled Whether module access should be granted
+     * @param bool $enabled Whether module access should be granted
      *
      * @return string Whether module access has been succesfully changed ("ok", "error")
      */
@@ -404,7 +407,7 @@ class AccessCore extends ObjectModel
         $idModule = (int) $idModule;
 
         if ($idModule == -1) {
-            $slug = 'ROLE_MOD_MODULE_%_';
+            $slug = Permission::PREFIX_MODULE . '%_';
         } else {
             $slug = self::findSlugByIdModule($idModule);
         }

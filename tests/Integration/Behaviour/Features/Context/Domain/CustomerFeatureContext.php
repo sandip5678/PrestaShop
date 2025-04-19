@@ -27,13 +27,21 @@
 namespace Tests\Integration\Behaviour\Features\Context\Domain;
 
 use Behat\Gherkin\Node\TableNode;
+use Configuration;
 use Exception;
+use Group;
+use PHPUnit\Framework\Assert;
 use PrestaShop\PrestaShop\Core\Domain\Customer\Command\AddCustomerCommand;
 use PrestaShop\PrestaShop\Core\Domain\Customer\Command\SetPrivateNoteAboutCustomerCommand;
 use PrestaShop\PrestaShop\Core\Domain\Customer\Command\SetRequiredFieldsForCustomerCommand;
+use PrestaShop\PrestaShop\Core\Domain\Customer\Exception\CustomerNotFoundException;
+use PrestaShop\PrestaShop\Core\Domain\Customer\Group\Exception\GroupNotFoundException;
 use PrestaShop\PrestaShop\Core\Domain\Customer\Query\GetRequiredFieldsForCustomer;
+use PrestaShop\PrestaShop\Core\Domain\Customer\Query\SearchCustomers;
 use PrestaShop\PrestaShop\Core\Domain\Customer\ValueObject\CustomerId;
 use PrestaShop\PrestaShop\Core\Group\Provider\DefaultGroupsProviderInterface;
+use PrestaShop\PrestaShop\Core\Security\OpenSsl\OpenSSL;
+use PrestaShop\PrestaShop\Core\Security\PasswordGenerator;
 use RuntimeException;
 use Tests\Integration\Behaviour\Features\Context\CommonFeatureContext;
 use Tests\Integration\Behaviour\Features\Context\SharedStorage;
@@ -41,7 +49,18 @@ use Tests\Integration\Behaviour\Features\Context\SharedStorage;
 class CustomerFeatureContext extends AbstractDomainFeatureContext
 {
     /**
+     * Random integer representing group id which should never exist in test database
+     */
+    private const NON_EXISTING_GROUP_ID = 74011211;
+
+    /**
+     * Random integer representing customer id which should never exist in test database
+     */
+    private const NON_EXISTING_CUSTOMER_ID = 8120552;
+
+    /**
      * @Given /^"(Partner offers)" is "(required|not required)"$/
+     *
      * @Then /^"(Partner offers)" should be "(required|not required)"$/
      */
     public function validateRequiredFieldStatus($requiredField, $status)
@@ -129,31 +148,209 @@ class CustomerFeatureContext extends AbstractDomainFeatureContext
             'firstName',
             'lastName',
             'email',
-            'password',
         ];
-
         foreach ($mandatoryFields as $mandatoryField) {
             if (!array_key_exists($mandatoryField, $data)) {
                 throw new Exception(sprintf('Mandatory property %s for customer has not been provided', $mandatoryField));
             }
+        }
+        if (!array_key_exists('password', $data) && empty($data['isGuest'])) {
+            throw new Exception('Password must be provided, if creating a registered customer');
+        }
+
+        // Apply minor differences for guests
+        if (!empty($data['isGuest'])) {
+            $password = (new PasswordGenerator(new OpenSSL()))->generatePassword(16, 'RANDOM');
+            $defaultGroupId = $defaultGroups->getGuestsGroup()->getId();
+            $groupIds = [$defaultGroups->getGuestsGroup()->getId()];
+        } else {
+            $password = $data['password'];
+            $defaultGroupId = $data['defaultGroupId'] ?? $defaultGroups->getCustomersGroup()->getId();
+            $groupIds = $data['groupIds'] ?? [$defaultGroups->getCustomersGroup()->getId()];
         }
 
         $command = new AddCustomerCommand(
             $data['firstName'],
             $data['lastName'],
             $data['email'],
-            $data['password'],
-            isset($data['defaultGroupId']) ? $data['defaultGroupId'] : $defaultGroups->getCustomersGroup()->getId(),
-            isset($data['groupIds']) ? $data['groupIds'] : [$defaultGroups->getCustomersGroup()->getId()],
-            (isset($data['shopId']) ? $data['shopId'] : 0),
-            (isset($data['genderId']) ? $data['genderId'] : null),
-            (isset($data['isEnabled']) ? $data['isEnabled'] : true),
-            (isset($data['isPartnerOffersSubscribed']) ? $data['isPartnerOffersSubscribed'] : false),
-            (isset($data['birthday']) ? $data['birthday'] : null)
+            $password,
+            $defaultGroupId,
+            $groupIds,
+            isset($data['shopId']) ? $data['shopId'] : 0,
+            isset($data['genderId']) ? $data['genderId'] : null,
+            isset($data['isEnabled']) ? $data['isEnabled'] : true,
+            isset($data['isPartnerOffersSubscribed']) ? $data['isPartnerOffersSubscribed'] : false,
+            isset($data['birthday']) ? $data['birthday'] : null,
+            isset($data['isGuest']) ? $data['isGuest'] : false
         );
+
+        if (Configuration::get('PS_B2B_ENABLE')) {
+            $command->setCompanyName($data['companyName']);
+        }
 
         /** @var CustomerId $id */
         $id = $commandBus->handle($command);
         SharedStorage::getStorage()->set($customerReference, $id->getValue());
+    }
+
+    /**
+     * @Given customer :reference does not exist
+     *
+     * @param string $reference
+     */
+    public function setNonExistingCustomerReference(string $reference): void
+    {
+        if ($this->getSharedStorage()->exists($reference) && $this->getSharedStorage()->get($reference)) {
+            throw new RuntimeException(sprintf('Expected that customer "%s" should not exist', $reference));
+        }
+
+        $this->getSharedStorage()->set($reference, self::NON_EXISTING_CUSTOMER_ID);
+    }
+
+    /**
+     * @Then I should get error that customer was not found
+     */
+    public function assertCustomerNotFound(): void
+    {
+        $this->assertLastErrorIs(CustomerNotFoundException::class);
+    }
+
+    /**
+     * @Given group :groupReference named :name exists
+     *
+     * @param string $groupReference
+     * @param string $name
+     */
+    public function assertGroupExists(string $groupReference, string $name): void
+    {
+        $group = Group::searchByName($name);
+        if (!$group) {
+            throw new RuntimeException(sprintf('Group "%s" does not exist', $groupReference));
+        }
+
+        $this->getSharedStorage()->set($groupReference, (int) $group['id_group']);
+    }
+
+    /**
+     * @Given group :reference does not exist
+     *
+     * @param string $reference
+     */
+    public function setNonExistingGroupReference(string $reference): void
+    {
+        if ($this->getSharedStorage()->exists($reference) && $this->getSharedStorage()->get($reference)) {
+            throw new RuntimeException(sprintf('Expected that group "%s" should not exist', $reference));
+        }
+
+        $this->getSharedStorage()->set($reference, self::NON_EXISTING_GROUP_ID);
+    }
+
+    /**
+     * @Then I should get error that group was not found
+     */
+    public function assertGroupNotFound(): void
+    {
+        $this->assertLastErrorIs(GroupNotFoundException::class);
+    }
+
+    /**
+     * @Transform table:firstName,lastName,email,birthday
+     * @Transform table:firstName,lastName,email,birthday,companyName
+     *
+     * @param TableNode $customersTable
+     *
+     * @return array
+     */
+    public function transformCustomers(TableNode $customersTable): array
+    {
+        return $customersTable->getHash();
+    }
+
+    /**
+     * @When I search for the phrases :searchPhrases I should get the following results:
+     *
+     * @param string $searchPhrases
+     * @param array $expectedCustomers
+     */
+    public function assertFoundCustomers(string $searchPhrases, array $expectedCustomers): void
+    {
+        $foundCustomers = $this->getQueryBus()->handle(new SearchCustomers(explode(' ', $searchPhrases)));
+        $isB2BEnabled = Configuration::get('PS_B2B_ENABLE');
+
+        foreach ($expectedCustomers as $currentExpectedCustomer) {
+            $wasCurrentExpectedCustomerFound = false;
+            foreach ($foundCustomers as $currentFoundCustomer) {
+                if ($currentExpectedCustomer['email'] === $currentFoundCustomer['email']) {
+                    $wasCurrentExpectedCustomerFound = true;
+
+                    Assert::assertEquals(
+                        $currentExpectedCustomer['firstName'],
+                        $currentFoundCustomer['firstname'],
+                        sprintf(
+                            'Expected and found customers\'s first names don\'t match (%s and %s)',
+                            $currentExpectedCustomer['firstName'],
+                            $currentFoundCustomer['firstname']
+                        )
+                    );
+
+                    Assert::assertEquals(
+                        $currentExpectedCustomer['lastName'],
+                        $currentFoundCustomer['lastname'],
+                        sprintf(
+                            'Expected and found customers\'s last names don\'t match (%s and %s)',
+                            $currentExpectedCustomer['lastName'],
+                            $currentFoundCustomer['lastname']
+                        )
+                    );
+
+                    Assert::assertEquals(
+                        $currentExpectedCustomer['birthday'],
+                        $currentFoundCustomer['birthday'],
+                        sprintf(
+                            'Expected and found customers\'s birthdays don\'t match (%s and %s)',
+                            $currentExpectedCustomer['birthday'],
+                            $currentFoundCustomer['birthday']
+                        )
+                    );
+
+                    if (!$isB2BEnabled) {
+                        if (isset($currentExpectedCustomer['companyName'])
+                            || isset($currentFoundCustomer['company'])
+                        ) {
+                            throw new RuntimeException(
+                                'Company name isn\'t expected when B2B mode is disabled'
+                            );
+                        }
+                    } else {
+                        Assert::assertEquals(
+                            $currentExpectedCustomer['companyName'],
+                            $currentFoundCustomer['company'],
+                            sprintf(
+                                'Expected and found customers\'s companies don\'t match (%s and %s)',
+                                $currentExpectedCustomer['companyName'],
+                                $currentFoundCustomer['company']
+                            )
+                        );
+                    }
+                }
+            }
+            if (!$wasCurrentExpectedCustomerFound) {
+                throw new RuntimeException(sprintf(
+                    'Expected customer with email %s was not found',
+                    $currentExpectedCustomer['email']
+                ));
+            }
+        }
+    }
+
+    /**
+     * @When I search for the phrases :searchPhrases I should not get any results
+     *
+     * @param string $searchPhrases
+     */
+    public function assertNoCustomersWasFound(string $searchPhrases): void
+    {
+        $foundCustomers = $this->getQueryBus()->handle(new SearchCustomers(explode(' ', $searchPhrases)));
+        Assert::assertEmpty($foundCustomers);
     }
 }

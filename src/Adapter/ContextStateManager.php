@@ -28,12 +28,18 @@ declare(strict_types=1);
 
 namespace PrestaShop\PrestaShop\Adapter;
 
+use AdminController;
 use Cart;
 use Context;
+use Controller;
 use Country;
 use Currency;
 use Customer;
+use Employee;
 use Language;
+use PrestaShop\PrestaShop\Core\Context\LegacyControllerContext;
+use PrestaShop\PrestaShop\Core\Localization\LocaleInterface;
+use PrestaShopException;
 use Shop;
 
 /**
@@ -44,13 +50,17 @@ use Shop;
  *  Legacy requires Context properties (currency, country etc.) instead of using cart properties
  *  so some context props must be changed for a while and then restored to previous state.
  */
-final class ContextStateManager
+class ContextStateManager
 {
     private const MANAGED_FIELDS = [
         'cart',
+        'controller',
+        'currentIndex',
         'country',
         'currency',
+        'employee',
         'language',
+        'currentLocale',
         'customer',
         'shop',
         'shopContext',
@@ -98,6 +108,23 @@ final class ContextStateManager
     }
 
     /**
+     * Sets context controller and saves previous value
+     *
+     * @return $this
+     */
+    public function setController(LegacyControllerContext|Controller|null $legacyController): self
+    {
+        $this->saveContextField('controller');
+        $this->saveContextField('currentIndex');
+        $this->getContext()->controller = $legacyController;
+
+        // This static field must be set on the class
+        AdminController::$currentIndex = $legacyController->currentIndex;
+
+        return $this;
+    }
+
+    /**
      * Sets context country and saves previous value
      *
      * @param Country|null $country
@@ -138,6 +165,24 @@ final class ContextStateManager
     {
         $this->saveContextField('language');
         $this->getContext()->language = $language;
+        if ($language) {
+            $this->getContext()->getTranslator()->setLocale($language->locale);
+        }
+
+        return $this;
+    }
+
+    /**
+     * Sets context localization locale and saves previous value
+     *
+     * @param LocaleInterface|null $locale
+     *
+     * @return $this
+     */
+    public function setCurrentLocale(?LocaleInterface $locale): self
+    {
+        $this->saveContextField('currentLocale');
+        $this->getContext()->currentLocale = $locale;
 
         return $this;
     }
@@ -158,19 +203,55 @@ final class ContextStateManager
     }
 
     /**
+     * Sets context employee and saves previous value
+     *
+     * @param Employee|null $employee
+     *
+     * @return $this
+     */
+    public function setEmployee(?Employee $employee): self
+    {
+        $this->saveContextField('employee');
+        $this->getContext()->employee = $employee;
+
+        return $this;
+    }
+
+    /**
      * Sets context shop and saves previous value
      *
      * @param Shop $shop
      *
      * @return $this
      *
-     * @throws \PrestaShopException
+     * @throws PrestaShopException
      */
     public function setShop(Shop $shop): self
     {
         $this->saveContextField('shop');
         $this->getContext()->shop = $shop;
         Shop::setContext(Shop::CONTEXT_SHOP, $shop->id);
+
+        return $this;
+    }
+
+    /**
+     * Sets context shop and saves previous value
+     *
+     * @param int $shopContext
+     * @param int|null $shopContextId
+     *
+     * @return $this
+     *
+     * @throws PrestaShopException
+     */
+    public function setShopContext(int $shopContext, ?int $shopContextId = null): self
+    {
+        $this->saveContextField('shopContext');
+        if ($shopContext === Shop::CONTEXT_SHOP) {
+            $this->getContext()->shop = new Shop($shopContextId);
+        }
+        Shop::setContext($shopContext, $shopContextId);
 
         return $this;
     }
@@ -241,11 +322,17 @@ final class ContextStateManager
         $currentStashIndex = $this->getCurrentStashIndex();
         // NOTE: array_key_exists important here, isset cannot be used because it would not detect if null is stored
         if (!array_key_exists($fieldName, $this->contextFieldsStack[$currentStashIndex])) {
-            if ('shop' === $fieldName) {
-                $this->contextFieldsStack[$currentStashIndex]['shop'] = $this->getContext()->$fieldName;
-                $this->contextFieldsStack[$currentStashIndex]['shopContext'] = Shop::getContext();
-            } else {
-                $this->contextFieldsStack[$currentStashIndex][$fieldName] = $this->getContext()->$fieldName;
+            switch ($fieldName) {
+                case 'shop':
+                case 'shopContext':
+                    $this->contextFieldsStack[$currentStashIndex]['shop'] = $this->getContext()->shop;
+                    $this->contextFieldsStack[$currentStashIndex]['shopContext'] = Shop::getContext();
+                    break;
+                case 'currentIndex':
+                    $this->contextFieldsStack[$currentStashIndex]['currentIndex'] = AdminController::$currentIndex;
+                    break;
+                default:
+                    $this->contextFieldsStack[$currentStashIndex][$fieldName] = $this->getContext()->$fieldName;
             }
         }
     }
@@ -263,7 +350,15 @@ final class ContextStateManager
             if ('shop' === $fieldName) {
                 $this->restoreShopContext($currentStashIndex);
             }
-            $this->getContext()->$fieldName = $this->contextFieldsStack[$currentStashIndex][$fieldName];
+            if ('language' === $fieldName && $this->contextFieldsStack[$currentStashIndex][$fieldName] instanceof Language) {
+                $this->getContext()->getTranslator()->setLocale($this->contextFieldsStack[$currentStashIndex][$fieldName]->locale);
+            }
+
+            if ('currentIndex' === $fieldName) {
+                AdminController::$currentIndex = $this->contextFieldsStack[$currentStashIndex][$fieldName];
+            } else {
+                $this->getContext()->$fieldName = $this->contextFieldsStack[$currentStashIndex][$fieldName];
+            }
             unset($this->contextFieldsStack[$currentStashIndex][$fieldName]);
         }
     }

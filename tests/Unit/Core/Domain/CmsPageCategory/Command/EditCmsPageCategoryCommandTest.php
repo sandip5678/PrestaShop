@@ -50,6 +50,7 @@ class EditCmsPageCategoryCommandTest extends TestCase
         $this->expectException(CmsPageCategoryException::class);
 
         $incorrectTypeId = '1';
+        /** @phpstan-ignore-next-line */
         $command = new EditCmsPageCategoryCommand($incorrectTypeId);
     }
 
@@ -60,6 +61,7 @@ class EditCmsPageCategoryCommandTest extends TestCase
         $incorrectTypeId = '1';
         $command = new EditCmsPageCategoryCommand(1);
 
+        /* @phpstan-ignore-next-line */
         $command->setParentId($incorrectTypeId);
     }
 
@@ -71,18 +73,6 @@ class EditCmsPageCategoryCommandTest extends TestCase
         $command = new EditCmsPageCategoryCommand(1);
 
         $command->setLocalisedMetaTitle([
-            1 => '{object}',
-        ]);
-    }
-
-    public function testItThrowsAnExceptionWhenMetaKeywordsIsIncorrect()
-    {
-        $this->expectException(CmsPageCategoryConstraintException::class);
-        $this->expectExceptionCode(CmsPageCategoryConstraintException::INVALID_META_KEYWORDS);
-
-        $command = new EditCmsPageCategoryCommand(1);
-
-        $command->setLocalisedMetaKeywords([
             1 => '{object}',
         ]);
     }

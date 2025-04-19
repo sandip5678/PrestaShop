@@ -27,6 +27,7 @@ import ChoiceTree from '../../components/form/choice-tree';
 import AddonsConnector from '../../components/addons-connector';
 import ChangePasswordControl from '../../components/form/change-password-control';
 import employeeFormMap from './employee-form-map';
+import ChangePasswordHandler from '../../components/change-password-handler';
 
 /**
  * Class responsible for javascript actions in employee add/edit page.
@@ -42,7 +43,7 @@ export default class EmployeeForm {
 
   constructor() {
     this.shopChoiceTreeSelector = employeeFormMap.shopChoiceTree;
-    this.shopChoiceTree = new ChoiceTree(this.shopChoiceTreeSelector);
+    this.shopChoiceTree = new window.prestashop.component.ChoiceTree(this.shopChoiceTreeSelector);
     this.employeeProfileSelector = employeeFormMap.profileSelect;
     this.tabsDropdownSelector = employeeFormMap.defaultPageSelect;
 
@@ -57,13 +58,17 @@ export default class EmployeeForm {
       employeeFormMap.changePasswordInputsBlock,
       employeeFormMap.showChangePasswordBlockButton,
       employeeFormMap.hideChangePasswordBlockButton,
-      employeeFormMap.generatePasswordButton,
       employeeFormMap.oldPasswordInput,
       employeeFormMap.newPasswordInput,
       employeeFormMap.confirmNewPasswordInput,
       employeeFormMap.generatedPasswordDisplayInput,
       employeeFormMap.passwordStrengthFeedbackContainer,
     );
+
+    const passwordHandler = new ChangePasswordHandler(
+      employeeFormMap.passwordStrengthFeedbackContainer,
+    );
+    passwordHandler.watchPasswordStrength($(employeeFormMap.passwordInput));
 
     this.initEvents();
     this.toggleShopTree();
@@ -83,6 +88,9 @@ export default class EmployeeForm {
 
     // Reload tabs dropdown when employee profile is changed.
     $(document).on('change', this.employeeProfileSelector, (event) => {
+      const $tabsDropdown = $(this.tabsDropdownSelector);
+      $tabsDropdown.empty();
+      $tabsDropdown.prop('disabled', true);
       $.get(
         getTabsUrl,
         {
@@ -132,6 +140,7 @@ export default class EmployeeForm {
         );
       }
     });
+    $tabsDropdown.prop('disabled', false);
   }
 
   /**

@@ -90,18 +90,20 @@ class CheckoutProcessCore implements RenderableInterface
     /**
      * @param CheckoutStepInterface $step
      *
-     * @return $this
+     * @return self
      */
     public function addStep(CheckoutStepInterface $step)
     {
-        $step->setCheckoutProcess($this);
-        $this->steps[] = $step;
+        if ($this instanceof CheckoutProcess) {
+            $step->setCheckoutProcess($this);
+            $this->steps[] = $step;
+        }
 
         return $this;
     }
 
     /**
-     * @return CheckoutStepInterface[]
+     * @return AbstractCheckoutStep[]
      */
     public function getSteps()
     {
@@ -268,6 +270,7 @@ class CheckoutProcessCore implements RenderableInterface
     public function invalidateAllStepsAfterCurrent()
     {
         $markAsUnreachable = false;
+        /** @var AbstractCheckoutStep $step */
         foreach ($this->getSteps() as $step) {
             if ($markAsUnreachable) {
                 $step->setComplete(false)->setReachable(false);
@@ -284,7 +287,7 @@ class CheckoutProcessCore implements RenderableInterface
     /**
      * @return CheckoutStepInterface
      *
-     * @throws \RuntimeException if no current step is found
+     * @throws RuntimeException if no current step is found
      */
     public function getCurrentStep()
     {
@@ -294,6 +297,6 @@ class CheckoutProcessCore implements RenderableInterface
             }
         }
 
-        throw new \RuntimeException('There should be at least one current step');
+        throw new RuntimeException('There should be at least one current step');
     }
 }

@@ -35,6 +35,8 @@ use PrestaShop\PrestaShop\Core\Hook\HookDispatcherInterface;
 use Symfony\Component\Form\FormBuilderInterface as SymfonyFormBuilderInterface;
 use Symfony\Component\Form\FormFactoryInterface;
 use Symfony\Component\Form\FormInterface;
+use Symfony\Component\Form\FormRegistryInterface;
+use Symfony\Component\Form\ResolvedFormTypeInterface;
 
 class FormBuilderTest extends TestCase
 {
@@ -44,7 +46,8 @@ class FormBuilderTest extends TestCase
             $this->createMock(FormFactoryInterface::class),
             $this->createMock(HookDispatcherInterface::class),
             $this->createMock(FormDataProviderInterface::class),
-            'a'
+            'a',
+            $this->createMockFormRegistryInterface('')
         );
 
         $this->assertInstanceOf(FormBuilderInterface::class, $builder);
@@ -60,7 +63,8 @@ class FormBuilderTest extends TestCase
             $formFactoryMock,
             $this->createHookDispatcherMock($formBuilderMock, 'Bbcd'),
             $this->createDefaultDataProviderMock(),
-            'a'
+            'a',
+            $this->createMockFormRegistryInterface('Bbcd')
         );
 
         $form = $builder->getForm([], []);
@@ -78,7 +82,8 @@ class FormBuilderTest extends TestCase
             $formFactoryMock,
             $this->createHookDispatcherMock($formBuilderMock, 'Abcd', 1),
             $this->createDataProviderMock(),
-            'a'
+            'a',
+            $this->createMockFormRegistryInterface('Abcd')
         );
 
         $form = $builder->getFormFor(1, [], []);
@@ -98,6 +103,7 @@ class FormBuilderTest extends TestCase
             $this->createHookDispatcherMock($formBuilderMock, 'Bbcd', null, $options),
             $this->createDefaultDataProviderMock(),
             'a',
+            $this->createMockFormRegistryInterface('Bbcd'),
             $this->createDefaultOptionProviderMock($options)
         );
 
@@ -118,12 +124,24 @@ class FormBuilderTest extends TestCase
             $this->createHookDispatcherMock($formBuilderMock, 'Abcd', 1, $options),
             $this->createDataProviderMock(),
             'a',
+            $this->createMockFormRegistryInterface('Abcd'),
             $this->createOptionProviderMock($options)
         );
 
         $form = $builder->getFormFor(1, [], []);
 
         $this->assertEquals($formMock, $form);
+    }
+
+    private function createMockFormRegistryInterface(string $formName): FormRegistryInterface
+    {
+        $mockResolvedFormTypeInterface = $this->createMock(ResolvedFormTypeInterface::class);
+        $mockResolvedFormTypeInterface->method('getBlockPrefix')->willReturn($formName);
+
+        $mockFormRegistryInterface = $this->createMock(FormRegistryInterface::class);
+        $mockFormRegistryInterface->method('getType')->willReturn($mockResolvedFormTypeInterface);
+
+        return $mockFormRegistryInterface;
     }
 
     /**
@@ -174,18 +192,42 @@ class FormBuilderTest extends TestCase
         ?int $expectedId = null,
         array $expectedOptions = []
     ): HookDispatcherInterface {
+        if ($expectedId) {
+            $hookNameEnd = 'FormDataProviderData';
+            $hookOptions = [
+                'data' => [],
+                'options' => $expectedOptions,
+                'id' => $expectedId,
+            ];
+        } else {
+            $hookNameEnd = 'FormDataProviderDefaultData';
+            $hookOptions = [
+                'data' => [],
+                'options' => $expectedOptions,
+            ];
+        }
+
         $hookDispatcherMock = $this->createMock(HookDispatcherInterface::class);
-        $hookDispatcherMock->expects($this->once())
+
+        $invokedCount = $this->exactly(2);
+        $hookDispatcherMock->expects($invokedCount)
             ->method('dispatchWithParameters')
-            ->with(
-                $this->equalTo('action' . $formName . 'FormBuilderModifier'),
-                $this->equalTo([
-                    'form_builder' => $formBuilder,
-                    'data' => [],
-                    'options' => $expectedOptions,
-                    'id' => $expectedId,
-                ])
-            );
+            ->willReturnCallback(function ($hookName, array $hookParameters) use ($invokedCount, $formName, $hookNameEnd, $hookOptions, $formBuilder, $expectedOptions, $expectedId) {
+                if ($invokedCount->numberOfInvocations() === 1) {
+                    $this->assertEquals('action' . $formName . $hookNameEnd, $hookName);
+                    $this->assertEquals($hookOptions, $hookParameters);
+                }
+
+                if ($invokedCount->numberOfInvocations() === 2) {
+                    $this->assertEquals('action' . $formName . 'FormBuilderModifier', $hookName);
+                    $this->assertEquals([
+                        'form_builder' => $formBuilder,
+                        'data' => [],
+                        'options' => $expectedOptions,
+                        'id' => $expectedId,
+                    ], $hookParameters);
+                }
+            });
 
         return $hookDispatcherMock;
     }
@@ -262,7 +304,7 @@ class FormBuilderTest extends TestCase
         $optionProviderMock
             ->expects($this->never())
             ->method('getDefaultOptions')
-            ;
+        ;
 
         return $optionProviderMock;
     }

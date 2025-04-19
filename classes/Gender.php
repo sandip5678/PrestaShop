@@ -24,6 +24,8 @@
  * @license   https://opensource.org/licenses/OSL-3.0 Open Software License (OSL 3.0)
  */
 
+use PrestaShop\PrestaShop\Core\Domain\Title\ValueObject\Gender as ValueObjectGender;
+
 /**
  * Class GenderCore.
  *
@@ -31,9 +33,16 @@
  */
 class GenderCore extends ObjectModel
 {
+    public const TYPE_MALE = ValueObjectGender::TYPE_MALE;
+    public const TYPE_FEMALE = ValueObjectGender::TYPE_FEMALE;
+    public const TYPE_OTHER = ValueObjectGender::TYPE_OTHER;
+
+    /** @var int|null Object ID */
     public $id;
     public $id_gender;
+    /** @var string|array<string> */
     public $name;
+    /** @var int */
     public $type;
 
     /**
@@ -47,7 +56,7 @@ class GenderCore extends ObjectModel
             'type' => ['type' => self::TYPE_INT, 'required' => true],
 
             /* Lang fields */
-            'name' => ['type' => self::TYPE_STRING, 'lang' => true, 'validate' => 'isString', 'required' => true, 'size' => 20],
+            'name' => ['type' => self::TYPE_STRING, 'lang' => true, 'validate' => 'isCatalogName', 'required' => true, 'size' => 20],
         ],
     ];
 
@@ -78,9 +87,7 @@ class GenderCore extends ObjectModel
             $idLang = Context::getContext()->language->id;
         }
 
-        $genders = new PrestaShopCollection('Gender', $idLang);
-
-        return $genders;
+        return new PrestaShopCollection('Gender', $idLang);
     }
 
     /**

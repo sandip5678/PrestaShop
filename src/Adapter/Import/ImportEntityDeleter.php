@@ -221,18 +221,16 @@ final class ImportEntityDeleter implements ImportEntityDeleterInterface
             'product_group_reduction_cache',
             'product_sale',
             'product_supplier',
-            'warehouse_product_location',
             'stock',
             'stock_available',
             'stock_mvt',
             'customization',
             'customization_field',
-            'supply_order_detail',
-            'attribute_impact',
             'product_attribute',
             'product_attribute_shop',
             'product_attribute_combination',
             'product_attribute_image',
+            'product_attribute_lang',
             'pack',
         ];
 
@@ -244,7 +242,7 @@ final class ImportEntityDeleter implements ImportEntityDeleterInterface
 
         $this->truncateTablesIfExist($truncateIfExists);
 
-        $imgDir = $this->configuration->get('_PS_PROD_IMG_DIR_');
+        $imgDir = $this->configuration->get('_PS_PRODUCT_IMG_DIR_');
         $this->imageFileDeleter->deleteFromPath($imgDir, true, true);
     }
 
@@ -255,7 +253,6 @@ final class ImportEntityDeleter implements ImportEntityDeleterInterface
     {
         $truncateTables = [
             'attribute',
-            'attribute_impact',
             'attribute_lang',
             'attribute_group',
             'attribute_group_lang',
@@ -265,6 +262,7 @@ final class ImportEntityDeleter implements ImportEntityDeleterInterface
             'product_attribute_shop',
             'product_attribute_combination',
             'product_attribute_image',
+            'product_attribute_lang',
         ];
 
         $this->truncateTables($truncateTables);
@@ -278,7 +276,7 @@ final class ImportEntityDeleter implements ImportEntityDeleterInterface
      *
      * @param array $tables
      *
-     * @throws \Doctrine\DBAL\DBALException
+     * @throws \Doctrine\DBAL\Exception
      */
     private function truncateTables(array $tables)
     {
@@ -292,7 +290,7 @@ final class ImportEntityDeleter implements ImportEntityDeleterInterface
      *
      * @param array $tables
      *
-     * @throws \Doctrine\DBAL\DBALException
+     * @throws \Doctrine\DBAL\Exception
      */
     private function truncateTablesIfExist(array $tables)
     {

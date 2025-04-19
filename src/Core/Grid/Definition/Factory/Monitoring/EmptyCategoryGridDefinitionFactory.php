@@ -34,9 +34,10 @@ use PrestaShop\PrestaShop\Core\Grid\Action\Row\Type\LinkRowAction;
 use PrestaShop\PrestaShop\Core\Grid\Action\Type\SimpleGridAction;
 use PrestaShop\PrestaShop\Core\Grid\Column\ColumnCollection;
 use PrestaShop\PrestaShop\Core\Grid\Column\Type\Common\ActionColumn;
+use PrestaShop\PrestaShop\Core\Grid\Column\Type\Common\DataColumn;
+use PrestaShop\PrestaShop\Core\Grid\Column\Type\Common\HtmlColumn;
 use PrestaShop\PrestaShop\Core\Grid\Column\Type\Common\IdentifierColumn;
 use PrestaShop\PrestaShop\Core\Grid\Column\Type\Common\ToggleColumn;
-use PrestaShop\PrestaShop\Core\Grid\Column\Type\DataColumn;
 use PrestaShop\PrestaShop\Core\Grid\Definition\Factory\AbstractGridDefinitionFactory;
 use PrestaShop\PrestaShop\Core\Grid\Filter\Filter;
 use PrestaShop\PrestaShop\Core\Grid\Filter\FilterCollection;
@@ -88,7 +89,7 @@ final class EmptyCategoryGridDefinitionFactory extends AbstractGridDefinitionFac
                     ])
             )
             ->add(
-                (new DataColumn('description'))
+                (new HtmlColumn('description'))
                     ->setName($this->trans('Description', [], 'Admin.Global'))
                     ->setOptions([
                         'field' => 'description',
@@ -191,7 +192,7 @@ final class EmptyCategoryGridDefinitionFactory extends AbstractGridDefinitionFac
                     ->setName($this->trans('View', [], 'Admin.Actions'))
                     ->setIcon('zoom_in')
                     ->setOptions([
-                        'route' => 'admin_categories_index', //@todo: implement view products of this category
+                        'route' => 'admin_categories_index', // @todo: implement view products of this category
                         'route_param_name' => 'id_category',
                         'route_param_field' => 'id_category',
                     ])

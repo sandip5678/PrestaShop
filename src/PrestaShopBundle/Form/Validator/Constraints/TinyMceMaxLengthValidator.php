@@ -28,10 +28,10 @@ namespace PrestaShopBundle\Form\Validator\Constraints;
 
 use InvalidArgumentException;
 use PrestaShop\PrestaShop\Adapter\Validate;
-use Symfony\Component\Translation\TranslatorInterface;
 use Symfony\Component\Validator\Constraint;
 use Symfony\Component\Validator\ConstraintValidator;
 use Symfony\Component\Validator\Exception\UnexpectedTypeException;
+use Symfony\Contracts\Translation\TranslatorInterface;
 
 /**
  * The computation here means to only count the raw text, not the rich text with html strip tags, also all the
@@ -72,6 +72,11 @@ class TinyMceMaxLengthValidator extends ConstraintValidator
 
         if (!$this->validateAdapter->isUnsignedInt($constraint->max)) {
             throw new InvalidArgumentException('Max must be int. Input was: ' . \gettype($constraint->max));
+        }
+
+        // If the provided value is not a string, nothing to validate here
+        if (!is_string($value)) {
+            return;
         }
 
         $replaceArray = [

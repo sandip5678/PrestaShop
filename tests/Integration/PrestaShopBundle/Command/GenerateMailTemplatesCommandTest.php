@@ -27,6 +27,7 @@
 namespace Tests\Integration\PrestaShopBundle\Command;
 
 use PrestaShop\PrestaShop\Core\MailTemplate\MailTemplateInterface;
+use SplFileInfo;
 use Symfony\Bundle\FrameworkBundle\Console\Application;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\Console\Exception\RuntimeException;
@@ -48,7 +49,8 @@ class GenerateMailTemplatesCommandTest extends KernelTestCase
 
     public function testMissingArguments()
     {
-        $this->expectException(RuntimeException::class, 'Not enough arguments (missing: "theme, locale").');
+        $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessage('Not enough arguments (missing: "theme, locale").');
 
         $application = new Application(static::$kernel);
 
@@ -80,7 +82,7 @@ class GenerateMailTemplatesCommandTest extends KernelTestCase
 
         $finder = new Finder();
         $finder->files()->in($outputFolder);
-        //Core files + modules files, each one in html and txt type
+        // Core files + modules files, each one in html and txt type
         $totalLayoutsNb = ($themeInfos['coreLayoutsNb'] + $themeInfos['modulesLayoutsNb']) * 2;
         $this->assertEquals($totalLayoutsNb, $finder->count());
 
@@ -122,7 +124,7 @@ class GenerateMailTemplatesCommandTest extends KernelTestCase
 
         $finder = new Finder();
         $finder->files()->in($outputFolder);
-        //Core files + modules files, each one in html and txt type
+        // Core files + modules files, each one in html and txt type
         $totalLayoutsNb = ($themeInfos['coreLayoutsNb'] + $themeInfos['modulesLayoutsNb']) * 2;
         $this->assertEquals($totalLayoutsNb, $finder->count());
 
@@ -159,19 +161,19 @@ class GenerateMailTemplatesCommandTest extends KernelTestCase
     {
         $themeInfos = [
             'coreLayouts' => [],
-            'coreLayoutsNb' => 0,
+            'coreLayoutsNb' => '0',
             'modulesLayouts' => [],
-            'modulesLayoutsNb' => 0,
+            'modulesLayoutsNb' => '0',
         ];
         $container = static::$kernel->getContainer();
-        $mailThemesFolder = $container->getParameter('mail_themes_dir');
+        $mailThemesFolder = (string) $container->getParameter('mail_themes_dir');
         $themeFolder = implode(DIRECTORY_SEPARATOR, [$mailThemesFolder, $theme]);
         $coreFolder = implode(DIRECTORY_SEPARATOR, [$themeFolder, MailTemplateInterface::CORE_CATEGORY]);
         $modulesFolder = implode(DIRECTORY_SEPARATOR, [$themeFolder, MailTemplateInterface::MODULES_CATEGORY]);
 
         $finder = new Finder();
         $finder->in($coreFolder);
-        /** @var \SplFileInfo $coreFile */
+        /** @var SplFileInfo $coreFile */
         foreach ($finder as $coreFile) {
             $themeInfos['coreLayouts'][] = $coreFile->getBasename('.html.twig');
             ++$themeInfos['coreLayoutsNb'];
@@ -179,12 +181,12 @@ class GenerateMailTemplatesCommandTest extends KernelTestCase
 
         $finder = new Finder();
         $finder->in($modulesFolder)->depth(0);
-        /** @var \SplFileInfo $moduleFolder */
+        /** @var SplFileInfo $moduleFolder */
         foreach ($finder as $moduleFolder) {
             $themeInfos['modulesLayouts'][$moduleFolder->getBasename()] = [];
             $moduleFinder = new Finder();
             $moduleFinder->in($moduleFolder->getRealPath());
-            /** @var \SplFileInfo $moduleFile */
+            /** @var SplFileInfo $moduleFile */
             foreach ($moduleFinder as $moduleFile) {
                 $themeInfos['modulesLayouts'][$moduleFolder->getBasename()][] = $moduleFile->getBasename('.html.twig');
                 ++$themeInfos['modulesLayoutsNb'];
@@ -205,10 +207,5 @@ class GenerateMailTemplatesCommandTest extends KernelTestCase
         $this->fileSystem->mkdir($outputFolder);
 
         return $outputFolder;
-    }
-
-    protected function tearDown(): void
-    {
-        self::$kernel->shutdown();
     }
 }

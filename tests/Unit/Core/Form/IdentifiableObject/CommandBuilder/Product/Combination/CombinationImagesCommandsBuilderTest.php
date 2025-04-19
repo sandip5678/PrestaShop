@@ -33,7 +33,7 @@ use PrestaShop\PrestaShop\Core\Domain\Product\Combination\Command\RemoveAllCombi
 use PrestaShop\PrestaShop\Core\Domain\Product\Combination\Command\SetCombinationImagesCommand;
 use PrestaShop\PrestaShop\Core\Form\IdentifiableObject\CommandBuilder\Product\Combination\CombinationImagesCommandsBuilder;
 
-class CombinationImagesCommandsBuilderTest extends AbstractCombinationCommandBuilderTest
+class CombinationImagesCommandsBuilderTest extends AbstractCombinationCommandBuilderTestCase
 {
     /**
      * @dataProvider getExpectedCommands
@@ -44,7 +44,7 @@ class CombinationImagesCommandsBuilderTest extends AbstractCombinationCommandBui
     public function testBuildCommand(array $formData, array $expectedCommands): void
     {
         $builder = new CombinationImagesCommandsBuilder();
-        $builtCommands = $builder->buildCommands($this->getCombinationId(), $formData);
+        $builtCommands = $builder->buildCommands($this->getCombinationId(), $formData, $this->getSingleShopConstraint());
         $this->assertEquals($expectedCommands, $builtCommands);
     }
 

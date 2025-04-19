@@ -30,6 +30,7 @@ use Carrier;
 use Configuration;
 use OrderHistory;
 use OrderState;
+use PrestaShop\PrestaShop\Core\CommandBus\Attributes\AsCommandHandler;
 use PrestaShop\PrestaShop\Core\Domain\Order\Command\ResendOrderEmailCommand;
 use PrestaShop\PrestaShop\Core\Domain\Order\CommandHandler\ResendOrderEmailHandlerInterface;
 use PrestaShop\PrestaShop\Core\Domain\Order\Exception\OrderEmailSendException;
@@ -39,6 +40,7 @@ use Validate;
 /**
  * @internal
  */
+#[AsCommandHandler]
 final class ResendOrderEmailHandler extends AbstractOrderCommandHandler implements ResendOrderEmailHandlerInterface
 {
     /**
@@ -58,8 +60,8 @@ final class ResendOrderEmailHandler extends AbstractOrderCommandHandler implemen
         $carrier = new Carrier($order->id_carrier, (int) $order->getAssociatedLanguage()->getId());
         $templateVars = [];
 
-        if ($orderState->id == Configuration::get('PS_OS_SHIPPING') && $order->shipping_number) {
-            $templateVars = ['{followup}' => str_replace('@', $order->shipping_number, $carrier->url)];
+        if ($orderState->id == Configuration::get('PS_OS_SHIPPING') && $order->getShippingNumber()) {
+            $templateVars = ['{followup}' => str_replace('@', $order->getShippingNumber(), $carrier->url)];
         }
 
         if (!$history->sendEmail($order, $templateVars)) {

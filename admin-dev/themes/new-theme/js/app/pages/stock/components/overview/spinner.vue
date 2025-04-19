@@ -39,8 +39,9 @@
       :buttons="true"
       :hover-buttons="true"
       :value="getQuantity()"
-      @change="onChange"
+      @change="onChange($event)"
       @keyup="onKeyup($event)"
+      @keydown="onKeydown($event)"
       @focus="focusIn"
       @blur="focusOut($event)"
     />
@@ -56,12 +57,13 @@
 </template>
 
 <script lang="ts">
-  import PSNumber from '@app/widgets/ps-number';
-  import Vue from 'vue';
+  import PSNumber from '@app/widgets/ps-number.vue';
+  import isNumber from 'lodash/isNumber';
+  import {defineComponent} from 'vue';
 
   const {$} = window;
 
-  export default Vue.extend({
+  export default defineComponent({
     props: {
       product: {
         type: Object,
@@ -72,7 +74,7 @@
       id(): string {
         return `qty-${this.product.product_id}-${this.product.combination_id}`;
       },
-      classObject(): Record<string, any> {
+      classObject(): {active: boolean, disabled: boolean} {
         return {
           active: this.isActive,
           disabled: !this.isEnabled,
@@ -80,22 +82,28 @@
       },
     },
     methods: {
-      getQuantity(): number {
+      getQuantity(): number | string {
         if (!this.product.qty) {
           this.isEnabled = false;
-          this.value = 0;
+          this.value = '';
         }
-        return Math.round(<number> this.value);
+        return <string> this.value === '' ? '' : Number.parseInt(<string> this.value, 10);
       },
-      onChange(val: number): void {
-        this.value = val;
-        this.isEnabled = !!val;
+      onChange(event: Event): void {
+        this.value = parseInt((<HTMLInputElement>event.target).value, 10);
+        this.isEnabled = !!parseInt((<HTMLInputElement>event.target).value, 10);
       },
       deActivate(): void {
         this.isActive = false;
         this.isEnabled = false;
-        this.value = null;
+        this.value = '';
         this.product.qty = null;
+      },
+      // @see Preventing decimal numbers inside input: https://github.com/PrestaShop/PrestaShop/pull/28510
+      onKeydown(event: KeyboardEvent): void {
+        if (event.key === '.' || event.key === ',') {
+          event.preventDefault();
+        }
       },
       onKeyup(event: Event): void {
         const val = (<HTMLInputElement>event.target).value;
@@ -112,7 +120,7 @@
         this.isActive = true;
       },
       focusOut(event: Event): void {
-        const value = Math.round(<number> this.value);
+        const value = isNumber(this.value) ? Math.round(this.value) : 0;
 
         if (
           !$(<HTMLElement>event.target).hasClass('ps-number')
@@ -126,7 +134,8 @@
         const postUrl = this.product.edit_url;
 
         if (
-          parseInt(this.product.qty, 10) !== 0
+          this.value !== ''
+          && parseInt(this.product.qty, 10) !== 0
           && !Number.isNaN(Math.round(<number> this.value))
         ) {
           this.$store.dispatch('updateQtyByProductId', {
@@ -139,10 +148,12 @@
     },
     watch: {
       value(val: number): void {
-        this.$emit('updateProductQty', {
-          product: this.product,
-          delta: val,
-        });
+        if (isNumber(val)) {
+          this.$emit('updateProductQty', {
+            product: this.product,
+            delta: val,
+          });
+        }
       },
     },
     components: {
@@ -150,7 +161,7 @@
     },
     data() {
       return {
-        value: null as null | number,
+        value: '' as string | number,
         isActive: false,
         isEnabled: false,
       };

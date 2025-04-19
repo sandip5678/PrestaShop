@@ -106,7 +106,7 @@ class FolderThemeCatalogTest extends TestCase
         $layoutCollection = $theme->getLayouts();
         $this->assertCount(8, $layoutCollection);
 
-        //Check core layouts
+        // Check core layouts
         $coreLayouts = $this->filterCoreLayouts($layoutCollection);
         $this->assertCount(4, $coreLayouts);
 
@@ -124,7 +124,7 @@ class FolderThemeCatalogTest extends TestCase
         $this->assertNotNull($layout->getModuleName());
         $this->assertEmpty($layout->getModuleName());
 
-        //Check module layouts
+        // Check module layouts
         $modulesLayouts = $this->filterModulesLayouts($layoutCollection);
         $this->assertCount(4, $modulesLayouts);
 
@@ -166,7 +166,8 @@ class FolderThemeCatalogTest extends TestCase
 
     public function testInvalidTheme()
     {
-        $this->expectException(InvalidArgumentException::class, 'Invalid requested theme "unknown", only available themes are: classic, modern');
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('Invalid requested theme "unknown", only available themes are: classic, modern');
 
         /** @var HookDispatcherInterface $dispatcherMock */
         $dispatcherMock = $this->getMockBuilder(HookDispatcherInterface::class)
@@ -209,10 +210,10 @@ class FolderThemeCatalogTest extends TestCase
     public function testListThemesWithoutCoreFolder()
     {
         $catalog = new FolderThemeCatalog($this->tempDir, new FolderThemeScanner(), $this->createHookDispatcherMock(4));
-        //No bug occurs if the folder does not exist
+        // No bug occurs if the folder does not exist
         $this->fs->remove(implode(DIRECTORY_SEPARATOR, [$this->tempDir, 'classic', MailTemplateInterface::CORE_CATEGORY]));
 
-        /** @var ThemeCollectionInterface $themeList */
+        /** @var ThemeCollectionInterface $themes */
         $themes = $catalog->listThemes();
         /** @var ThemeInterface $theme */
         $theme = $themes[0];
@@ -225,7 +226,7 @@ class FolderThemeCatalogTest extends TestCase
     {
         $catalog = new FolderThemeCatalog($this->tempDir, new FolderThemeScanner(), $this->createHookDispatcherMock(4));
         $this->fs->remove(implode(DIRECTORY_SEPARATOR, [$this->tempDir, 'classic', MailTemplateInterface::MODULES_CATEGORY]));
-        /** @var ThemeCollectionInterface $themeList */
+        /** @var ThemeCollectionInterface $themes */
         $themes = $catalog->listThemes();
         /** @var ThemeInterface $theme */
         $theme = $themes[0];
@@ -283,7 +284,7 @@ class FolderThemeCatalogTest extends TestCase
         ;
 
         $dispatcherMock
-            ->expects($this->at(0))
+            ->expects($this->once())
             ->method('dispatchWithParameters')
             ->with(
                 $this->equalTo(ThemeCatalogInterface::LIST_MAIL_THEMES_HOOK),
@@ -332,7 +333,7 @@ class FolderThemeCatalogTest extends TestCase
 
         /** @var ThemeInterface $theme */
         foreach ($this->expectedThemes as $theme) {
-            //Insert core files
+            // Insert core files
             $themeFolder = $this->tempDir . DIRECTORY_SEPARATOR . $theme->getName();
             $coreFolder = implode(DIRECTORY_SEPARATOR, [$themeFolder, MailTemplateInterface::CORE_CATEGORY]);
             $this->fs->mkdir($coreFolder);
@@ -340,7 +341,7 @@ class FolderThemeCatalogTest extends TestCase
                 $this->fs->touch(implode(DIRECTORY_SEPARATOR, [$coreFolder, $layout]));
             }
 
-            //Insert modules files
+            // Insert modules files
             $modulesFolder = $themeFolder . DIRECTORY_SEPARATOR . MailTemplateInterface::MODULES_CATEGORY;
             foreach ($this->moduleLayouts as $moduleName => $moduleLayouts) {
                 $moduleFolder = $modulesFolder . DIRECTORY_SEPARATOR . $moduleName;
@@ -350,7 +351,7 @@ class FolderThemeCatalogTest extends TestCase
                 }
             }
 
-            //Insert components files used in layoutss
+            // Insert components files used in layoutss
             $componentsFolder = $themeFolder . DIRECTORY_SEPARATOR . 'components';
             $this->fs->mkdir($componentsFolder);
             $this->fs->touch($componentsFolder . DIRECTORY_SEPARATOR . 'title.twig');

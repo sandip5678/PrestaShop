@@ -32,7 +32,7 @@ class ProductAttributeCore extends ObjectModel
     /** @var int Group id which attribute belongs */
     public $id_attribute_group;
 
-    /** @var string Name */
+    /** @var string|string[] Name */
     public $name;
     /** @var string */
     public $color;
@@ -50,7 +50,7 @@ class ProductAttributeCore extends ObjectModel
         'multilang' => true,
         'fields' => [
             'id_attribute_group' => ['type' => self::TYPE_INT, 'validate' => 'isUnsignedId', 'required' => true],
-            'color' => ['type' => self::TYPE_STRING, 'validate' => 'isColor'],
+            'color' => ['type' => self::TYPE_STRING, 'validate' => 'isColor', 'size' => 32],
             'position' => ['type' => self::TYPE_INT, 'validate' => 'isInt'],
 
             /* Lang fields */
@@ -155,7 +155,7 @@ class ProductAttributeCore extends ObjectModel
     public function add($autoDate = true, $nullValues = false)
     {
         if ($this->position <= 0) {
-            $this->position = ProductAttribute::getHigherPosition($this->id_attribute_group) + 1;
+            $this->position = static::getHigherPosition($this->id_attribute_group) + 1;
         }
 
         $return = parent::add($autoDate, $nullValues);
@@ -240,7 +240,7 @@ class ProductAttributeCore extends ObjectModel
      *
      * @return bool Quantity is available or not
      */
-    public static function checkAttributeQty($idProductAttribute, $qty, Shop $shop = null)
+    public static function checkAttributeQty($idProductAttribute, $qty, ?Shop $shop = null)
     {
         if (!$shop) {
             $shop = Context::getContext()->shop;
@@ -254,7 +254,7 @@ class ProductAttributeCore extends ObjectModel
     /**
      * Return true if the Attribute is a color.
      *
-     * @return bool Color is the attribute type
+     * @return bool|int Color is the attribute type
      */
     public function isColorAttribute()
     {
@@ -326,7 +326,7 @@ class ProductAttributeCore extends ObjectModel
             }
         }
 
-        if (!isset($movedAttribute) || !isset($position)) {
+        if (!isset($movedAttribute)) {
             return false;
         }
 
@@ -386,6 +386,7 @@ class ProductAttributeCore extends ObjectModel
      * @param int $idAttributeGroup AttributeGroup ID
      *
      * @return int $position Position
+     *
      * @todo: Shouldn't this be called getHighestPosition instead?
      */
     public static function getHigherPosition($idAttributeGroup)

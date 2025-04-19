@@ -24,14 +24,16 @@
  * @license   https://opensource.org/licenses/OSL-3.0 Open Software License (OSL 3.0)
  */
 
-/*
+/**
  * StockManagerFactory : factory of stock manager
+ *
  * @since 1.5.0
+ * @deprecated since 9.0 and will be removed in 10.0, stock is now managed by new logic
  */
 class StockManagerFactoryCore
 {
     /**
-     * @var : instance of the current StockManager
+     * @var StockManagerInterface|null Instance of the current StockManager
      */
     protected static $stock_manager;
 
@@ -56,7 +58,7 @@ class StockManagerFactoryCore
     /**
      *  Looks for a StockManager in the modules list.
      *
-     *  @return StockManagerInterface
+     * @return StockManagerInterface
      */
     public static function execHookStockManagerFactory()
     {

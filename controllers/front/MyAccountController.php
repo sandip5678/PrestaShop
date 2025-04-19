@@ -25,9 +25,13 @@
  */
 class MyAccountControllerCore extends FrontController
 {
+    /** @var bool */
     public $auth = true;
+    /** @var string */
     public $php_self = 'my-account';
+    /** @var string */
     public $authRedirection = 'my-account';
+    /** @var bool */
     public $ssl = true;
 
     /**
@@ -35,20 +39,13 @@ class MyAccountControllerCore extends FrontController
      *
      * @see FrontController::initContent()
      */
-    public function initContent()
+    public function initContent(): void
     {
-        /*
-        * @deprecated since 1.7.8
-        */
-        $this->context->smarty->assign([
-            'logout_url' => $this->context->link->getPageLink('index', true, null, 'mylogout'),
-        ]);
-
         parent::initContent();
         $this->setTemplate('customer/my-account');
     }
 
-    public function getBreadcrumbLinks()
+    public function getBreadcrumbLinks(): array
     {
         $breadcrumb = parent::getBreadcrumbLinks();
 

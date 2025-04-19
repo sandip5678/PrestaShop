@@ -58,9 +58,8 @@
       v-else
     >
       <li
-        v-for="(item, index) in getItems()"
+        v-for="(item, index) in visibleItems"
         :key="index"
-        v-show="item.visible"
         class="item"
       >
         <PSTreeItem
@@ -75,13 +74,14 @@
 </template>
 
 <script lang="ts">
-  import Vue from 'vue';
-  import PSTags from '@app/widgets/ps-tags';
-  import PSTreeItem from '@app/widgets/ps-tree/ps-tree-item';
-  import PSTree from '@app/widgets/ps-tree/ps-tree';
-  import {EventBus} from '@app/utils/event-bus';
+  import {defineComponent} from 'vue';
+  import PSTags from '@app/widgets/ps-tags.vue';
+  import PSTreeItem from '@app/widgets/ps-tree/ps-tree-item.vue';
+  import PSTree from '@app/widgets/ps-tree/ps-tree.vue';
+  import {EventEmitter} from '@components/event-emitter';
+  import translate from '@app/pages/stock/mixins/translate';
 
-  export default Vue.extend({
+  const FilterComponent = defineComponent({
     props: {
       placeholder: {
         type: String,
@@ -102,6 +102,7 @@
         required: true,
       },
     },
+    mixins: [translate],
     computed: {
       isOverview(): boolean {
         return this.$route.name === 'overview';
@@ -109,16 +110,31 @@
       hasPlaceholder(): boolean {
         return !this.tags.length;
       },
-      PSTreeTranslations(): Record<string, any> {
+      PSTreeTranslations(): {expand: string, reduce: string} {
         return {
           expand: this.trans('tree_expand'),
           reduce: this.trans('tree_reduce'),
         };
       },
+      visibleItems(): Array<any> {
+        const items = this.getItems();
+
+        return items.filter((item) => item.visible);
+      },
     },
     methods: {
+      reset(): void {
+        this.tags = [];
+      },
       getItems(): Array<any> {
-        const matchList: Record<string, any> = [];
+        /* eslint-disable camelcase */
+        const matchList: Array<{
+          id: number,
+          name: string,
+          supplier_id: number,
+          visible: boolean,
+        }> = [];
+        /* eslint-enable camelcase */
         this.list.filter((data: any) => {
           const label = data[this.label].toLowerCase();
           data.visible = false;
@@ -147,11 +163,7 @@
           this.tags.push(itemLabel);
         } else {
           const index = this.tags.indexOf(itemLabel);
-
-          if (this.splice) {
-            this.tags.splice(index, 1);
-          }
-          this.splice = true;
+          this.tags.splice(index, 1);
         }
         if (this.tags.length) {
           this.$emit('active', this.filterList(this.tags), filterType);
@@ -168,11 +180,11 @@
         if (this.tags.indexOf(this.currentVal) !== -1) {
           this.tags.pop();
         }
-        this.splice = false;
+
         if (this.match) {
           checkedTag = this.match[this.label];
         }
-        EventBus.$emit('toggleCheckbox', checkedTag);
+        EventEmitter.emit('toggleCheckbox', checkedTag);
         this.currentVal = '';
       },
       filterList(tags: Array<any>): Array<number> {
@@ -196,7 +208,6 @@
         currentVal: '',
         match: null as null | Record<string, any>,
         tags: [] as Array<any>,
-        splice: true,
         hasChildren: false,
       };
     },
@@ -206,4 +217,8 @@
       PSTreeItem,
     },
   });
+
+  export type FilterComponentInstanceType = InstanceType<typeof FilterComponent> | undefined;
+
+  export default FilterComponent;
 </script>

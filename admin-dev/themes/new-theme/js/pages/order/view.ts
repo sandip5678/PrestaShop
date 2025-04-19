@@ -29,7 +29,6 @@ import InvoiceNoteManager from '@pages/order/invoice-note-manager';
 import OrderViewPage from '@pages/order/view/order-view-page';
 import OrderProductAutocomplete from '@pages/order/view/order-product-add-autocomplete';
 import OrderProductAdd from '@pages/order/view/order-product-add';
-import TextWithLengthCounter from '@components/form/text-with-length-counter';
 import OrderViewPageMessagesHandler from './message/order-view-page-messages-handler';
 
 const {$} = window;
@@ -40,7 +39,9 @@ $(() => {
   const DISCOUNT_TYPE_FREE_SHIPPING = 'free_shipping';
 
   new OrderShippingManager();
-  new TextWithLengthCounter();
+  window.prestashop.component.initComponents([
+    'TextWithLengthCounter',
+  ]);
   const orderViewPage = new OrderViewPage();
   const orderAddAutocomplete = new OrderProductAutocomplete($(OrderViewPageMap.productSearchInput));
   const orderAdd = new OrderProductAdd();
@@ -156,17 +157,18 @@ $(() => {
     const $valueFormGroup = $valueInput.closest('.form-group');
 
     $modal.on('shown.bs.modal', () => {
-      $(OrderViewPageMap.addCartRuleSubmit).attr('disabled', 'true');
+      $(OrderViewPageMap.addCartRuleSubmit).prop('disabled', true);
     });
 
     $form.find(OrderViewPageMap.addCartRuleNameInput).on('keyup', (event) => {
       const cartRuleName = <string>$(event.currentTarget).val();
-      $(OrderViewPageMap.addCartRuleSubmit).attr('disabled', cartRuleName.trim().length === 0 ? 'true' : 'false');
+
+      $(OrderViewPageMap.addCartRuleSubmit).prop('disabled', cartRuleName.trim().length === 0);
     });
 
     $form.find(OrderViewPageMap.addCartRuleApplyOnAllInvoicesCheckbox).on('change', (event) => {
       const isChecked = $(event.currentTarget).is(':checked');
-      $invoiceSelect.attr('disabled', <string><unknown>isChecked);
+      $invoiceSelect.prop('disabled', isChecked);
     });
 
     $form.find(OrderViewPageMap.addCartRuleTypeSelect).on('change', (event) => {
@@ -184,13 +186,8 @@ $(() => {
         $valueUnit.html('%');
       }
 
-      if (selectedCartRuleType === DISCOUNT_TYPE_FREE_SHIPPING) {
-        $valueFormGroup.addClass('d-none');
-        $valueInput.attr('disabled', 'true');
-      } else {
-        $valueFormGroup.removeClass('d-none');
-        $valueInput.attr('disabled', 'false');
-      }
+      $valueInput.prop('disabled', selectedCartRuleType === DISCOUNT_TYPE_FREE_SHIPPING);
+      $valueFormGroup.toggleClass('d-none', selectedCartRuleType === DISCOUNT_TYPE_FREE_SHIPPING);
     });
   }
 

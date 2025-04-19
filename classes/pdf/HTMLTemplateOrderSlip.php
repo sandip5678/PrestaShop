@@ -24,6 +24,8 @@
  * @license   https://opensource.org/licenses/OSL-3.0 Open Software License (OSL 3.0)
  */
 
+use PrestaShop\PrestaShop\Core\Util\Sorter;
+
 /**
  * @since 1.5
  */
@@ -39,7 +41,9 @@ class HTMLTemplateOrderSlipCore extends HTMLTemplateInvoice
      */
     public $order_slip;
 
-    /** @var int Cart id */
+    /**
+     * @var int Cart id
+     */
     public $id_cart;
 
     /**
@@ -54,14 +58,7 @@ class HTMLTemplateOrderSlipCore extends HTMLTemplateInvoice
         $this->order = new Order((int) $order_slip->id_order);
         $this->id_cart = $this->order->id_cart;
 
-        $products = OrderSlip::getOrdersSlipProducts($this->order_slip->id, $this->order);
-
-        foreach ($products as $product) {
-            $customized_datas = Product::getAllCustomizedDatas($this->id_cart, null, true, null, (int) $product['id_customization']);
-            Product::addProductCustomizationPrice($product, $customized_datas);
-        }
-
-        $this->order->products = $products;
+        $this->order->products = OrderSlip::getOrdersSlipProducts($this->order_slip->id, $this->order);
         $this->smarty = $smarty;
         $this->smarty->assign('isTaxEnabled', (bool) Configuration::get('PS_TAX'));
 
@@ -127,7 +124,7 @@ class HTMLTemplateOrderSlipCore extends HTMLTemplateInvoice
             }
             unset($product);
         } else {
-            $this->order->products = null;
+            $this->order->products = [];
         }
 
         if ($this->order_slip->shipping_cost == 0) {
@@ -157,10 +154,15 @@ class HTMLTemplateOrderSlipCore extends HTMLTemplateInvoice
             }
         }
 
+        $order_details = $this->order->products;
+        // Sort products by Reference ID (and if equals (like combination) by Supplier Reference)
+        $sorter = new Sorter();
+        $order_details = $sorter->natural($order_details, Sorter::ORDER_DESC, 'product_reference', 'product_supplier_reference');
+
         $this->smarty->assign([
             'order' => $this->order,
             'order_slip' => $this->order_slip,
-            'order_details' => $this->order->products,
+            'order_details' => $order_details,
             'cart_rules' => $this->order_slip->order_slip_type == 1 ? $this->order->getCartRules() : false,
             'amount_choosen' => $this->order_slip->order_slip_type == 2 ? true : false,
             'delivery_address' => $formatted_delivery_address,
@@ -233,14 +235,14 @@ class HTMLTemplateOrderSlipCore extends HTMLTemplateInvoice
     /**
      * Returns different tax breakdown elements.
      *
-     * @return array Different tax breakdown elements
+     * @return array|bool Different tax breakdown elements
      */
     protected function getTaxBreakdown()
     {
         $breakdowns = [
             'product_tax' => $this->getProductTaxesBreakdown(),
             'shipping_tax' => $this->getShippingTaxesBreakdown(),
-            'ecotax_tax' => $this->order_slip->getEcoTaxTaxesBreakdown(),
+            'ecotax_tax' => Configuration::get('PS_USE_ECOTAX') ? $this->order_slip->getEcoTaxTaxesBreakdown() : [],
         ];
 
         foreach ($breakdowns as $type => $bd) {
@@ -250,7 +252,7 @@ class HTMLTemplateOrderSlipCore extends HTMLTemplateInvoice
         }
 
         if (empty($breakdowns)) {
-            $breakdowns = false;
+            return false;
         }
 
         if (isset($breakdowns['product_tax'])) {

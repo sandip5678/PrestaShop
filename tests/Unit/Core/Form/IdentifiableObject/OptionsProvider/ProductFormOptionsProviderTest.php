@@ -29,6 +29,7 @@ declare(strict_types=1);
 namespace Tests\Unit\Core\Form\IdentifiableObject\OptionsProvider;
 
 use PHPUnit\Framework\TestCase;
+use PrestaShop\PrestaShop\Core\Domain\Product\ValueObject\ProductType;
 use PrestaShop\PrestaShop\Core\Form\IdentifiableObject\OptionProvider\ProductFormOptionsProvider;
 
 class ProductFormOptionsProviderTest extends TestCase
@@ -43,7 +44,7 @@ class ProductFormOptionsProviderTest extends TestCase
         $this->assertEquals([], $defaultOptions);
     }
 
-    public function testVirtualProductOptions(): void
+    public function testVirtualProductOption(): void
     {
         $provider = new ProductFormOptionsProvider();
         $options = $provider->getOptions(self::PRODUCT_ID, []);
@@ -59,5 +60,37 @@ class ProductFormOptionsProviderTest extends TestCase
         ]);
         $this->assertArrayHasKey('virtual_product_file_id', $options);
         $this->assertEquals(self::VIRTUAL_PRODUCT_FILE_ID, $options['virtual_product_file_id']);
+    }
+
+    public function testActiveOptions(): void
+    {
+        $provider = new ProductFormOptionsProvider();
+        $options = $provider->getOptions(self::PRODUCT_ID, []);
+        $this->assertArrayHasKey('active', $options);
+        $this->assertFalse($options['active']);
+
+        $options = $provider->getOptions(self::PRODUCT_ID, [
+            'header' => [
+                'active' => true,
+            ],
+        ]);
+        $this->assertArrayHasKey('active', $options);
+        $this->assertTrue($options['active']);
+    }
+
+    public function testProductTypeOption(): void
+    {
+        $provider = new ProductFormOptionsProvider();
+        $options = $provider->getOptions(self::PRODUCT_ID, []);
+        $this->assertArrayHasKey('product_type', $options);
+        $this->assertEquals(ProductType::TYPE_STANDARD, $options['product_type']);
+
+        $options = $provider->getOptions(self::PRODUCT_ID, [
+            'header' => [
+                'type' => ProductType::TYPE_COMBINATIONS,
+            ],
+        ]);
+        $this->assertArrayHasKey('product_type', $options);
+        $this->assertEquals(ProductType::TYPE_COMBINATIONS, $options['product_type']);
     }
 }

@@ -1,44 +1,41 @@
-	</div><!-- div id="sheet_step" -->
-</div><!-- div id="sheets" -->
-
-<div id="buttons">
-	<?php if (!$this->isLastStep()): ?>
-		<?php if ($this->next_button): ?>
-			<input id="btNext" class="button little" type="submit" name="submitNext" value="<?php echo $this->translator->trans('Next', array(), 'Install'); ?>" />
-		<?php else: ?>
-			<input id="btNext" class="button little disabled" type="submit" name="submitNext" value="<?php echo $this->translator->trans('Next', array(), 'Install'); ?>" disabled="disabled" />
-		<?php endif; ?>
-	<?php endif; ?>
-
-	<?php if (!$this->isFirstStep() && $this->previous_button): ?>
-		<input id="btBack" class="button little" type="submit" name="submitPrevious" value="<?php echo $this->translator->trans('Back', array(), 'Install') ?>" />
-	<?php endif; ?>
-</div>
-</form>
-<div id="phone_help">
-	<?php echo $this->translator->trans('If you need some assistance, you can <a href="%help%" onclick="return !window.open(this.href);">get tailored help</a> from our support team. <a href="%doc%" onclick="return !window.open(this.href);">The official documentation</a> is also here to guide you.', array('%help%' => $this->getTailoredHelp(), '%doc%' => $this->getDocumentationLink()), 'Install'); ?>
-</div>
-</div><!-- div id="container" -->
+<?php
+/**
+ * Copyright since 2007 PrestaShop SA and Contributors
+ * PrestaShop is an International Registered Trademark & Property of PrestaShop SA
+ *
+ * NOTICE OF LICENSE
+ *
+ * This source file is subject to the Open Software License (OSL 3.0)
+ * that is bundled with this package in the file LICENSE.md.
+ * It is also available through the world-wide-web at this URL:
+ * https://opensource.org/licenses/OSL-3.0
+ * If you did not receive a copy of the license and are unable to
+ * obtain it through the world-wide-web, please send an email
+ * to license@prestashop.com so we can send you a copy immediately.
+ *
+ * DISCLAIMER
+ *
+ * Do not edit or add to this file if you wish to upgrade PrestaShop to newer
+ * versions in the future. If you wish to customize PrestaShop for your
+ * needs please refer to https://devdocs.prestashop.com/ for more information.
+ *
+ * @author    PrestaShop SA and Contributors <contact@prestashop.com>
+ * @copyright Since 2007 PrestaShop SA and Contributors
+ * @license   https://opensource.org/licenses/OSL-3.0 Open Software License (OSL 3.0)
+ */
+?>
 
 <ul id="footer">
-	<li><a href="<?php echo $this->getForumLink() ?>" title="<?php echo $this->translator->trans('Official forum', array(), 'Install'); ?>" target="_blank"><?php echo $this->translator->trans('Official forum', array(), 'Install'); ?></a> | </li>
-	<li><a href="https://www.prestashop.com" title="PrestaShop.com" target="_blank">PrestaShop.com</a> | </li>
-	<li><a href="<?php echo $this->getSupportLink() ?>" title="<?php echo $this->translator->trans('Support', array(), 'Install'); ?>" target="_blank"><?php echo $this->translator->trans('Support', array(), 'Install'); ?></a> | </li>
-	<li><a href="<?php echo $this->getDocumentationLink() ?>" title="<?php echo $this->translator->trans('Documentation', array(), 'Install'); ?>" target="_blank"><?php echo $this->translator->trans('Documentation', array(), 'Install'); ?></a> | </li>
-	<li><a href="https://www.prestashop.com/<?php echo $this->language->getLanguageIso() ?>/contact-us" title="<?php echo $this->translator->trans('Contact us', array(), 'Install'); ?>" target="_blank"><?php echo $this->translator->trans('Contact us', array(), 'Install'); ?></a> | </li>
-	<li>&copy; 2007-<?php echo date('Y'); ?></li>
+  <?php if (is_array($this->getConfig('footer.links'))): ?>
+    <?php foreach($this->getConfig('footer.links') as $link => $label): ?>
+      <li>
+        <a href="<?php echo $link ?>" target="_blank" rel="noopener noreferrer">
+          <?php echo $label; ?>
+        </a>
+        |
+      </li>
+    <?php endforeach ?>
+  <?php endif; ?>
+
+  <li>&copy; 2007-<?php echo date('Y'); ?></li>
 </ul>
-<script type="text/javascript">
-	if (typeof psuser_assistance != 'undefined')
-	{
-		var errors = new Array();
-		$.each($('li.fail'), function(i, item){
-			errors.push($(this).text().trim());
-		});
-		psuser_assistance.setStep('install_<?php echo addslashes(self::$steps->current()->getName()) ?>', {'error': errors + ' || {"version": "' + ps_version + '"}'});
-		if (errors.length)
-			$('#iframe_help').attr('src', $('#iframe_help').attr('src') + '&errors=' + encodeURI(errors.join(', ')));
-	}
-</script>
-</body>
-</html>

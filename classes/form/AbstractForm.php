@@ -24,20 +24,38 @@
  * @license   https://opensource.org/licenses/OSL-3.0 Open Software License (OSL 3.0)
  */
 use PrestaShop\PrestaShop\Core\Foundation\Templating\RenderableProxy;
-use Symfony\Component\Translation\TranslatorInterface;
+use Symfony\Contracts\Translation\TranslatorInterface;
 
 abstract class AbstractFormCore implements FormInterface
 {
+    /**
+     * @var Smarty
+     */
     private $smarty;
+    /**
+     * @var TranslatorInterface
+     */
     protected $translator;
+    /**
+     * @var ValidateConstraintTranslator
+     */
     protected $constraintTranslator;
+
+    /**
+     * @var FormFormatterInterface
+     */
+    protected $formatter;
 
     protected $action;
     protected $template;
 
-    protected $formatter;
-
+    /**
+     * @var array
+     */
     protected $formFields = [];
+    /**
+     * @var array[]
+     */
     protected $errors = ['' => []];
 
     public function __construct(
@@ -138,6 +156,8 @@ abstract class AbstractFormCore implements FormInterface
                     $field->addError(
                         $this->constraintTranslator->translate('required')
                     );
+
+                    continue;
                 } elseif (!$this->checkFieldLength($field)) {
                     $field->addError(
                         $this->translator->trans(
@@ -147,9 +167,7 @@ abstract class AbstractFormCore implements FormInterface
                         )
                     );
                 }
-
-                continue;
-            } elseif (!$field->isRequired()) {
+            } else {
                 if (!$field->getValue()) {
                     continue;
                 } elseif (!$this->checkFieldLength($field)) {
@@ -230,13 +248,13 @@ abstract class AbstractFormCore implements FormInterface
     /**
      * Validate field length
      *
-     * @param $field the field to check
+     * @param FormField $field the field to check
      *
      * @return bool
      */
     protected function checkFieldLength($field)
     {
-        $error = $field->getMaxLength() != null && strlen($field->getValue()) > (int) $field->getMaxLength();
+        $error = $field->getMaxLength() != null && Tools::strlen($field->getValue()) > (int) $field->getMaxLength();
 
         return !$error;
     }

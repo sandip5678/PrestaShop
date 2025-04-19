@@ -28,35 +28,28 @@ declare(strict_types=1);
 
 namespace PrestaShop\PrestaShop\Adapter\Product\CommandHandler;
 
-use PrestaShop\PrestaShop\Adapter\Product\Repository\ProductRepository;
 use PrestaShop\PrestaShop\Adapter\Product\Update\ProductCategoryUpdater;
+use PrestaShop\PrestaShop\Core\CommandBus\Attributes\AsCommandHandler;
 use PrestaShop\PrestaShop\Core\Domain\Product\Command\SetAssociatedProductCategoriesCommand;
 use PrestaShop\PrestaShop\Core\Domain\Product\CommandHandler\SetAssociatedProductCategoriesHandlerInterface;
 
 /**
  * Handles @var SetAssociatedProductCategoriesCommand using legacy object model
  */
+#[AsCommandHandler]
 final class SetAssociatedProductCategoriesHandler implements SetAssociatedProductCategoriesHandlerInterface
 {
-    /**
-     * @var ProductRepository
-     */
-    private $productRepository;
-
     /**
      * @var ProductCategoryUpdater
      */
     private $productCategoryUpdater;
 
     /**
-     * @param ProductRepository $productRepository
      * @param ProductCategoryUpdater $productCategoryUpdater
      */
     public function __construct(
-        ProductRepository $productRepository,
         ProductCategoryUpdater $productCategoryUpdater
     ) {
-        $this->productRepository = $productRepository;
         $this->productCategoryUpdater = $productCategoryUpdater;
     }
 
@@ -65,7 +58,11 @@ final class SetAssociatedProductCategoriesHandler implements SetAssociatedProduc
      */
     public function handle(SetAssociatedProductCategoriesCommand $command): void
     {
-        $product = $this->productRepository->get($command->getProductId());
-        $this->productCategoryUpdater->updateCategories($product, $command->getCategoryIds(), $command->getDefaultCategoryId());
+        $this->productCategoryUpdater->updateCategories(
+            $command->getProductId(),
+            $command->getCategoryIds(),
+            $command->getDefaultCategoryId(),
+            $command->getShopConstraint()
+        );
     }
 }

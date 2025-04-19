@@ -36,18 +36,12 @@ use PrestaShop\PrestaShop\Core\PDF\Exception\MissingDataException;
 use PrestaShop\PrestaShop\Core\PDF\Exception\PdfException;
 use PrestaShop\PrestaShop\Core\PDF\PDFGeneratorInterface;
 use PrestaShopException;
-use Symfony\Component\Translation\TranslatorInterface;
 
 /**
  * Responsible for generating CreditSlip PDF
  */
 final class CreditSlipPdfGenerator implements PDFGeneratorInterface
 {
-    /**
-     * @var TranslatorInterface
-     */
-    private $translator;
-
     /**
      * @var string
      */
@@ -59,16 +53,13 @@ final class CreditSlipPdfGenerator implements PDFGeneratorInterface
     private $connection;
 
     /**
-     * @param TranslatorInterface $translator
      * @param string $dbPrefix
      * @param Connection $connection
      */
     public function __construct(
-        TranslatorInterface $translator,
         $dbPrefix,
         Connection $connection
     ) {
-        $this->translator = $translator;
         $this->dbPrefix = $dbPrefix;
         $this->connection = $connection;
     }
@@ -80,7 +71,7 @@ final class CreditSlipPdfGenerator implements PDFGeneratorInterface
      *
      * @throws PdfException
      */
-    public function generatePDF(array $creditSlipIds)
+    public function generatePDF(array $creditSlipIds): string
     {
         $ids = [];
         foreach ($creditSlipIds as $creditSlipId) {
@@ -92,7 +83,8 @@ final class CreditSlipPdfGenerator implements PDFGeneratorInterface
             $slipsCollection = ObjectModel::hydrateCollection('OrderSlip', $slipsList);
 
             $pdf = new PDF($slipsCollection, PDF::TEMPLATE_ORDER_SLIP, Context::getContext()->smarty);
-            $pdf->render();
+
+            return $pdf->render(true);
         } catch (PrestaShopException $e) {
             throw new PdfException('Something went wrong when trying to generate pdf', 0, $e);
         }
@@ -117,7 +109,7 @@ final class CreditSlipPdfGenerator implements PDFGeneratorInterface
                 ->setParameter('creditSlipIds', $creditSlipIds, Connection::PARAM_INT_ARRAY)
             ;
 
-            $slipsList = $qb->execute()->fetchAll();
+            $slipsList = $qb->executeQuery()->fetchAll();
         }
 
         if (!empty($slipsList)) {

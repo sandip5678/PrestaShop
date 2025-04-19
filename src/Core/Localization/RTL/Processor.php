@@ -26,6 +26,7 @@
 
 namespace PrestaShop\PrestaShop\Core\Localization\RTL;
 
+use Exception;
 use PrestaShop\PrestaShop\Adapter\Entity\Language;
 use PrestaShop\PrestaShop\Core\Localization\RTL\Exception\GenerationException;
 
@@ -53,16 +54,6 @@ class Processor
      * @var array Indicates additional paths to process
      */
     private $processPaths = [];
-
-    /**
-     * @var bool Indicates if this is performed during install
-     */
-    private $isInstall = false;
-
-    /**
-     * @var bool Indicates if the RTL files should be generated even if they already exist
-     */
-    private $regenerate = false;
 
     /**
      * @var string[] Path to the default modules to process
@@ -155,34 +146,6 @@ class Processor
     }
 
     /**
-     * Specifies if this is performed during install.
-     *
-     * @param bool $isInstall
-     *
-     * @return Processor
-     */
-    public function setIsInstall($isInstall)
-    {
-        $this->isInstall = $isInstall;
-
-        return $this;
-    }
-
-    /**
-     * Specifies if the RTL files should be generated even if they already exist.
-     *
-     * @param bool $regenerate
-     *
-     * @return Processor
-     */
-    public function setRegenerate($regenerate)
-    {
-        $this->regenerate = $regenerate;
-
-        return $this;
-    }
-
-    /**
      * Specifies if the default modules should be processed.
      *
      * @param bool $processDefaultModules
@@ -197,8 +160,8 @@ class Processor
     }
 
     /**
-     * @throws Exception\GenerationException
-     * @throws \Exception
+     * @throws GenerationException
+     * @throws Exception
      */
     public function process()
     {
@@ -231,11 +194,9 @@ class Processor
             $this->processPaths = array_merge($this->processPaths, $this->defaultModulesToProcess);
         }
 
-        if (!empty($this->processPaths)) {
-            foreach ($this->processPaths as $path) {
-                if (!empty($path) && is_dir($path)) {
-                    $generator->generateInDirectory($path);
-                }
+        foreach ($this->processPaths as $path) {
+            if (!empty($path) && is_dir($path)) {
+                $generator->generateInDirectory($path);
             }
         }
     }

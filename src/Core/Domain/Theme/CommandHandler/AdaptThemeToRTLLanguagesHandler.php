@@ -26,6 +26,7 @@
 
 namespace PrestaShop\PrestaShop\Core\Domain\Theme\CommandHandler;
 
+use PrestaShop\PrestaShop\Core\CommandBus\Attributes\AsCommandHandler;
 use PrestaShop\PrestaShop\Core\Domain\Theme\Command\AdaptThemeToRTLLanguagesCommand;
 use PrestaShop\PrestaShop\Core\Domain\Theme\Exception\CannotAdaptThemeToRTLLanguagesException;
 use PrestaShop\PrestaShop\Core\Localization\RTL\Exception\GenerationException;
@@ -34,6 +35,7 @@ use PrestaShop\PrestaShop\Core\Localization\RTL\StyleSheetProcessorFactoryInterf
 /**
  * Class AdaptThemeToRTLLanguagesHandler
  */
+#[AsCommandHandler]
 final class AdaptThemeToRTLLanguagesHandler implements AdaptThemeToRTLLanguagesHandlerInterface
 {
     /**
@@ -60,7 +62,6 @@ final class AdaptThemeToRTLLanguagesHandler implements AdaptThemeToRTLLanguagesH
             $this->stylesheetProcessorFactory
                 ->create()
                 ->setProcessFOThemes([$plainThemeName])
-                ->setRegenerate(true)
                 ->process()
             ;
         } catch (GenerationException $e) {

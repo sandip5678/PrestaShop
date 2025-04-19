@@ -35,7 +35,7 @@ use Symfony\Component\Form\FormView;
 use Symfony\Component\OptionsResolver\Options;
 use Symfony\Component\OptionsResolver\OptionsResolver;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
-use Symfony\Component\Translation\TranslatorInterface;
+use Symfony\Contracts\Translation\TranslatorInterface;
 
 /**
  * Class TranslatableType adds translatable inputs with custom inner type to forms.
@@ -124,7 +124,7 @@ class TranslatableType extends TranslatorAwareType
     {
         $errors = iterator_to_array($view->vars['errors']);
 
-        $errorsByLocale = $this->getErrorsByLocale($view, $form, $options['locales']);
+        $errorsByLocale = $this->getErrorsByLocale($form, $options['locales']);
 
         if ($errorsByLocale !== null) {
             foreach ($errorsByLocale as $errorByLocale) {
@@ -141,6 +141,7 @@ class TranslatableType extends TranslatorAwareType
             }
         }
 
+        /** @var FormInterface $varsForm */
         $varsForm = $view->vars['errors']->getForm();
         $view->vars['errors'] = new FormErrorIterator($varsForm, $errors);
         $view->vars['locales'] = $options['locales'];
@@ -204,25 +205,20 @@ class TranslatableType extends TranslatorAwareType
      * If there are more then one locale it gets nested errors and if found prepares the errors for usage in twig.
      * If there are only one error which is not assigned to the default language then the error is being localised.
      *
-     * @param FormView $view
      * @param FormInterface $form
      * @param array $locales
      *
      * @return array|null
      */
-    private function getErrorsByLocale(FormView $view, FormInterface $form, array $locales)
+    private function getErrorsByLocale(FormInterface $form, array $locales)
     {
-        if (count($locales) <= 1) {
-            return null;
-        }
-
         $formErrors = $form->getErrors(true);
 
-        if (empty($formErrors)) {
+        if (0 === $formErrors->count()) {
             return null;
         }
 
-        if (1 === count($formErrors)) {
+        if (1 === $formErrors->count()) {
             $errorByLocale = $this->getSingleTranslatableErrorExcludingDefaultLocale(
                 $formErrors,
                 $form,
@@ -236,13 +232,11 @@ class TranslatableType extends TranslatorAwareType
             return [$errorByLocale];
         }
 
-        $errorsByLocale = $this->getTranslatableErrors(
+        return $this->getTranslatableErrors(
             $formErrors,
             $form,
             $locales
         );
-
-        return $errorsByLocale;
     }
 
     /**

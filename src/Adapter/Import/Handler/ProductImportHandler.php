@@ -52,14 +52,11 @@ use Psr\Log\LoggerInterface;
 use Shop;
 use SpecificPrice;
 use StockAvailable;
-use StockManagerFactory;
 use Supplier;
-use Symfony\Component\Translation\TranslatorInterface;
+use Symfony\Contracts\Translation\TranslatorInterface;
 use Tag;
 use TaxManagerFactory;
 use TaxRulesGroup;
-use Warehouse;
-use WarehouseProductLocation;
 
 /**
  * Class ProductImportHandler is responsible for product import.
@@ -182,8 +179,6 @@ final class ProductImportHandler extends AbstractImportHandler
             'customizable' => 0,
             'uploadable_files' => 0,
             'text_fields' => 0,
-            'advanced_stock_management' => 0,
-            'depends_on_stock' => 0,
             'is_virtual' => 0,
         ];
         $this->shopAddress = $shopAddress;
@@ -236,13 +231,13 @@ final class ProductImportHandler extends AbstractImportHandler
         $this->loadSupplier($product, false);
         $this->loadPrice($product);
         $this->loadCategory($product, false);
-        $this->loadMetaData($product, $importConfig);
+        $this->loadMetaData($product);
         $this->fixFloatValues($product);
 
         $productExistsById = $this->entityExists($product, 'product');
-        $productExistsByReference = $importConfig->matchReferences() &&
-            $product->reference &&
-            $product->existsRefInDatabase($product->reference)
+        $productExistsByReference = $importConfig->matchReferences()
+            && $product->reference
+            && $product->existsRefInDatabase($product->reference)
         ;
 
         if ($productExistsByReference || $productExistsById) {
@@ -295,8 +290,7 @@ final class ProductImportHandler extends AbstractImportHandler
                 $this->updateAdditionalData($product, $runtimeConfig->shouldValidateData());
                 $this->saveStock(
                     $product,
-                    $runtimeConfig->shouldValidateData(),
-                    $productExistsById || $productExistsByReference
+                    $runtimeConfig->shouldValidateData()
                 );
 
                 $this->linkAccessories($product, $runtimeConfig);
@@ -423,9 +417,10 @@ final class ProductImportHandler extends AbstractImportHandler
 
         if (is_array($category_data)) {
             foreach ($category_data as $tmp) {
-                if (!isset($product->category) || !$product->category || is_array($product->category)) {
-                    $product->category[] = $tmp;
+                if ($product->category && !is_array($product->category)) {
+                    continue;
                 }
+                $product->category[] = $tmp;
             }
         }
     }
@@ -451,7 +446,12 @@ final class ProductImportHandler extends AbstractImportHandler
 
         // link product to shops
         $product->id_shop_list = [];
-        $productShops = explode($importConfig->getMultipleValueSeparator(), $product->shop);
+
+        $multipleValueSeparator = $importConfig->getMultipleValueSeparator();
+        if (empty($multipleValueSeparator)) {
+            return;
+        }
+        $productShops = explode($multipleValueSeparator, $product->shop);
 
         if (is_array($productShops)) {
             foreach ($productShops as $shop) {
@@ -642,7 +642,7 @@ final class ProductImportHandler extends AbstractImportHandler
      */
     private function loadCategory(Product $product, $validateOnly)
     {
-        if (isset($product->category) && is_array($product->category) && count($product->category)) {
+        if (is_array($product->category) && count($product->category)) {
             $unfriendlyError = $this->configuration->getBoolean('UNFRIENDLY_ERROR');
             $defaultLanguageId = $this->configuration->getInt('PS_LANG_DEFAULT');
             $homeCategoryId = $this->configuration->getInt('PS_HOME_CATEGORY');
@@ -731,9 +731,8 @@ final class ProductImportHandler extends AbstractImportHandler
      * Load meta data into the product object.
      *
      * @param Product $product
-     * @param ImportConfigInterface $importConfig
      */
-    private function loadMetaData(Product $product, ImportConfigInterface $importConfig)
+    private function loadMetaData(Product $product)
     {
         $linkRewrite = '';
 
@@ -769,19 +768,6 @@ final class ProductImportHandler extends AbstractImportHandler
             $product->link_rewrite = $this->dataFormatter->createMultiLangField($linkRewrite);
         } else {
             $product->link_rewrite[(int) $this->languageId] = $linkRewrite;
-        }
-
-        $multipleValueSeparator = $importConfig->getMultipleValueSeparator();
-
-        // replace the value of separator by coma
-        if ($multipleValueSeparator != ',') {
-            if (is_array($product->meta_keywords)) {
-                foreach ($product->meta_keywords as &$metaKeyword) {
-                    if (!empty($metaKeyword)) {
-                        $metaKeyword = str_replace($multipleValueSeparator, ',', $metaKeyword);
-                    }
-                }
-            }
         }
     }
 
@@ -911,7 +897,7 @@ final class ProductImportHandler extends AbstractImportHandler
      */
     private function saveProductSupplier(Product $product)
     {
-        if ($product->id && isset($product->id_supplier) && property_exists($product, 'supplier_reference')) {
+        if ($product->id && property_exists($product, 'supplier_reference')) {
             $productSupplierId = (int) ProductSupplier::getIdByProductAndSupplier(
                 (int) $product->id,
                 0,
@@ -1005,10 +991,10 @@ final class ProductImportHandler extends AbstractImportHandler
         if (isset($product->id) && $product->id) {
             $tags = Tag::getProductTags($product->id);
             if (is_array($tags) && count($tags)) {
-                if (!empty($product->tags) && is_string($product->tags)) {
+                if (is_string($product->tags) && !empty($multipleValueSeparator)) {
                     $product->tags = explode($multipleValueSeparator, $product->tags);
                 }
-                if (is_array($product->tags) && count($product->tags)) {
+                if (is_array($product->tags)) {
                     foreach ($product->tags as $key => $tag) {
                         if (!empty($tag)) {
                             $product->tags[$key] = trim($tag);
@@ -1072,7 +1058,7 @@ final class ProductImportHandler extends AbstractImportHandler
      */
     private function saveProductImages(Product $product, ImportConfigInterface $importConfig)
     {
-        //delete existing images if "delete_existing_images" is set to 1
+        // delete existing images if "delete_existing_images" is set to 1
         if (isset($product->delete_existing_images)) {
             if ((bool) $product->delete_existing_images) {
                 $product->deleteImages();
@@ -1178,7 +1164,7 @@ final class ProductImportHandler extends AbstractImportHandler
         $features = get_object_vars($product);
         $multipleValueSeparator = $importConfig->getMultipleValueSeparator();
 
-        if (empty($features['features'])) {
+        if (empty($features['features']) || empty($multipleValueSeparator)) {
             return;
         }
 
@@ -1218,75 +1204,9 @@ final class ProductImportHandler extends AbstractImportHandler
      *
      * @param Product $product
      * @param bool $validateOnly
-     * @param bool $productExists
      */
-    private function saveStock(Product $product, $validateOnly, $productExists)
+    private function saveStock(Product $product, $validateOnly)
     {
-        $asmEnabled = $this->configuration->getBoolean('PS_ADVANCED_STOCK_MANAGEMENT');
-
-        // set advanced stock managment
-        if (!$validateOnly && isset($product->advanced_stock_management)) {
-            if ($product->advanced_stock_management != 1 && $product->advanced_stock_management != 0) {
-                $this->warning(
-                    $this->translator->trans(
-                        'Advanced stock management has incorrect value. Not set for product %name%',
-                        ['%name%' => $product->name[$this->languageId]],
-                        'Admin.Advparameters.Notification'
-                    )
-                );
-            } elseif (!$asmEnabled && $product->advanced_stock_management == 1) {
-                $this->warning(
-                    $this->translator->trans(
-                        'Advanced stock management is not enabled, cannot enable on product %name%',
-                        ['%name%' => $product->name[$this->languageId]],
-                        'Admin.Advparameters.Notification'
-                    )
-                );
-            } elseif ($productExists) {
-                $product->setAdvancedStockManagement($product->advanced_stock_management);
-            }
-            // automaticly disable depends on stock, if a_s_m set to disabled
-            if (StockAvailable::dependsOnStock($product->id) == 1 && $product->advanced_stock_management == 0) {
-                StockAvailable::setProductDependsOnStock($product->id, false);
-            }
-        }
-
-        // Check if warehouse exists
-        if (isset($product->warehouse) && $product->warehouse) {
-            if (!$asmEnabled) {
-                $this->warning(
-                    $this->translator->trans(
-                        'Advanced stock management is not enabled, warehouse not set on product %name%',
-                        ['%name%' => $product->name[$this->languageId]],
-                        'Admin.Advparameters.Notification'
-                    )
-                );
-            } elseif (!$validateOnly) {
-                if (Warehouse::exists($product->warehouse)) {
-                    // Get already associated warehouses
-                    $associatedWarehousesCollection = WarehouseProductLocation::getCollection($product->id);
-                    // Delete any entry in warehouse for this product
-                    foreach ($associatedWarehousesCollection as $awc) {
-                        $awc->delete();
-                    }
-                    $warehouseLocationEntity = new WarehouseProductLocation();
-                    $warehouseLocationEntity->id_product = $product->id;
-                    $warehouseLocationEntity->id_product_attribute = 0;
-                    $warehouseLocationEntity->id_warehouse = $product->warehouse;
-                    $warehouseLocationEntity->save();
-                    StockAvailable::synchronize($product->id);
-                } else {
-                    $this->warning(
-                        $this->translator->trans(
-                            'Warehouse did not exist, cannot set on product %name%',
-                            ['%name%' => $product->name[$this->languageId]],
-                            'Admin.Advparameters.Notification'
-                        )
-                    );
-                }
-            }
-        }
-
         if ($this->isMultistoreEnabled) {
             $shopIds = $product->id_shop_list;
         } else {
@@ -1295,60 +1215,7 @@ final class ProductImportHandler extends AbstractImportHandler
             ];
         }
 
-        // stock available
-        if (isset($product->depends_on_stock)) {
-            if ($product->depends_on_stock != 0 && $product->depends_on_stock != 1) {
-                $this->warning(
-                    $this->translator->trans(
-                        'Incorrect value for "Depends on stock" for product %name%',
-                        ['%name%' => $product->name[$this->languageId]],
-                        'Admin.Advparameters.Notification'
-                    )
-                );
-            } elseif ((!$product->advanced_stock_management || $product->advanced_stock_management == 0) && $product->depends_on_stock == 1) {
-                $this->warning(
-                    $this->translator->trans(
-                        'Advanced stock management is not enabled, cannot set "Depends on stock" for product %name%',
-                        ['%name%' => $product->name[$this->languageId]],
-                        'Admin.Advparameters.Notification'
-                    )
-                );
-            } elseif (!$validateOnly) {
-                StockAvailable::setProductDependsOnStock($product->id, $product->depends_on_stock);
-            }
-
-            // This code allows us to set qty and disable depends on stock
-            if (!$validateOnly && isset($product->quantity)) {
-                // if depends on stock and quantity, add quantity to stock
-                if ($product->depends_on_stock == 1) {
-                    $stockManager = StockManagerFactory::getManager();
-                    $price = str_replace(',', '.', $product->wholesale_price);
-                    if ($price == 0) {
-                        $price = 0.000001;
-                    }
-                    $price = round(floatval($price), 6);
-                    $warehouse = new Warehouse($product->warehouse);
-                    $productAdded = $stockManager->addProduct(
-                        (int) $product->id,
-                        0,
-                        $warehouse,
-                        (int) $product->quantity,
-                        1,
-                        $price,
-                        true
-                    );
-
-                    if ($productAdded) {
-                        StockAvailable::synchronize((int) $product->id);
-                    }
-                } else {
-                    foreach ($shopIds as $shop) {
-                        StockAvailable::setQuantity((int) $product->id, 0, (int) $product->quantity, (int) $shop);
-                    }
-                }
-            }
-        } elseif (!$validateOnly) {
-            // if not depends_on_stock set, use normal qty
+        if (!$validateOnly) {
             foreach ($shopIds as $shop) {
                 StockAvailable::setQuantity((int) $product->id, 0, (int) $product->quantity, (int) $shop);
             }
@@ -1369,9 +1236,9 @@ final class ProductImportHandler extends AbstractImportHandler
         }
 
         $hasAccessories =
-            isset($product->accessories) &&
-            is_array($product->accessories) &&
-            count($product->accessories)
+            isset($product->accessories)
+            && is_array($product->accessories)
+            && count($product->accessories)
         ;
 
         if ($hasAccessories) {

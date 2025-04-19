@@ -23,20 +23,38 @@
  * @copyright Since 2007 PrestaShop SA and Contributors
  * @license   https://opensource.org/licenses/OSL-3.0 Open Software License (OSL 3.0)
  */
+
 use PrestaShopBundle\Install\Database;
 use PrestaShopBundle\Install\Install;
+use PrestaShop\PrestaShop\Adapter\SymfonyContainer;
+use PrestaShop\PrestaShop\Core\Context\ContextBuilderPreparer;
+use Symfony\Component\Console\Output\ConsoleOutput;
+use Symfony\Component\Filesystem\Filesystem;
 
 class InstallControllerConsoleProcess extends InstallControllerConsole implements HttpConfigureInterface
 {
-    public $process_steps = array();
+    public $process_steps = [];
     public $previous_button = false;
+
+    /**
+     * @var Install
+     */
+    protected $model_install;
+
+    /**
+     * @var Database
+     */
+    protected $model_database;
 
     public function init()
     {
-        $this->model_install = new Install();
+        $output = new ConsoleOutput();
+        $logger = new SymfonyConsoleLogger($output, PrestaShopLoggerInterface::DEBUG);
+
+        $this->model_install = new Install(null, null, $logger);
         $this->model_install->setTranslator($this->translator);
 
-        $this->model_database = new Database();
+        $this->model_database = new Database($logger);
         $this->model_database->setTranslator($this->translator);
     }
 
@@ -49,7 +67,6 @@ class InstallControllerConsoleProcess extends InstallControllerConsole implement
 
     public function display()
     {
-
     }
 
     /**
@@ -67,23 +84,24 @@ class InstallControllerConsoleProcess extends InstallControllerConsole implement
         // Clean all cache values
         Cache::clean('*');
 
+        Configuration::set('PS_SHOP_DEFAULT', 1);
         Shop::initialize();
         Context::getContext()->shop = new Shop(1);
         Shop::setContext(Shop::CONTEXT_SHOP, 1);
         Configuration::loadConfiguration();
         if (!isset(Context::getContext()->language) || !Validate::isLoadedObject(Context::getContext()->language)) {
-            if ($id_lang = (int)Configuration::get('PS_LANG_DEFAULT')) {
+            if ($id_lang = (int) Configuration::get('PS_LANG_DEFAULT')) {
                 Context::getContext()->language = new Language($id_lang);
             }
         }
         if (!isset(Context::getContext()->country) || !Validate::isLoadedObject(Context::getContext()->country)) {
-            if ($id_country = (int)Configuration::get('PS_COUNTRY_DEFAULT')) {
-                Context::getContext()->country = new Country((int)$id_country);
+            if ($id_country = (int) Configuration::get('PS_COUNTRY_DEFAULT')) {
+                Context::getContext()->country = new Country((int) $id_country);
             }
         }
         if (!isset(Context::getContext()->currency) || !Validate::isLoadedObject(Context::getContext()->currency)) {
-            if ($id_currency = (int)Configuration::get('PS_CURRENCY_DEFAULT')) {
-                Context::getContext()->currency = new Currency((int)$id_currency);
+            if ($id_currency = Currency::getDefaultCurrencyId()) {
+                Context::getContext()->currency = new Currency((int) $id_currency);
             }
         }
 
@@ -92,9 +110,14 @@ class InstallControllerConsoleProcess extends InstallControllerConsole implement
         if (!defined('_PS_SMARTY_FAST_LOAD_')) {
             define('_PS_SMARTY_FAST_LOAD_', true);
         }
-        require_once _PS_ROOT_DIR_.'/config/smarty.config.inc.php';
+        require_once _PS_ROOT_DIR_ . '/config/smarty.config.inc.php';
 
         Context::getContext()->smarty = $smarty;
+
+        $container = SymfonyContainer::getInstance();
+        /** @var ContextBuilderPreparer $preparer */
+        $preparer = $container->get(ContextBuilderPreparer::class);
+        $preparer->prepareFromLegacyContext(Context::getContext());
     }
 
     public function process()
@@ -103,12 +126,16 @@ class InstallControllerConsoleProcess extends InstallControllerConsole implement
         $this->clearConfigXML() && $this->clearConfigThemes();
         $steps = explode(',', $this->datas->step);
         if (in_array('all', $steps)) {
-            $steps = array('database', 'modules', 'theme', 'fixtures', 'postInstall');
+            $steps = ['database', 'modules', 'theme', 'fixtures', 'postInstall', 'finalize'];
+        }
+        if (!file_exists(PS_INSTALLATION_LOCK_FILE)) {
+            // Set the install lock file
+            file_put_contents(PS_INSTALLATION_LOCK_FILE, '1');
         }
 
         if (in_array('database', $steps)) {
             if (!$this->processGenerateSettingsFile()) {
-                $this->printErrors();
+                $this->printErrors('processGenerateSettingsFile');
             }
 
             if ($this->datas->database_create) {
@@ -123,53 +150,60 @@ class InstallControllerConsoleProcess extends InstallControllerConsole implement
                 $this->datas->database_prefix,
                 $this->datas->database_clear
             )) {
-                $this->printErrors();
+                $this->printErrors('testDatabaseSettings');
             }
 
             // Deferred Kernel Init
             $this->initKernel();
 
             if (!$this->processInstallDatabase()) {
-                $this->printErrors();
+                $this->printErrors('processInstallDatabase');
             }
 
             if (!$this->processInstallDefaultData()) {
-                $this->printErrors();
+                $this->printErrors('processInstallDefaultData');
             }
             if (!$this->processPopulateDatabase()) {
-                $this->printErrors();
+                $this->printErrors('processPopulateDatabase');
             }
 
             if (!$this->processConfigureShop()) {
-                $this->printErrors();
-            }
-        }
-
-        if (in_array('modules', $steps)) {
-            if (!$this->processInstallModules()) {
-                $this->printErrors();
+                $this->printErrors('processConfigureShop');
             }
         }
 
         if (in_array('theme', $steps)) {
             if (!$this->processInstallTheme()) {
-                $this->printErrors();
+                $this->printErrors('processInstallTheme');
+            }
+        }
+
+        if (in_array('modules', $steps)) {
+            if (!$this->processInstallModules()) {
+                $this->printErrors('processInstallModules');
             }
         }
 
         if (in_array('fixtures', $steps) && $this->datas->fixtures) {
             if (!$this->processInstallFixtures()) {
-                $this->printErrors();
+                $this->printErrors('processInstallFixtures');
             }
         }
 
         if (in_array('postInstall', $steps)) {
             if (!$this->processPostInstall()) {
-                $this->printErrors();
+                $this->printErrors('processPostInstall');
+            }
+        }
+
+        if (in_array('finalize', $steps)) {
+            if (!$this->processFinalize()) {
+                $this->printErrors('processFinalize');
             }
         }
 
         // Update fixtures lang
+        $this->rebootWithoutTranslationsCache();
         foreach (Language::getLanguages() as $lang) {
             Language::updateMultilangTable($lang['iso_code']);
         }
@@ -206,7 +240,7 @@ class InstallControllerConsoleProcess extends InstallControllerConsole implement
     public function processInstallDefaultData()
     {
         $this->initializeContext();
-        if (!$res = $this->model_install->installDefaultData($this->datas->shop_name, $this->datas->shop_country, (int)$this->datas->all_languages, true)) {
+        if (!$res = $this->model_install->installDefaultData($this->datas->shop_name, $this->datas->shop_country, (int) $this->datas->all_languages, true)) {
             return false;
         }
 
@@ -243,9 +277,8 @@ class InstallControllerConsoleProcess extends InstallControllerConsole implement
     {
         $this->initializeContext();
 
-        return $this->model_install->configureShop(array(
+        return $this->model_install->configureShop([
             'shop_name' => $this->datas->shop_name,
-            'shop_activity' => $this->datas->shop_activity,
             'shop_country' => $this->datas->shop_country,
             'shop_timezone' => $this->datas->timezone,
             'use_smtp' => false,
@@ -256,7 +289,7 @@ class InstallControllerConsoleProcess extends InstallControllerConsole implement
             'configuration_agrement' => true,
             'enable_ssl' => $this->datas->enable_ssl,
             'rewrite_engine' => $this->datas->rewrite_engine,
-        ));
+        ]);
     }
 
     /**
@@ -266,8 +299,13 @@ class InstallControllerConsoleProcess extends InstallControllerConsole implement
     public function processInstallModules()
     {
         $this->initializeContext();
+        if (is_string($this->datas->modules)) {
+            $modules = explode(',', $this->datas->modules);
+        } else {
+            $modules = array_keys($this->model_install->getModulesOnDisk());
+        }
 
-        return $this->model_install->installModules();
+        return $this->model_install->installModules($modules);
     }
 
     /**
@@ -283,7 +321,7 @@ class InstallControllerConsoleProcess extends InstallControllerConsole implement
         }
 
         $this->model_install->xml_loader_ids = $this->datas->xml_loader_ids;
-        $result = $this->model_install->installFixtures(null, array('shop_activity' => $this->datas->shop_activity, 'shop_country' => $this->datas->shop_country));
+        $result = $this->model_install->installFixtures(null, ['shop_country' => $this->datas->shop_country]);
         $this->datas->xml_loader_ids = $this->model_install->xml_loader_ids;
 
         return $result;
@@ -295,6 +333,24 @@ class InstallControllerConsoleProcess extends InstallControllerConsole implement
     public function processPostInstall(): bool
     {
         return $this->model_install->postInstall();
+    }
+
+    public function processFinalize(): bool
+    {
+        $this->initializeContext();
+
+        // if admin folder doesn't exist, then there's nothing to do here
+        if (!file_exists(_PS_ROOT_DIR_ . '/admin/')) {
+            return true;
+        }
+
+        $result = $this->model_install->finalize();
+
+        if (!$result) {
+            $this->printErrors();
+        }
+
+        return $result;
     }
 
     /**
@@ -310,12 +366,12 @@ class InstallControllerConsoleProcess extends InstallControllerConsole implement
 
     private function clearConfigXML()
     {
-        $configXMLPath = _PS_ROOT_DIR_.'/config/xml/';
+        $configXMLPath = _PS_ROOT_DIR_ . '/config/xml/';
         $cacheFiles = scandir($configXMLPath, SCANDIR_SORT_NONE);
         $excludes = ['.htaccess', 'index.php'];
 
-        foreach($cacheFiles as $file) {
-            $filepath = $configXMLPath.$file;
+        foreach ($cacheFiles as $file) {
+            $filepath = $configXMLPath . $file;
             if (is_file($filepath) && !in_array($file, $excludes)) {
                 unlink($filepath);
             }
@@ -324,10 +380,10 @@ class InstallControllerConsoleProcess extends InstallControllerConsole implement
 
     private function clearConfigThemes()
     {
-        $themesPath = _PS_ROOT_DIR_.'/config/themes/';
+        $themesPath = _PS_ROOT_DIR_ . '/config/themes/';
         $cacheFiles = scandir($themesPath, SCANDIR_SORT_NONE);
-        foreach($cacheFiles as $file) {
-            $file = $themesPath.$file;
+        foreach ($cacheFiles as $file) {
+            $file = $themesPath . $file;
             if (is_file($file)) {
                 unlink($file);
             }
@@ -339,10 +395,23 @@ class InstallControllerConsoleProcess extends InstallControllerConsole implement
      */
     private function initKernel()
     {
-        require_once _PS_CORE_DIR_.'/config/bootstrap.php';
+        require_once _PS_CORE_DIR_ . '/config/bootstrap.php';
 
         global $kernel;
-        $kernel = new AppKernel(_PS_ENV_, _PS_MODE_DEV_);
+        $kernel = new AdminKernel(_PS_ENV_, _PS_MODE_DEV_);
         $kernel->boot();
+    }
+
+    /**
+     * Delete translations cache and reboot the kernel so newly installed languages are took into account
+     *
+     * This method is only useful in CLI as everything is done in a single call but not with the web ui
+     * because the whole cache gets cleared before translating the fixtures
+     */
+    private function rebootWithoutTranslationsCache()
+    {
+        global $kernel;
+        (new Filesystem())->remove($kernel->getCacheDir() . DIRECTORY_SEPARATOR . 'translations');
+        $kernel->reboot($kernel->getCacheDir());
     }
 }

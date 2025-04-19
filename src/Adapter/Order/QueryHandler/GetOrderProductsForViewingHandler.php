@@ -37,25 +37,25 @@ use OrderSlip;
 use Pack;
 use PrestaShop\Decimal\DecimalNumber;
 use PrestaShop\PrestaShop\Adapter\Order\AbstractOrderHandler;
+use PrestaShop\PrestaShop\Core\CommandBus\Attributes\AsQueryHandler;
 use PrestaShop\PrestaShop\Core\Domain\Order\Query\GetOrderProductsForViewing;
 use PrestaShop\PrestaShop\Core\Domain\Order\QueryHandler\GetOrderProductsForViewingHandlerInterface;
 use PrestaShop\PrestaShop\Core\Domain\Order\QueryResult\OrderProductCustomizationForViewing;
 use PrestaShop\PrestaShop\Core\Domain\Order\QueryResult\OrderProductCustomizationsForViewing;
 use PrestaShop\PrestaShop\Core\Domain\Order\QueryResult\OrderProductForViewing;
 use PrestaShop\PrestaShop\Core\Domain\Order\QueryResult\OrderProductsForViewing;
-use PrestaShop\PrestaShop\Core\Domain\ValueObject\QuerySorting;
 use PrestaShop\PrestaShop\Core\Image\Parser\ImageTagSourceParserInterface;
 use PrestaShop\PrestaShop\Core\Localization\CLDR\ComputingPrecision;
 use PrestaShop\PrestaShop\Core\Localization\Locale;
+use PrestaShop\PrestaShop\Core\Util\Sorter;
 use Product;
 use Shop;
 use StockAvailable;
-use Warehouse;
-use WarehouseProductLocation;
 
 /**
  * Handles GetOrderProductsForViewing query using legacy object models
  */
+#[AsQueryHandler]
 final class GetOrderProductsForViewingHandler extends AbstractOrderHandler implements GetOrderProductsForViewingHandlerInterface
 {
     /**
@@ -111,11 +111,15 @@ final class GetOrderProductsForViewingHandler extends AbstractOrderHandler imple
             $customizations = [];
             if (is_array($product['customizedDatas'])) {
                 foreach ($product['customizedDatas'] as $customizationPerAddress) {
-                    foreach ($customizationPerAddress as $customizationId => $customization) {
+                    foreach ($customizationPerAddress as $customization) {
                         $customized_product_quantity += (int) $customization['quantity'];
                         foreach ($customization['datas'] as $datas) {
                             foreach ($datas as $data) {
-                                $customizations[] = new OrderProductCustomizationForViewing((int) $data['type'], $data['name'], $data['value']);
+                                $customizations[] = new OrderProductCustomizationForViewing(
+                                    (int) $data['type'],
+                                    (string) $data['name'],
+                                    $data['value']
+                                );
                             }
                         }
                     }
@@ -133,20 +137,6 @@ final class GetOrderProductsForViewingHandler extends AbstractOrderHandler imple
             $product['amount_refunded'] = $product[$resumeAmountKey] ?? 0;
             $product['refund_history'] = OrderSlip::getProductSlipDetail($product['id_order_detail']);
             $product['return_history'] = OrderReturn::getProductReturnDetail($product['id_order_detail']);
-
-            if ($product['id_warehouse'] != 0) {
-                $warehouse = new Warehouse((int) $product['id_warehouse']);
-                $product['warehouse_name'] = $warehouse->name;
-                $warehouse_location = WarehouseProductLocation::getProductLocation($product['product_id'], $product['product_attribute_id'], $product['id_warehouse']);
-                if (!empty($warehouse_location)) {
-                    $product['warehouse_location'] = $warehouse_location;
-                } else {
-                    $product['warehouse_location'] = false;
-                }
-            } else {
-                $product['warehouse_name'] = '--';
-                $product['warehouse_location'] = false;
-            }
 
             $pack_items = $product['cache_is_pack'] ? Pack::getItemTable($product['id_product'], $this->contextLanguageId, true) : [];
             foreach ($pack_items as &$pack_item) {
@@ -171,13 +161,14 @@ final class GetOrderProductsForViewingHandler extends AbstractOrderHandler imple
 
         unset($product);
 
-        if (QuerySorting::DESC === $query->getProductsSorting()->getValue()) {
-            // reorder products by order_detail_id DESC
-            krsort($products);
-        } else {
-            // reorder products by order_detail_id ASC
-            ksort($products);
-        }
+        // Sort products by Reference ID (and if equals (like combination) by Supplier Reference)
+        $sorter = new Sorter();
+        $products = $sorter->natural(
+            $products,
+            $query->getProductsSorting()->getValue(),
+            'product_reference',
+            'product_supplier_reference'
+        );
 
         $productsForViewing = [];
 
@@ -194,8 +185,7 @@ final class GetOrderProductsForViewingHandler extends AbstractOrderHandler imple
                 $unitPrice = (new DecimalNumber((string) $unitPrice))->round($precision, $this->getNumberRoundMode());
             }
 
-            $totalPrice = $unitPrice *
-                (!empty($product['customizedDatas']) ? $product['customizationQuantityTotal'] : $product['product_quantity']);
+            $totalPrice = $unitPrice * $product['product_quantity'];
 
             $unitPriceFormatted = $this->locale->formatPrice($unitPrice, $currency->iso_code);
             $totalPriceFormatted = $this->locale->formatPrice($totalPrice, $currency->iso_code);
@@ -240,7 +230,10 @@ final class GetOrderProductsForViewingHandler extends AbstractOrderHandler imple
                     null,
                     '',
                     $packItemType,
-                    (bool) Product::isAvailableWhenOutOfStock(StockAvailable::outOfStock($pack_item['id_product']))
+                    (bool) Product::isAvailableWhenOutOfStock(StockAvailable::outOfStock($pack_item['id_product'])),
+                    [],
+                    null,
+                    $pack_item['mpn']
                 );
             }
 
@@ -271,14 +264,15 @@ final class GetOrderProductsForViewingHandler extends AbstractOrderHandler imple
                 $productType,
                 (bool) Product::isAvailableWhenOutOfStock(StockAvailable::outOfStock($product['product_id'])),
                 $packItems,
-                $product['customizations']
+                $product['customizations'],
+                $product['product_mpn']
             );
         }
 
         $offset = $query->getOffset();
         $limit = $query->getLimit();
 
-        //@todo: its not really paginated, as all products are retrieved from legacy Order::getProducts(). But could be improved in future.
+        // @todo: its not really paginated, as all products are retrieved from legacy Order::getProducts(). But could be improved in future.
         if (null !== $offset && $limit) {
             $productsForViewing = array_slice($products, (int) $offset, (int) $limit);
         }

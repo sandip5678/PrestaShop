@@ -35,13 +35,13 @@
  * and of course the hash is kept in sync when the navbar or alternative links are used.
  */
 export default class NavbarHandler {
-  tabPrefix: string;
+  tabPrefix?: string;
 
   $navigationContainer: JQuery;
 
-  constructor($navigationContainer: JQuery, tabPrefix: string) {
+  constructor($navigationContainer: JQuery, tabPrefix: string = 'tab-') {
     // We use a tab prefix for hastag so that on reload the page doesn't auto scroll to the anchored element
-    this.tabPrefix = tabPrefix || 'tab-';
+    this.tabPrefix = tabPrefix;
     this.$navigationContainer = $navigationContainer;
 
     this.watchNavbar();
@@ -49,7 +49,13 @@ export default class NavbarHandler {
     this.switchOnPageLoad();
   }
 
-  switchToTarget(target: string): void {
+  public getHashTarget(): string {
+    const {hash} = document.location;
+
+    return hash.replace(`#${this.tabPrefix}`, '#');
+  }
+
+  public switchToTarget(target: string): void {
     if (!target) {
       return;
     }
@@ -64,23 +70,18 @@ export default class NavbarHandler {
     this.switchToTab(tabLink);
   }
 
-  switchToTab(tab: JQuery): void {
+  private switchToTab(tab: JQuery): void {
     tab.click();
     this.updateBrowserHash(<string>tab.attr('href'));
   }
 
-  updateBrowserHash(target: string): void {
-    const hashName = target.replace('#', `#${this.tabPrefix}`);
-
-    if (window.history.pushState) {
-      window.history.pushState(null, '', hashName);
-    } else {
-      window.location.hash = hashName;
-    }
+  private updateBrowserHash(target: string): void {
+    // Better use this rather than pushState because the hashchange event can be listened
+    window.location.hash = target.replace('#', `#${this.tabPrefix}`);
   }
 
-  watchNavbar(): void {
-    $(this.$navigationContainer).on(
+  private watchNavbar(): void {
+    this.$navigationContainer.on(
       'shown.bs.tab',
       (event: JQueryEventObject) => {
         // @ts-ignore-next-line
@@ -92,8 +93,8 @@ export default class NavbarHandler {
     );
   }
 
-  watchTabLinks(): void {
-    $('.tab-link').click((event) => {
+  private watchTabLinks(): void {
+    $('.tab-link').on('click', (event) => {
       event.preventDefault();
       const target = $(event.target).attr('href');
 
@@ -105,7 +106,7 @@ export default class NavbarHandler {
     });
   }
 
-  switchOnPageLoad(): void {
+  private switchOnPageLoad(): void {
     const errorTabs = $('.has-error', this.$navigationContainer);
 
     if (errorTabs.length) {

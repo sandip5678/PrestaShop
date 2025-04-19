@@ -65,6 +65,11 @@ class ModuleCatalogueLayersProviderTest extends KernelTestCase
      */
     private $modulesDir;
 
+    /**
+     * @var array<int, string>
+     */
+    private $moduleExtractorExcludedDirs = ['vendor', 'lib', 'tests'];
+
     public function setUp(): void
     {
         self::bootKernel();
@@ -85,6 +90,12 @@ class ModuleCatalogueLayersProviderTest extends KernelTestCase
         $this->modulesDir = self::$kernel->getContainer()->getParameter('translations_modules_dir');
 
         $this->legacyModuleExtractor = $this->createMock(LegacyModuleExtractorInterface::class);
+        $this->legacyModuleExtractor->method('extract')
+            ->withAnyParameters()
+            ->willReturnCallback(function (string $moduleName, string $locale) {
+                return new MessageCatalogue($locale);
+            });
+
         $this->legacyFileLoader = $this->createMock(LoaderInterface::class);
     }
 
@@ -153,7 +164,8 @@ class ModuleCatalogueLayersProviderTest extends KernelTestCase
             $phpExtractor,
             $smartyExtractor,
             $twigExtractor,
-            $this->modulesDir
+            $this->modulesDir,
+            $this->moduleExtractorExcludedDirs
         );
 
         $providerDefinition = new ModuleProviderDefinition('translationtest');
@@ -240,7 +252,8 @@ class ModuleCatalogueLayersProviderTest extends KernelTestCase
             $phpExtractor,
             $smartyExtractor,
             $twigExtractor,
-            $this->modulesDir
+            $this->modulesDir,
+            $this->moduleExtractorExcludedDirs
         );
         $providerDefinition = new ModuleProviderDefinition('translationtest');
         $provider = new ModuleCatalogueLayersProvider(

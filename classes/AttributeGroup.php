@@ -29,7 +29,7 @@
  */
 class AttributeGroupCore extends ObjectModel
 {
-    /** @var string Name */
+    /** @var string|string[] Name */
     public $name;
     /** @var bool Whether the attribute group is a color group */
     public $is_color_group;
@@ -37,8 +37,7 @@ class AttributeGroupCore extends ObjectModel
     public $position;
     /** @var string Group type */
     public $group_type;
-
-    /** @var string Public Name */
+    /** @var string|string[] Public Name */
     public $public_name;
 
     /**
@@ -50,12 +49,12 @@ class AttributeGroupCore extends ObjectModel
         'multilang' => true,
         'fields' => [
             'is_color_group' => ['type' => self::TYPE_BOOL, 'validate' => 'isBool'],
-            'group_type' => ['type' => self::TYPE_STRING, 'required' => true],
+            'group_type' => ['type' => self::TYPE_STRING, 'required' => true, 'size' => 255, 'trans' => ['key' => 'Attribute type', 'domain' => 'Admin.Catalog.Feature']],
             'position' => ['type' => self::TYPE_INT, 'validate' => 'isInt'],
 
             /* Lang fields */
-            'name' => ['type' => self::TYPE_STRING, 'lang' => true, 'validate' => 'isGenericName', 'required' => true, 'size' => 128],
-            'public_name' => ['type' => self::TYPE_STRING, 'lang' => true, 'validate' => 'isGenericName', 'required' => true, 'size' => 64],
+            'name' => ['type' => self::TYPE_STRING, 'lang' => true, 'validate' => 'isGenericName', 'required' => true, 'size' => 128, 'trans' => ['key' => 'Name', 'domain' => 'Admin.Global']],
+            'public_name' => ['type' => self::TYPE_STRING, 'lang' => true, 'validate' => 'isGenericName', 'required' => true, 'size' => 64, 'trans' => ['key' => 'Public name', 'domain' => 'Admin.Catalog.Feature']],
         ],
     ];
 
@@ -87,11 +86,7 @@ class AttributeGroupCore extends ObjectModel
      */
     public function add($autoDate = true, $nullValues = false)
     {
-        if ($this->group_type == 'color') {
-            $this->is_color_group = 1;
-        } else {
-            $this->is_color_group = 0;
-        }
+        $this->is_color_group = $this->group_type == 'color';
 
         if ($this->position <= 0) {
             $this->position = AttributeGroup::getHigherPosition() + 1;
@@ -115,11 +110,7 @@ class AttributeGroupCore extends ObjectModel
      */
     public function update($nullValues = false)
     {
-        if ($this->group_type == 'color') {
-            $this->is_color_group = 1;
-        } else {
-            $this->is_color_group = 0;
-        }
+        $this->is_color_group = $this->group_type == 'color';
 
         $return = parent::update($nullValues);
         Hook::exec('actionAttributeGroupSave', ['id_attribute_group' => $this->id]);
@@ -197,11 +188,11 @@ class AttributeGroupCore extends ObjectModel
             if (count($toRemove)) {
                 if (!Db::getInstance()->execute('
 				DELETE FROM `' . _DB_PREFIX_ . 'attribute_lang`
-				WHERE `id_attribute`	IN (' . implode(',', $toRemove) . ')') ||
-                !Db::getInstance()->execute('
+				WHERE `id_attribute`	IN (' . implode(',', $toRemove) . ')')
+                || !Db::getInstance()->execute('
 				DELETE FROM `' . _DB_PREFIX_ . 'attribute_shop`
-				WHERE `id_attribute`	IN (' . implode(',', $toRemove) . ')') ||
-                !Db::getInstance()->execute('DELETE FROM `' . _DB_PREFIX_ . 'attribute` WHERE `id_attribute_group` = ' . (int) $this->id)) {
+				WHERE `id_attribute`	IN (' . implode(',', $toRemove) . ')')
+                || !Db::getInstance()->execute('DELETE FROM `' . _DB_PREFIX_ . 'attribute` WHERE `id_attribute_group` = ' . (int) $this->id)) {
                     return false;
                 }
             }
@@ -270,7 +261,7 @@ class AttributeGroupCore extends ObjectModel
      *
      * @return bool Deletion result
      */
-    public function deleteSelection($selection)
+    public function deleteSelection(array $selection)
     {
         /* Also delete Attributes */
         foreach ($selection as $value) {
@@ -294,7 +285,7 @@ class AttributeGroupCore extends ObjectModel
     {
         $ids = [];
         foreach ($values as $value) {
-            $ids[] = (int) ($value['id']);
+            $ids[] = (int) $value['id'];
         }
         if (!empty($ids)) {
             Db::getInstance()->execute(
@@ -342,7 +333,7 @@ class AttributeGroupCore extends ObjectModel
      * Move a group attribute.
      *
      * @param bool $direction Up (1) or Down (0)
-     * @param int $position
+     * @param int|null $position
      *
      * @return bool Update result
      */

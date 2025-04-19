@@ -26,8 +26,9 @@
 
 namespace PrestaShop\PrestaShop\Adapter\Shop;
 
-use AppKernel;
+use Context;
 use PrestaShop\PrestaShop\Adapter\LegacyContext;
+use PrestaShop\PrestaShop\Core\Version;
 use Tools;
 
 /**
@@ -38,7 +39,7 @@ use Tools;
 class ShopInformation
 {
     /**
-     * @var \Context
+     * @var Context
      */
     private $context;
 
@@ -56,7 +57,7 @@ class ShopInformation
     public function getShopInformation()
     {
         return [
-            'version' => AppKernel::VERSION,
+            'version' => Version::VERSION,
             'url' => $this->context->shop->getBaseURL(),
             'path' => _PS_ROOT_DIR_,
             'theme' => $this->context->shop->theme->getName(),

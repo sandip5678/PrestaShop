@@ -29,6 +29,7 @@ namespace PrestaShop\PrestaShop\Adapter\Order\CommandHandler;
 use Currency;
 use OrderInvoice;
 use PrestaShop\PrestaShop\Adapter\Order\AbstractOrderHandler;
+use PrestaShop\PrestaShop\Core\CommandBus\Attributes\AsCommandHandler;
 use PrestaShop\PrestaShop\Core\Domain\Order\Exception\OrderException;
 use PrestaShop\PrestaShop\Core\Domain\Order\Payment\Command\AddPaymentCommand;
 use PrestaShop\PrestaShop\Core\Domain\Order\Payment\CommandHandler\AddPaymentHandlerInterface;
@@ -37,6 +38,7 @@ use Validate;
 /**
  * @internal
  */
+#[AsCommandHandler]
 final class AddPaymentHandler extends AbstractOrderHandler implements AddPaymentHandlerInterface
 {
     /**
@@ -69,7 +71,8 @@ final class AddPaymentHandler extends AbstractOrderHandler implements AddPayment
             $command->getPaymentTransactionId(),
             $currency,
             $command->getPaymentDate()->format('Y-m-d H:i:s'),
-            $orderInvoice
+            $orderInvoice,
+            $command->getEmployeeId()->getValue()
         );
 
         if (!$paymentAdded) {

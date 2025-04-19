@@ -29,6 +29,7 @@ namespace PrestaShop\PrestaShop\Adapter\SqlManager;
 use ErrorException;
 use PrestaShop\PrestaShop\Adapter\Entity\RequestSql;
 use PrestaShopDatabaseException;
+use PrestaShopException;
 
 /**
  * Class SqlQueryValidator is responsible for validating Request SQL model data.
@@ -55,13 +56,7 @@ class SqlQueryValidator
             if (!$validate || count($requestSql->error_sql)) {
                 $errors = $this->getErrors($requestSql->error_sql);
             }
-        } catch (ErrorException $e) {
-            $errors[] = [
-                'key' => 'Bad SQL query',
-                'parameters' => [],
-                'domain' => 'Admin.Notifications.Error',
-            ];
-        } catch (PrestaShopDatabaseException $e) {
+        } catch (ErrorException|PrestaShopException|PrestaShopDatabaseException) {
             $errors[] = [
                 'key' => 'Bad SQL query',
                 'parameters' => [],
@@ -183,6 +178,14 @@ class SqlQueryValidator
             return [
                 'key' => 'The "*" operator cannot be used in a nested query.',
                 'parameters' => [],
+                'domain' => 'Admin.Advparameters.Notification',
+            ];
+        }
+
+        if (isset($legacyError['function'])) {
+            return [
+                'key' => 'The "%function%" function is not allowed.',
+                'parameters' => ['%function%' => $legacyError['function']],
                 'domain' => 'Admin.Advparameters.Notification',
             ];
         }
@@ -349,11 +352,11 @@ class SqlQueryValidator
     /**
      * Get reference related SQL error.
      *
-     * @param array $legacyError
+     * @param array|bool $legacyError
      *
-     * @return array
+     * @return array<string, string|array<string, string>>
      */
-    private function getReferenceError(array $legacyError)
+    private function getReferenceError($legacyError): array
     {
         if (isset($legacyError['reference'])) {
             return [

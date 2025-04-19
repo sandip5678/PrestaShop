@@ -29,12 +29,14 @@ declare(strict_types=1);
 namespace PrestaShop\PrestaShop\Adapter\Product\Combination\CommandHandler;
 
 use PrestaShop\PrestaShop\Adapter\Product\Combination\Update\CombinationDeleter;
+use PrestaShop\PrestaShop\Core\CommandBus\Attributes\AsCommandHandler;
 use PrestaShop\PrestaShop\Core\Domain\Product\Combination\Command\DeleteCombinationCommand;
 use PrestaShop\PrestaShop\Core\Domain\Product\Combination\CommandHandler\DeleteCombinationHandlerInterface;
 
 /**
  * Handles @see DeleteCombinationCommand using adapter udpater service
  */
+#[AsCommandHandler]
 class DeleteCombinationHandler implements DeleteCombinationHandlerInterface
 {
     /**
@@ -55,6 +57,6 @@ class DeleteCombinationHandler implements DeleteCombinationHandlerInterface
      */
     public function handle(DeleteCombinationCommand $command): void
     {
-        $this->combinationDeleter->deleteCombination($command->getCombinationId());
+        $this->combinationDeleter->deleteCombination($command->getCombinationId(), $command->getShopConstraint());
     }
 }

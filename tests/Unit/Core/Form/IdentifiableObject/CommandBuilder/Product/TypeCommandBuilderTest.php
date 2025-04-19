@@ -32,7 +32,7 @@ use PrestaShop\PrestaShop\Core\Domain\Product\Command\UpdateProductTypeCommand;
 use PrestaShop\PrestaShop\Core\Domain\Product\ValueObject\ProductType;
 use PrestaShop\PrestaShop\Core\Form\IdentifiableObject\CommandBuilder\Product\TypeCommandsBuilder;
 
-class TypeCommandBuilderTest extends AbstractProductCommandBuilderTest
+class TypeCommandBuilderTest extends AbstractProductCommandBuilderTestCase
 {
     /**
      * @dataProvider getExpectedCommands
@@ -43,7 +43,7 @@ class TypeCommandBuilderTest extends AbstractProductCommandBuilderTest
     public function testBuildCommand(array $formData, array $expectedCommands)
     {
         $builder = new TypeCommandsBuilder();
-        $builtCommands = $builder->buildCommands($this->getProductId(), $formData);
+        $builtCommands = $builder->buildCommands($this->getProductId(), $formData, $this->getSingleShopConstraint());
         $this->assertEquals($expectedCommands, $builtCommands);
     }
 

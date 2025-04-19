@@ -32,12 +32,16 @@ use PrestaShop\PrestaShop\Adapter\Configuration;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Routing\Router;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
+use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpFoundation\Session\Session;
 use Symfony\Component\Security\Csrf\CsrfTokenManager;
+use Symfony\Component\Security\Csrf\CsrfTokenManagerInterface;
+use Tests\Integration\Utility\LoginTrait;
 
 class DeliveryControllerTest extends WebTestCase
 {
+    use LoginTrait;
     /**
      * @var KernelBrowser
      */
@@ -50,19 +54,14 @@ class DeliveryControllerTest extends WebTestCase
      * @var CsrfTokenManager
      */
     protected $tokenManager;
-    /**
-     * @var Session
-     */
-    protected $session;
 
     protected function setUp(): void
     {
         parent::setUp();
-        self::bootKernel();
 
         // Enable debug mode
         $configurationMock = $this->getMockBuilder(Configuration::class)
-            ->setMethods(['get'])
+            ->onlyMethods(['get'])
             ->disableOriginalConstructor()
             ->disableAutoload()
             ->getMock();
@@ -75,11 +74,11 @@ class DeliveryControllerTest extends WebTestCase
         $configurationMock->method('get')
             ->will($this->returnValueMap($values));
 
-        self::$kernel->getContainer()->set('prestashop.adapter.legacy.configuration', $configurationMock);
         $this->client = self::createClient();
+        $this->loginUser($this->client);
+        self::$kernel->getContainer()->set('prestashop.adapter.legacy.configuration', $configurationMock);
         $this->router = self::$kernel->getContainer()->get('router');
-        $this->tokenManager = self::$kernel->getContainer()->get('security.csrf.token_manager');
-        $this->session = self::$kernel->getContainer()->get('session');
+        $this->tokenManager = self::$kernel->getContainer()->get(CsrfTokenManagerInterface::class);
     }
 
     public function testSlipAction(): void
@@ -114,7 +113,7 @@ class DeliveryControllerTest extends WebTestCase
             Response::HTTP_OK,
             $response->getStatusCode()
         );
-        $this->assertStringContainsString('This value is not valid.', $response->getContent());
+        $this->assertStringContainsString('Please enter a number.', $response->getContent());
     }
 
     public function testSlipActionWithValidData(): void
@@ -138,9 +137,11 @@ class DeliveryControllerTest extends WebTestCase
             $response->getStatusCode()
         );
 
+        /** @var Session $session */
+        $session = $this->client->getRequest()->getSession();
         $this->assertArrayHasKey(
             'success',
-            $this->session->getFlashBag()->all()
+            $session->getFlashBag()->all()
         );
     }
 
@@ -159,14 +160,17 @@ class DeliveryControllerTest extends WebTestCase
                 ],
             ]
         );
+        /** @var RedirectResponse $response */
         $response = $this->client->getResponse();
         $this->assertEquals(
             Response::HTTP_FOUND,
             $response->getStatusCode()
         );
+        /** @var Session $session */
+        $session = $this->client->getRequest()->getSession();
         $this->assertArrayHasKey(
             'error',
-            $this->session->getFlashBag()->all()
+            $session->getFlashBag()->all()
         );
         $this->assertStringContainsString('/sell/orders/delivery-slips/?_token', $response->getTargetUrl());
     }
@@ -185,15 +189,18 @@ class DeliveryControllerTest extends WebTestCase
                 ],
             ]
         );
+        /** @var RedirectResponse $response */
         $response = $this->client->getResponse();
         $this->assertEquals(
             Response::HTTP_FOUND,
             $response->getStatusCode()
         );
 
+        /** @var Session $session */
+        $session = $this->client->getRequest()->getSession();
         $this->assertArrayHasKey(
             'error',
-            $this->session->getFlashBag()->all()
+            $session->getFlashBag()->all()
         );
         $this->assertStringContainsString('/sell/orders/delivery-slips/?_token', $response->getTargetUrl());
     }

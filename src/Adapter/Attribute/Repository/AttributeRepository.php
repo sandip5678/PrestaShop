@@ -28,39 +28,87 @@ declare(strict_types=1);
 
 namespace PrestaShop\PrestaShop\Adapter\Attribute\Repository;
 
+use Attribute;
 use Doctrine\DBAL\Connection;
-use Doctrine\DBAL\FetchMode;
-use PrestaShop\PrestaShop\Adapter\AbstractObjectModelRepository;
+use PrestaShop\PrestaShop\Core\Domain\AttributeGroup\Attribute\Exception\AttributeNotFoundException;
+use PrestaShop\PrestaShop\Core\Domain\AttributeGroup\Attribute\Exception\CannotAddAttributeException;
+use PrestaShop\PrestaShop\Core\Domain\AttributeGroup\Attribute\Exception\CannotUpdateAttributeException;
+use PrestaShop\PrestaShop\Core\Domain\AttributeGroup\Attribute\ValueObject\AttributeId;
+use PrestaShop\PrestaShop\Core\Domain\AttributeGroup\ValueObject\AttributeGroupId;
 use PrestaShop\PrestaShop\Core\Domain\Language\ValueObject\LanguageId;
-use PrestaShop\PrestaShop\Core\Domain\Product\AttributeGroup\Attribute\Exception\AttributeNotFoundException;
-use PrestaShop\PrestaShop\Core\Domain\Product\ValueObject\ProductId;
+use PrestaShop\PrestaShop\Core\Domain\Product\Combination\CombinationAttributeInformation;
+use PrestaShop\PrestaShop\Core\Domain\Product\Combination\ValueObject\CombinationId;
+use PrestaShop\PrestaShop\Core\Domain\Shop\Exception\ShopAssociationNotFound;
+use PrestaShop\PrestaShop\Core\Domain\Shop\ValueObject\ShopConstraint;
+use PrestaShop\PrestaShop\Core\Domain\Shop\ValueObject\ShopId;
+use PrestaShop\PrestaShop\Core\Exception\CoreException;
+use PrestaShop\PrestaShop\Core\Repository\AbstractMultiShopObjectModelRepository;
+use ProductAttribute;
 use RuntimeException;
 
 /**
  * Provides access to attribute data source
  */
-class AttributeRepository extends AbstractObjectModelRepository
+class AttributeRepository extends AbstractMultiShopObjectModelRepository
 {
-    /**
-     * @var Connection
-     */
-    private $connection;
+    private Connection $connection;
 
-    /**
-     * @var string
-     */
-    private $dbPrefix;
+    private string $dbPrefix;
 
-    /**
-     * @param Connection $connection
-     * @param string $dbPrefix
-     */
     public function __construct(
         Connection $connection,
         string $dbPrefix
     ) {
         $this->connection = $connection;
         $this->dbPrefix = $dbPrefix;
+    }
+
+    /**
+     * @param AttributeId $attributeId
+     *
+     * @return ProductAttribute
+     *
+     * @throws AttributeNotFoundException
+     * @throws CoreException
+     */
+    public function get(AttributeId $attributeId): ProductAttribute
+    {
+        /** @var ProductAttribute $attribute */
+        $attribute = $this->getObjectModel(
+            $attributeId->getValue(),
+            ProductAttribute::class,
+            AttributeNotFoundException::class
+        );
+
+        return $attribute;
+    }
+
+    /**
+     * @param ProductAttribute $attribute
+     *
+     * @return AttributeId
+     *
+     * @throws CoreException
+     */
+    public function add(ProductAttribute $attribute): AttributeId
+    {
+        $attributeId = $this->addObjectModelToShops(
+            $attribute,
+            array_map(fn (int $shopId) => new ShopId((int) $shopId), $attribute->id_shop_list),
+            CannotAddAttributeException::class
+        );
+
+        return new AttributeId($attributeId);
+    }
+
+    public function partialUpdate(ProductAttribute $attribute, array $propertiesToUpdate, int $errorCode = 0): void
+    {
+        $this->partiallyUpdateObjectModel($attribute, $propertiesToUpdate, CannotUpdateAttributeException::class, $errorCode);
+        $this->updateObjectModelShopAssociations(
+            (int) $attribute->id,
+            ProductAttribute::class,
+            $attribute->id_shop_list
+        );
     }
 
     /**
@@ -79,7 +127,7 @@ class AttributeRepository extends AbstractObjectModelRepository
             ->setParameter('idsList', $attributeIds, Connection::PARAM_INT_ARRAY)
         ;
 
-        $result = (int) $qb->execute()->fetch()['total'];
+        $result = (int) $qb->executeQuery()->fetchAssociative()['total'];
 
         if (count($attributeIds) !== $result) {
             throw new AttributeNotFoundException('Some of provided attributes does not exist');
@@ -87,58 +135,176 @@ class AttributeRepository extends AbstractObjectModelRepository
     }
 
     /**
-     * @param ProductId $productId
+     * @param ShopConstraint $shopConstraint
+     * @param AttributeGroupId[] $attributeGroupIds
+     * @param AttributeId[] $attributeIds get only certain attributes (e.g. when need to get only certain combinations attributes)
      *
-     * @return array<int>
+     * @return array<int, array<int, ProductAttribute>> arrays of product attributes indexed by product attribute groups
      */
-    public function getProductAttributesIds(ProductId $productId): array
+    public function getGroupedAttributes(ShopConstraint $shopConstraint, array $attributeGroupIds, array $attributeIds = []): array
     {
+        if (empty($attributeGroupIds)) {
+            return [];
+        }
+
+        $attributeGroupIdValues = array_map(static function (AttributeGroupId $attributeGroupId): int {
+            return $attributeGroupId->getValue();
+        }, $attributeGroupIds);
+
         $qb = $this->connection->createQueryBuilder();
         $qb
-            ->select('pac.id_attribute')
-            ->from($this->dbPrefix . 'product_attribute_combination', 'pac')
-            ->innerJoin('pac', $this->dbPrefix . 'product_attribute', 'pa', 'pac.id_product_attribute = pa.id_product_attribute')
-            ->where('pa.id_product = :productId')
-            ->groupBy('pac.id_attribute')
-            ->setParameter('productId', $productId->getValue())
+            ->select('a.*, al.*')
+            ->from($this->dbPrefix . 'attribute', 'a')
+            ->innerJoin(
+                'a',
+                $this->dbPrefix . 'attribute_lang',
+                'al',
+                'a.id_attribute = al.id_attribute'
+            )
+            ->andWhere($qb->expr()->in('a.id_attribute_group', ':attributeGroupIds'))
+            ->setParameter('attributeGroupIds', $attributeGroupIdValues, Connection::PARAM_INT_ARRAY)
+            ->addOrderBy('a.position', 'ASC')
         ;
 
-        return $qb->execute()->fetchAll(FetchMode::COLUMN);
+        if (!empty($attributeIds)) {
+            $attributeIdValues = array_map(static function (AttributeId $attributeId): int {
+                return $attributeId->getValue();
+            }, $attributeIds);
+
+            $qb->andWhere($qb->expr()->in('a.id_attribute', ':attributeIds'))
+                ->setParameter('attributeIds', $attributeIdValues, Connection::PARAM_INT_ARRAY)
+            ;
+        }
+
+        $shopIdValue = $shopConstraint->getShopId() ? $shopConstraint->getShopId()->getValue() : null;
+
+        if ($shopIdValue) {
+            $qb
+                ->leftJoin(
+                    'a',
+                    $this->dbPrefix . 'attribute_shop',
+                    'attr_shop',
+                    'a.id_attribute = attr_shop.id_attribute'
+                )
+                ->andWhere('attr_shop.id_shop = :shopId')
+                ->setParameter('shopId', $shopIdValue)
+            ;
+        }
+
+        $results = $qb->executeQuery()->fetchAllAssociative();
+
+        if (!$results) {
+            return [];
+        }
+
+        $attributes = [];
+
+        foreach ($results as $result) {
+            $attributeGroupId = (int) $result['id_attribute_group'];
+            $attributeId = (int) $result['id_attribute'];
+            $langId = (int) $result['id_lang'];
+
+            if (isset($attributes[$attributeGroupId][$attributeId])) {
+                $attribute = $attributes[$attributeGroupId][$attributeId];
+            } else {
+                $attribute = new ProductAttribute();
+                $attributes[$attributeGroupId][$attributeId] = $attribute;
+            }
+
+            $attribute->id = $attributeId;
+            $attribute->id_attribute_group = $attributeGroupId;
+            $attribute->color = (string) $result['color'];
+            $attribute->position = (int) $result['position'];
+            $attribute->name[$langId] = (string) $result['name'];
+        }
+
+        return $attributes;
     }
 
     /**
-     * @param int[] $combinationIds
+     * @param CombinationId[] $combinationIds
      * @param LanguageId $langId
      *
-     * @return array<int, array<int, mixed>>
+     * @return array<int, CombinationAttributeInformation[]>
      */
     public function getAttributesInfoByCombinationIds(array $combinationIds, LanguageId $langId): array
     {
         $attributeCombinationAssociations = $this->getAttributeCombinationAssociations($combinationIds);
-
-        $attributeIds = array_unique(array_map(function (array $attributeByCombination): int {
+        $attributeIds = array_unique(array_map(static function (array $attributeByCombination): int {
             return (int) $attributeByCombination['id_attribute'];
         }, $attributeCombinationAssociations));
 
         $attributesInfoByAttributeId = $this->getAttributesInformation($attributeIds, $langId->getValue());
 
-        $attributesInfoByCombinationId = [];
-        foreach ($attributeCombinationAssociations as $attributeCombinationAssociation) {
-            $combinationId = (int) $attributeCombinationAssociation['id_product_attribute'];
-            $attributeId = (int) $attributeCombinationAssociation['id_attribute'];
-            $attributesInfoByCombinationId[$combinationId][] = $attributesInfoByAttributeId[$attributeId];
-        }
-
-        return $attributesInfoByCombinationId;
+        return $this->buildCombinationAttributeInformationList(
+            $attributeCombinationAssociations,
+            $attributesInfoByAttributeId
+        );
     }
 
     /**
-     * @param int[] $combinationIds
+     * Asserts that attribute exists in all the provided shops.
+     * If at least one of them is missing in any shop, it throws exception.
+     *
+     * @param AttributeId[] $attributeIds
+     * @param ShopId[] $shopIds
+     *
+     * @throws ShopAssociationNotFound
+     */
+    public function assertExistsInEveryShop(array $attributeIds, array $shopIds): void
+    {
+        $attributeIdValues = array_map(static function (AttributeId $attributeId): int {
+            return $attributeId->getValue();
+        }, $attributeIds);
+
+        $shopIdValues = array_map(static function (ShopId $shopId): int {
+            return $shopId->getValue();
+        }, $shopIds);
+
+        $qb = $this->connection->createQueryBuilder();
+        $results = $qb
+            ->select('a.id_attribute', 'attr_shop.id_shop')
+            ->from($this->dbPrefix . 'attribute', 'a')
+            ->innerJoin(
+                'a',
+                $this->dbPrefix . 'attribute_shop',
+                'attr_shop',
+                'a.id_attribute = attr_shop.id_attribute AND attr_shop.id_shop IN (:shopIds)'
+            )
+            ->where($qb->expr()->in('a.id_attribute', ':attributeIds'))
+            ->setParameter('shopIds', $shopIdValues, Connection::PARAM_INT_ARRAY)
+            ->setParameter('attributeIds', $attributeIdValues, Connection::PARAM_INT_ARRAY)
+            ->executeQuery()
+            ->fetchAllAssociative()
+        ;
+
+        $attributeShops = [];
+        foreach ($results as $result) {
+            $attributeShops[(int) $result['id_attribute']][] = (int) $result['id_shop'];
+        }
+
+        foreach ($attributeIdValues as $attributeIdValue) {
+            if (!isset($attributeShops[$attributeIdValue]) || $attributeShops[$attributeIdValue] !== $shopIdValues) {
+                throw new ShopAssociationNotFound('Provided attributes do not exist in every shop');
+            }
+        }
+    }
+
+    /**
+     * @param CombinationId[] $combinationIds
      *
      * @return array<int, array<string, mixed>>
      */
     private function getAttributeCombinationAssociations(array $combinationIds): array
     {
+        if (empty($combinationIds)) {
+            return [];
+        }
+
+        $combinationIds = array_map(function (CombinationId $id): int {
+            return $id->getValue();
+        }, $combinationIds);
+
         $qb = $this->connection->createQueryBuilder();
         $qb->select('pac.id_attribute')
             ->addSelect('pac.id_product_attribute')
@@ -147,14 +313,14 @@ class AttributeRepository extends AbstractObjectModelRepository
             ->setParameter('combinationIds', $combinationIds, Connection::PARAM_INT_ARRAY)
         ;
 
-        return $qb->execute()->fetchAll();
+        return $qb->executeQuery()->fetchAllAssociative();
     }
 
     /**
      * @param int[] $attributeIds
      * @param int $langId
      *
-     * @return array<int, array<int, mixed>>
+     * @return array<int, array<string, mixed>>
      */
     private function getAttributesInformation(array $attributeIds, int $langId): array
     {
@@ -187,7 +353,7 @@ class AttributeRepository extends AbstractObjectModelRepository
             ->setParameter('langId', $langId)
         ;
 
-        $attributesInfo = $qb->execute()->fetchAll();
+        $attributesInfo = $qb->executeQuery()->fetchAllAssociative();
 
         $attributesInfoByAttributeId = [];
         foreach ($attributesInfo as $attributeInfo) {
@@ -195,5 +361,30 @@ class AttributeRepository extends AbstractObjectModelRepository
         }
 
         return $attributesInfoByAttributeId;
+    }
+
+    /**
+     * @param array<int, array<string, int>> $attributeCombinationAssociations
+     * @param array<int, array<string, mixed>> $attributesInfoByAttributeId
+     *
+     * @return array<int, CombinationAttributeInformation[]>
+     */
+    private function buildCombinationAttributeInformationList(
+        array $attributeCombinationAssociations,
+        array $attributesInfoByAttributeId
+    ): array {
+        $attributesInfoByCombinationId = [];
+        foreach ($attributeCombinationAssociations as $attributeCombinationAssociation) {
+            $combinationId = (int) $attributeCombinationAssociation['id_product_attribute'];
+            $attributeId = (int) $attributeCombinationAssociation['id_attribute'];
+            $attributesInfoByCombinationId[$combinationId][] = new CombinationAttributeInformation(
+                (int) $attributesInfoByAttributeId[$attributeId]['id_attribute_group'],
+                $attributesInfoByAttributeId[$attributeId]['attribute_group_name'],
+                (int) $attributesInfoByAttributeId[$attributeId]['id_attribute'],
+                $attributesInfoByAttributeId[$attributeId]['attribute_name']
+            );
+        }
+
+        return $attributesInfoByCombinationId;
     }
 }
